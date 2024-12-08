@@ -12,26 +12,21 @@ import {
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 
-const menuItems = [
+const navigation = [
   {
     name: 'Home',
     href: '/',
     icon: HomeIcon
   },
   {
-    name: 'Upload',
-    href: '/upload',
-    icon: ArrowUpTrayIcon
+    name: 'Atendimentos',
+    href: '/atendimentos',
+    icon: DocumentTextIcon
   },
   {
     name: 'Excel',
     href: '/excel',
     icon: TableCellsIcon
-  },
-  {
-    name: 'Atendimentos',
-    href: '/atendimentos',
-    icon: ChartBarIcon
   },
   {
     name: 'Auditoria',
@@ -41,7 +36,7 @@ const menuItems = [
   {
     name: 'Raiz',
     href: '/raiz',
-    icon: DocumentTextIcon
+    icon: HomeIcon
   }
 ];
 
@@ -68,7 +63,7 @@ export function Sidebar() {
             />
           </div>
           <nav className="flex-1 px-2 space-y-1">
-            {menuItems.map((item) => (
+            {navigation.map((item) => (
               <div
                 key={item.name}
                 className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-white/90"
@@ -100,7 +95,7 @@ export function Sidebar() {
           />
         </div>
         <nav className="flex-1 px-2 space-y-1">
-          {menuItems.map((item) => {
+          {navigation.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
