@@ -19,6 +19,11 @@ const navigation = [
     icon: HomeIcon
   },
   {
+    name: 'Upload',
+    href: '/upload',
+    icon: ArrowUpTrayIcon
+  },
+  {
     name: 'Atendimentos',
     href: '/atendimentos',
     icon: DocumentTextIcon
@@ -33,11 +38,11 @@ const navigation = [
     href: '/auditoria',
     icon: DocumentTextIcon
   },
-  {
-    name: 'Raiz',
-    href: '/raiz',
-    icon: HomeIcon
-  }
+  // {
+  //   name: 'Raiz',
+  //   href: '/raiz',
+  //   icon: HomeIcon
+  // }
 ];
 
 export function Sidebar() {
