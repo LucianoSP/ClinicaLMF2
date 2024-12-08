@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Node
+node_modules/
+.next/
+dist/
+
+# Database
+*.db
+
+# Excel files
+*.xlsx
+
+# Temporary files
+temp/
+*.log
+
+# IDE
+.vscode/
+.idea/

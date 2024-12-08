@@ -1,0 +1,67 @@
+Organização e Layout:
+
+
+Adicionar cards ou seções com bordas suaves para separar melhor as informações
+Usar um layout em grid mais organizado para melhor distribuição do espaço
+Adicionar mais espaçamento entre os elementos para melhorar a legibilidade
+
+
+Cabeçalho:
+
+
+Destacar melhor o título "Relatórios" com uma tipografia mais moderna
+
+Mover os botões "Sincronizar" e "Atualizar" para a direita e dar um visual mais moderno
+
+
+Informações Principais:
+
+
+Criar uma seção de resumo em cards para as informações principais:
+
+Número da Guia
+Data
+Clínica
+Profissional
+Conselho
+
+
+Tabela:
+
+
+Adicionar zebra stripes (linhas alternadas) para melhor legibilidade
+Adicionar hover states nas linhas
+Melhorar o cabeçalho da tabela com um fundo diferenciado
+Alinhar melhor os textos nas colunas (ex: datas à esquerda, números à direita)
+Adicionar paginação caso a lista cresça
+
+
+Visual:
+
+
+Usar uma paleta de cores mais moderna mantendo a identidade visual
+Adicionar ícones sutis para as ações e status
+Usar badges coloridos para status (ex: assinatura "Sim" em um badge verde)
+Adicionar sombras suaves para dar profundidade
+
+Lembre-se de que cada guia terá seu card independente
+
+
+
+Importar Planilha Excel:Na página de Upload já existe uma funcionalidade para fazer upload de pdfs. 
+Agora eu preciso uma nova funcionalidade para upload de arquivos xls/xlsx.
+Essa planilha será carregada e salva em uma tabela especifica do banco de dados, que precisa ser criada. 
+A planilha possui 2 pastas, mas devemos utilizar somente a pasta Protocolo. 
+Também tem muitas colunas, mas eu quero importar somente as colunas idGuia, nomePaciente, DataExec, Carteirinha e Id_Paciente.
+Na página de Upload, devemos criar um novo botão para importar a planilha, não mexer nas funcionalidades que ja existem.
+
+Renomear as colunas da tabela excel:
+idGuia > NÚMERO DA GUIA
+nomePaciente > BENEFICIÁRIO
+DataExec > DATA
+Carteirinha > CARTEIRA
+ Id_Paciente > ID PACIENTE
+
+
+
+ netstat -ano | findstr :3000
