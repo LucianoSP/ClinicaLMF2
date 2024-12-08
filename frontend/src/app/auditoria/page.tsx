@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import Pagination from '@/components/Pagination';
 import { FiCheck, FiX } from 'react-icons/fi';
+import { API_URL } from '@/config/api';
 
 interface Atendimento {
   id: number;
@@ -86,24 +87,27 @@ export default function AuditoriaPage() {
         per_page: '10'
       });
 
-      const response = await fetch(`http://localhost:5000/api/auditoria/divergencias?${params}`, {
+      // Construir a URL base
+      const baseUrl = `${API_URL}/api/auditoria/divergencias/`;
+
+      const response = await fetch(`${baseUrl}?${params}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Erro ao buscar divergências: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Dados recebidos:', data);
-      
+
       if (!data || !Array.isArray(data.divergencias)) {
         throw new Error('Formato de resposta inválido');
       }
-      
+
       // Processar as divergências para extrair o beneficiário
       const divergenciasProcessadas = data.divergencias.map(div => {
         const { descricao, beneficiario } = extrairBeneficiario(div.descricao_divergencia);
@@ -113,7 +117,7 @@ export default function AuditoriaPage() {
           beneficiario
         };
       });
-      
+
       setDados(divergenciasProcessadas);
       setTotalPages(Math.ceil(data.total / 10));
     } catch (err) {
@@ -141,18 +145,18 @@ export default function AuditoriaPage() {
           'Accept': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Erro ao executar auditoria: ${response.status}`);
       }
-      
+
       const result = await response.json();
       console.log('Resultado da auditoria:', result);
-      
+
       if (!result || !result.data) {
         throw new Error('Formato de resposta inválido');
       }
-      
+
       setResultadoAuditoria(result.data);
       await buscarDivergencias();
     } catch (err) {
@@ -170,18 +174,18 @@ export default function AuditoriaPage() {
       setSortField(field);
       setSortDirection('asc');
     }
-    
+
     const sortedData = [...dados].sort((a, b) => {
       const aValue = a[field as keyof typeof a];
       const bValue = b[field as keyof typeof b];
-      
+
       if (sortDirection === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
         return aValue < bValue ? 1 : -1;
       }
     });
-    
+
     setDados(sortedData);
   };
 
@@ -200,7 +204,7 @@ export default function AuditoriaPage() {
       });
 
       console.log('Status da resposta:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Erro na resposta:', errorText);
@@ -211,7 +215,7 @@ export default function AuditoriaPage() {
       console.log('Resultado:', result);
 
       // Atualiza a lista localmente
-      setDados(dados.map(d => 
+      setDados(dados.map(d =>
         d.id === id ? { ...d, status: 'Resolvido' } : d
       ));
 
@@ -240,7 +244,7 @@ export default function AuditoriaPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-semibold mb-6 text-[#6b342f]">Auditoria</h1>
-      
+
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <div className="flex flex-col md:flex-row gap-6 mb-6">
           <div className="flex flex-col gap-2">
@@ -258,7 +262,7 @@ export default function AuditoriaPage() {
             />
           </div>
           <div className="flex flex-col justify-end">
-            <button 
+            <button
               onClick={iniciarAuditoria}
               disabled={executandoAuditoria || !dataInicial || !dataFinal}
               className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
@@ -321,11 +325,10 @@ export default function AuditoriaPage() {
                     <TableCell>{divergencia.beneficiario || '-'}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${
-                          divergencia.status === 'Resolvido'
-                            ? 'bg-[#dcfce7] text-[#15803d]'
-                            : 'bg-[#fef9c3] text-[#854d0e]'
-                        }`}>
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${divergencia.status === 'Resolvido'
+                          ? 'bg-[#dcfce7] text-[#15803d]'
+                          : 'bg-[#fef9c3] text-[#854d0e]'
+                          }`}>
                           {divergencia.status === 'Resolvido' ? (
                             <>
                               <FiCheck className="w-3 h-3" />

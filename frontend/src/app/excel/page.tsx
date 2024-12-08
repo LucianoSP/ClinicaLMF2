@@ -8,6 +8,7 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { SortableTable, Column } from '@/components/SortableTable';
 import { useDebounce } from '@/hooks/useDebounce';
 import Pagination from '@/components/Pagination';
+import { API_URL } from '@/config/api';
 
 interface ExcelData {
   id: number;
@@ -37,31 +38,31 @@ export default function ExcelPage() {
   const fetchData = async () => {
     try {
       setError(null);
-      
+
       // Construir a URL base
-      const baseUrl = 'http://localhost:5000/list-excel';
-      
+      const baseUrl = `${API_URL}/excel/`;
+
       // Construir os parâmetros
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('per_page', perPage.toString());
-      
+
       // Só adiciona o filtro se tiver 2 ou mais caracteres
       const cleanSearchTerm = debouncedSearchTerm?.trim() || '';
       if (cleanSearchTerm.length >= 2) {
         params.set('nome_beneficiario', cleanSearchTerm);
       }
-      
+
       // Construir a URL final
       const url = `${baseUrl}?${params.toString()}`;
       console.log('URL completa:', url);
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Erro ao carregar dados');
       }
       const result = await response.json();
-      
+
       if (result.success) {
         const formattedData = result.data.registros.map((item: ExcelData) => ({
           ...item,
@@ -144,11 +145,11 @@ export default function ExcelPage() {
         const response = await fetch('http://localhost:5000/clear-excel-data', {
           method: 'POST',
         });
-        
+
         if (!response.ok) {
           throw new Error('Erro ao limpar dados');
         }
-        
+
         const result = await response.json();
         if (result.success) {
           setData([]);
@@ -198,7 +199,7 @@ export default function ExcelPage() {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-[#6b342f]">Dados Importados do Excel</h1>
-        
+
         <div className="flex gap-2">
           <button
             onClick={handleClearData}
@@ -231,7 +232,7 @@ export default function ExcelPage() {
             />
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
           </div>
-          
+
           <div className="flex items-center gap-2">
             <label htmlFor="perPage" className="text-sm text-gray-600">
               Itens por página:
@@ -250,7 +251,7 @@ export default function ExcelPage() {
           </div>
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <SortableTable
           data={data}

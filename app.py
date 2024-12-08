@@ -499,7 +499,7 @@ async def get_guia(numero_guia: str):
     return atendimentos
 
 
-@app.get("/list-excel/")
+@app.get("/excel/")
 async def list_excel(
     page: int = Query(1, description="Página atual"),
     per_page: int = Query(10, description="Itens por página"),
