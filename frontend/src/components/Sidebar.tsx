@@ -40,7 +40,7 @@ const menuItems = [
   },
   {
     name: 'Raiz',
-    href: '/',
+    href: '/raiz',
     icon: DocumentTextIcon
   }
 ];
@@ -107,8 +107,8 @@ export function Sidebar() {
                 key={item.name}
                 href={item.href}
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
-                    ? 'bg-[#877347] text-white font-semibold'
-                    : 'text-white/90 hover:bg-white/10 hover:text-white'
+                  ? 'bg-[#877347] text-white font-semibold'
+                  : 'text-white/90 hover:bg-white/10 hover:text-white'
                   }`}
               >
                 <item.icon
