@@ -48,17 +48,10 @@ app = FastAPI(title="PDF Processor API")
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5000",
-        "https://clinica-lmf-2-5j65556c6-lucianosps-projects.vercel.app",
-        "https://clinica-lmf-2.vercel.app",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Permite todas as origens durante desenvolvimento
+    allow_credentials=False,  # Deve ser False quando allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=600,
 )
 
 # Criar diretório para arquivos temporários se não existir

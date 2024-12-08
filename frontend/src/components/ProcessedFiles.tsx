@@ -88,7 +88,7 @@ const ProcessedFiles = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
+        credentials: 'omit',  // Mudando para 'omit' já que allow_origins=["*"]
       });
 
       if (!response.ok) {
