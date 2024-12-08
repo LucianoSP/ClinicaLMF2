@@ -45,14 +45,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PDF Processor API")
 
-# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permite todas as origens durante desenvolvimento
-    allow_credentials=False,  # Deve ser False quando allow_origins=["*"]
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Criar diretório para arquivos temporários se não existir
 TEMP_DIR = "temp"
@@ -564,7 +564,7 @@ async def clear_excel_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/auditoria/divergencias")
+@app.get("/auditoria/divergencias")
 async def get_divergencias(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
@@ -587,7 +587,7 @@ async def get_divergencias(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/auditoria/iniciar")
+@app.post("/auditoria/iniciar")
 async def iniciar_auditoria(
     data_inicial: str = Query(None, description="Data inicial (DD/MM/YYYY)"),
     data_final: str = Query(None, description="Data final (DD/MM/YYYY)"),
@@ -604,7 +604,7 @@ async def iniciar_auditoria(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/api/auditoria/divergencia/{divergencia_id}")
+@app.put("/auditoria/divergencia/{divergencia_id}")
 async def atualizar_divergencia(
     divergencia_id: int, status: str = Body(..., embed=True)
 ):

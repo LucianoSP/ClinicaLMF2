@@ -88,7 +88,7 @@ export default function AuditoriaPage() {
       });
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/api/auditoria/divergencias/`;
+      const baseUrl = `${API_URL}/auditoria/divergencias/`;
 
       const response = await fetch(`${baseUrl}?${params}`, {
         method: 'GET',
@@ -140,7 +140,7 @@ export default function AuditoriaPage() {
       console.log('Parâmetros da auditoria:', Object.fromEntries(params));
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/api/auditoria/iniciar/`;
+      const baseUrl = `${API_URL}/auditoria/iniciar/`;
 
       const response = await fetch(`${baseUrl}?${params}`, {
         method: 'POST',
@@ -198,7 +198,7 @@ export default function AuditoriaPage() {
       setError(null);
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/api/auditoria/divergencia/`;
+      const baseUrl = `${API_URL}/auditoria/divergencia/`;
 
       const response = await fetch(`${baseUrl}${id}`, {
         method: 'PUT',
