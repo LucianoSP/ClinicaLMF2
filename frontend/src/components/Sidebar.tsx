@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { 
-  HomeIcon, 
-  DocumentTextIcon, 
-  ArrowUpTrayIcon, 
-  ChartBarIcon, 
-  TableCellsIcon 
+import {
+  HomeIcon,
+  DocumentTextIcon,
+  ArrowUpTrayIcon,
+  ChartBarIcon,
+  TableCellsIcon
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 
@@ -36,6 +36,11 @@ const menuItems = [
   {
     name: 'Auditoria',
     href: '/auditoria',
+    icon: DocumentTextIcon
+  },
+  {
+    name: 'Raiz',
+    href: '/',
     icon: DocumentTextIcon
   }
 ];
@@ -101,16 +106,14 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                  isActive
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
                     ? 'bg-[#877347] text-white font-semibold'
                     : 'text-white/90 hover:bg-white/10 hover:text-white'
-                }`}
+                  }`}
               >
                 <item.icon
-                  className={`mr-3 flex-shrink-0 h-6 w-6 ${
-                    isActive ? 'text-white' : 'text-white/90 group-hover:text-white'
-                  }`}
+                  className={`mr-3 flex-shrink-0 h-6 w-6 ${isActive ? 'text-white' : 'text-white/90 group-hover:text-white'
+                    }`}
                   aria-hidden="true"
                 />
                 {item.name}
