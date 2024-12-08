@@ -142,7 +142,7 @@ export default function ExcelPage() {
     if (window.confirm('Tem certeza que deseja limpar todos os dados da tabela?')) {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5000/clear-excel-data', {
+        const response = await fetch(`${API_URL}/clear-excel-data`, {
           method: 'POST',
         });
 

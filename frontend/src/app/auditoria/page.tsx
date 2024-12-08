@@ -139,7 +139,10 @@ export default function AuditoriaPage() {
 
       console.log('Parâmetros da auditoria:', Object.fromEntries(params));
 
-      const response = await fetch(`http://localhost:5000/api/auditoria/iniciar?${params}`, {
+      // Construir a URL base
+      const baseUrl = `${API_URL}/api/auditoria/iniciar/`;
+
+      const response = await fetch(`${baseUrl}?${params}`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -194,7 +197,10 @@ export default function AuditoriaPage() {
       console.log('Marcando divergência como resolvida:', id);
       setError(null);
 
-      const response = await fetch(`http://localhost:5000/api/auditoria/divergencia/${id}`, {
+      // Construir a URL base
+      const baseUrl = `${API_URL}/api/auditoria/divergencia/`;
+
+      const response = await fetch(`${baseUrl}${id}`, {
         method: 'PUT',
         headers: {
           'Accept': 'application/json',

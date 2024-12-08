@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useRouter } from 'next/navigation';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { API_URL } from '@/config/api';
 
 export function ExcelUpload() {
   const router = useRouter();
@@ -35,12 +36,12 @@ export function ExcelUpload() {
     setUploading(true);
     setError(null);
     setSuccess(false);
-    
+
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:5000/upload-excel/', {
+      const response = await fetch(`${API_URL}/upload-excel`, {
         method: 'POST',
         body: formData
       });
