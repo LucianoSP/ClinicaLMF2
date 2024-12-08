@@ -195,6 +195,7 @@ export default function AuditoriaPage() {
   const marcarResolvido = async (id: number) => {
     try {
       console.log('Marcando divergência como resolvida:', id);
+      //console.log('Marcando divergência como resolvida:', id);
       setError(null);
 
       // Construir a URL base
