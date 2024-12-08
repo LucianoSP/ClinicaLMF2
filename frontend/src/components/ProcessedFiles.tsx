@@ -85,9 +85,10 @@ const ProcessedFiles = () => {
 
       const response = await fetch(url, {
         method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',// Mudando para 'omit' já que não precisamos de credenciais
-
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {
