@@ -41,5 +41,8 @@
     "shadcn-ui": "^0.9.3",
     "tailwindcss": "^3.4.15",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
