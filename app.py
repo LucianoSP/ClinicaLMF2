@@ -1,7 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
-
-from fastapi.middleware.cors import CORSMiddleware
 import os
 import pandas as pd
 import tempfile
@@ -40,9 +38,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 logger = logging.getLogger(__name__)
 
+print("Iniciando o servidor...")
 app = FastAPI(title="PDF Processor API")
 
 app.add_middleware(
