@@ -564,27 +564,30 @@ async def clear_excel_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/auditoria/divergencias")
+@app.get("/auditoria/divergencias/")
 async def get_divergencias(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-    status: str = Query(None, description="Filtrar por status (Pendente/Resolvido)"),
+    status: str = Query(None,
+                        description="Filtrar por status (Pendente/Resolvido)"),
 ):
     """Lista as divergências encontradas na auditoria"""
     try:
         print(
             f"Buscando divergências - página: {page}, por página: {per_page}, status: {status}"
         )
-        resultado = listar_divergencias(
-            limit=per_page, offset=(page - 1) * per_page, status=status
-        )
+        resultado = listar_divergencias(limit=per_page,
+                                        offset=(page - 1) * per_page,
+                                        status=status)
         print(f"Resultado obtido: {resultado}")
         if resultado is None:
-            raise HTTPException(status_code=500, detail="Erro ao buscar divergências")
+            raise HTTPException(status_code=500,
+                                detail="Erro ao buscar divergências")
         return resultado
     except Exception as e:
         print(f"Erro ao buscar divergências: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.post("/auditoria/iniciar")
