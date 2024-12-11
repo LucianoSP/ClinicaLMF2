@@ -34,10 +34,13 @@ from math import ceil
 from auditoria import realizar_auditoria
 import logging
 
-api_key = os.environ["ANTHROPIC_API_KEY"]
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+print("Iniciando o servidor...")
 app = FastAPI(title="PDF Processor API")
 
 app.add_middleware(
@@ -47,6 +50,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Criar diretório para arquivos temporários se não existir
 TEMP_DIR = "temp"
@@ -120,7 +124,7 @@ async def extract_info_from_pdf(pdf_path: str):
     if not pdf_data:
         raise HTTPException(status_code=500, detail="Erro ao ler PDF: arquivo vazio")
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     try:
         response = client.beta.messages.create(
@@ -558,6 +562,7 @@ async def clear_excel_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Auditoria
 @app.get("/auditoria/divergencias/")
 async def get_divergencias(
     page: int = Query(1, ge=1, description="Página atual"),
@@ -575,12 +580,7 @@ async def get_divergencias(
         print(f"Resultado obtido: {resultado}")
         if resultado is None:
             raise HTTPException(status_code=500, detail="Erro ao buscar divergências")
-        return {
-            "success": True,
-            "divergencias": resultado["divergencias"],
-            "total": resultado["total"],
-            "paginas": resultado["paginas"],
-        }
+        return resultado
     except Exception as e:
         print(f"Erro ao buscar divergências: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -751,6 +751,7 @@ async def excluir_atendimento(codigo_ficha: str):
 #     return await list_files(
 #         page=page, per_page=per_page, nome_beneficiario=nome_beneficiario
 #     )
+
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
