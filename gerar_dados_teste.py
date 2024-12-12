@@ -43,10 +43,10 @@ def gerar_protocolos(quantidade):
     for _ in range(quantidade):
         protocolo = {
             "idGuia": f"G{gerar_id()}",
-            "nomePaciente": random.choice(NOMES),
+            "paciente_nome": random.choice(NOMES),
             "dataExec": gerar_data_aleatoria(),
             "carteirinha": gerar_carteirinha(),
-            "idPaciente": f"P{gerar_id()}",
+            "paciente_id": f"P{gerar_id()}",
         }
         protocolos.append(protocolo)
     return protocolos
@@ -68,6 +68,7 @@ def gerar_divergencias(protocolos, quantidade_por_protocolo):
                 data_execucao=protocolo["dataExec"],
                 codigo_ficha=f"F{gerar_id()}",
                 descricao=random.choice(tipos_divergencia),
+                paciente_nome=protocolo["paciente_nome"],
             )
 
 
@@ -81,7 +82,7 @@ def gerar_atendimentos(protocolos):
             info_atendimento = {
                 "data_execucao": protocolo["dataExec"],
                 "paciente_carteirinha": protocolo["carteirinha"],
-                "paciente_nome": protocolo["nomePaciente"],
+                "paciente_nome": protocolo["paciente_nome"],
                 "guia_id": protocolo["idGuia"],
                 "codigo_ficha": random.choice(codigos_ficha),
                 "possui_assinatura": random.choice([True, False]),

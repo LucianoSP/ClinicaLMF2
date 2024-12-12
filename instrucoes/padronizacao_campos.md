@@ -14,6 +14,7 @@ Atualmente existem variações:
 Atualmente existem variações:
 - `paciente_nome` (atendimentos)
 - `nomePaciente` (protocolos_excel)
+- `beneficiario` (divergencias)
 
 **Padronização sugerida:** `paciente_nome`
 

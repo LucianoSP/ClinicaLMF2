@@ -26,11 +26,11 @@ interface Atendimento {
 
 interface Divergencia {
   id: number;
-  numero_guia: string;
-  data_exec: string;
+  guia_id: string;
+  data_execucao: string;
   codigo_ficha: string;
   descricao_divergencia: string;
-  beneficiario?: string;
+  beneficiario: string | null;
   status: string;
   data_registro: string;
 }
@@ -50,7 +50,7 @@ export default function AuditoriaPage() {
   const [resultadoAuditoria, setResultadoAuditoria] = useState<AuditoriaResultado | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [sortField, setSortField] = useState<string>('data_registro');
+  const [sortField, setSortField] = useState<keyof Divergencia>('data_registro');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const formatarData = (date: Date | undefined) => {
@@ -58,45 +58,34 @@ export default function AuditoriaPage() {
     return format(date, 'yyyy-MM-dd');
   };
 
-  const formatarDataExibicao = (dataStr: string) => {
+  const formatarDataExibicao = (dataString: string | undefined) => {
+    if (!dataString) return '-';
     try {
-      return format(new Date(dataStr), 'dd/MM/yyyy', { locale: ptBR });
+      const data = new Date(dataString);
+      return data.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     } catch (error) {
-      return dataStr;
+      console.error('Erro ao formatar data:', error);
+      return dataString;
     }
-  };
-
-  const extrairBeneficiario = (descricao: string): { descricao: string, beneficiario?: string } => {
-    const match = descricao.match(/Paciente: (.+)$/);
-    if (match) {
-      return {
-        descricao: descricao.replace(match[0], '').trim(),
-        beneficiario: match[1].trim()
-      };
-    }
-    return { descricao };
   };
 
   const buscarDivergencias = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      console.log('Buscando divergências...');
+      setLoading(true);
+      setError(null);
 
-      // Construir a URL base
-      const baseUrl = `${API_URL}/auditoria/divergencias/`;
-
-      // Construir os parâmetros
+      const baseUrl = `${API_URL}/auditoria/divergencias`;
       const params = new URLSearchParams({
         page: page.toString(),
-        per_page: '10'
+        sort_field: sortField,
+        sort_direction: sortDirection,
       });
 
-      // Construir a URL final
-      const url = `${baseUrl}?${params.toString()}`;
-      console.log('URL completa:', url);
-
-      const response = await fetch(url, {
+      const response = await fetch(`${baseUrl}?${params}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -104,34 +93,33 @@ export default function AuditoriaPage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text(); // Capturar a mensagem de erro da resposta
-        throw new Error(`Erro ao buscar divergências: ${response.status} - ${errorText}`);
+        throw new Error(`Erro ao buscar divergências: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log('Dados recebidos:', data);
+      const result = await response.json();
+      console.log('Divergências:', result);
 
-      // Verificar se a resposta contém a propriedade 'success' e se 'divergencias' é um array
-      if (!data || !data.success || !Array.isArray(data.divergencias)) {
+      if (!result || !result.success || !Array.isArray(result.divergencias)) {
         throw new Error('Formato de resposta inválido');
       }
 
       // Processar as divergências para extrair o beneficiário
-      const divergenciasProcessadas = data.divergencias.map(div => {
-        const { descricao, beneficiario } = extrairBeneficiario(div.descricao_divergencia);
-        return {
-          ...div,
-          descricao_divergencia: descricao,
-          beneficiario
-        };
-      });
+      const divergenciasProcessadas = result.divergencias.map(div => ({
+        id: div.id,
+        guia_id: div.guia_id,
+        data_execucao: div.data_execucao,
+        codigo_ficha: div.codigo_ficha,
+        descricao_divergencia: div.descricao_divergencia,
+        beneficiario: div.beneficiario,
+        status: div.status,
+        data_registro: div.data_registro
+      }));
 
       setDados(divergenciasProcessadas);
-      setTotalPages(Math.ceil(data.total / 10));
+      setTotalPages(Math.ceil(result.total / 10));
     } catch (err) {
       console.error('Erro ao buscar divergências:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      setDados([]);
     } finally {
       setLoading(false);
     }
@@ -178,31 +166,17 @@ export default function AuditoriaPage() {
     }
   };
 
-  const handleSort = (field: string) => {
+  const handleSort = (field: keyof Divergencia) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
-
-    const sortedData = [...dados].sort((a, b) => {
-      const aValue = a[field as keyof typeof a];
-      const bValue = b[field as keyof typeof b];
-
-      if (sortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    setDados(sortedData);
   };
 
   const marcarResolvido = async (id: number) => {
     try {
-      //console.log('Marcando divergência como resolvida:', id);
       console.log('Marcando divergência como resolvida:', id);
       setError(null);
 
@@ -254,7 +228,7 @@ export default function AuditoriaPage() {
 
   useEffect(() => {
     buscarDivergencias();
-  }, [page]);
+  }, [page, sortField, sortDirection]);
 
   return (
     <div className="container mx-auto p-4">
@@ -316,11 +290,11 @@ export default function AuditoriaPage() {
                   <TableHead className="w-[100px] cursor-pointer" onClick={() => handleSort('data_registro')}>
                     Data Registro {sortField === 'data_registro' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('numero_guia')}>
-                    Número Guia {sortField === 'numero_guia' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  <TableHead className="cursor-pointer" onClick={() => handleSort('guia_id')}>
+                    Número Guia {sortField === 'guia_id' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('data_exec')}>
-                    Data Execução {sortField === 'data_exec' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  <TableHead className="cursor-pointer" onClick={() => handleSort('data_execucao')}>
+                    Data Execução {sortField === 'data_execucao' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Beneficiário</TableHead>
@@ -334,8 +308,8 @@ export default function AuditoriaPage() {
                 {dados.map((divergencia) => (
                   <TableRow key={divergencia.id}>
                     <TableCell>{formatarDataExibicao(divergencia.data_registro)}</TableCell>
-                    <TableCell>{divergencia.numero_guia}</TableCell>
-                    <TableCell>{formatarDataExibicao(divergencia.data_exec)}</TableCell>
+                    <TableCell>{divergencia.guia_id}</TableCell>
+                    <TableCell>{formatarDataExibicao(divergencia.data_execucao)}</TableCell>
                     <TableCell>{divergencia.descricao_divergencia}</TableCell>
                     <TableCell>{divergencia.beneficiario || '-'}</TableCell>
                     <TableCell>
@@ -359,11 +333,10 @@ export default function AuditoriaPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {divergencia.status === 'Pendente' && (
+                      {divergencia.status !== 'Resolvido' && (
                         <Button
-                          variant="outline"
-                          size="sm"
                           onClick={() => marcarResolvido(divergencia.id)}
+                          className="text-xs bg-[#b49d6b] hover:bg-[#a08b5f]"
                         >
                           Marcar como Resolvido
                         </Button>

@@ -2,19 +2,24 @@ from typing import Dict, List, Optional
 from datetime import datetime
 from config import supabase
 
+
 def salvar_dados_excel(registros: List[Dict]) -> bool:
     """Salva os dados do Excel no Supabase"""
     try:
         # Prepara os dados no formato correto
         dados_formatados = []
         for registro in registros:
-            dados_formatados.append({
-                "guia_id": str(registro["idGuia"]),
-                "paciente_nome": str(registro["nomePaciente"]),
-                "data_execucao": registro["dataExec"],  # Já formatada como DD/MM/YYYY
-                "paciente_carteirinha": str(registro["carteirinha"]),
-                "paciente_id": str(registro["idPaciente"]),
-            })
+            dados_formatados.append(
+                {
+                    "guia_id": str(registro["guia_id"]),
+                    "paciente_nome": str(registro["paciente_nome"]),
+                    "data_execucao": registro[
+                        "data_execucao"
+                    ],  # Já formatada como DD/MM/YYYY
+                    "paciente_carteirinha": str(registro["paciente_carteirinha"]),
+                    "paciente_id": str(registro["paciente_id"]),
+                }
+            )
 
         # Insere os dados no Supabase
         response = supabase.table("protocolos_excel").insert(dados_formatados).execute()
@@ -27,9 +32,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
 
 
 def listar_dados_excel(
-    limit: int = 100, 
-    offset: int = 0, 
-    paciente_nome: Optional[str] = None
+    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
 ) -> Dict:
     """Retorna os dados importados do Excel com suporte a paginação e filtro"""
     try:
@@ -56,15 +59,17 @@ def listar_dados_excel(
         # Formata os dados para manter compatibilidade com o código existente
         registros_formatados = []
         for reg in registros:
-            registros_formatados.append({
-                "id": reg["id"],
-                "idGuia": reg["guia_id"],
-                "nomePaciente": reg["paciente_nome"],
-                "dataExec": reg["data_execucao"],
-                "carteirinha": reg["paciente_carteirinha"],
-                "idPaciente": reg["paciente_id"],
-                "created_at": reg["created_at"],
-            })
+            registros_formatados.append(
+                {
+                    "id": reg["id"],
+                    "guia_id": reg["guia_id"],
+                    "paciente_nome": reg["paciente_nome"],
+                    "data_execucao": reg["data_execucao"],
+                    "paciente_carteirinha": reg["paciente_carteirinha"],
+                    "paciente_id": reg["paciente_id"],
+                    "created_at": reg["created_at"],
+                }
+            )
 
         return {
             "registros": registros_formatados,
@@ -97,38 +102,30 @@ def contar_protocolos() -> int:
         return 0
 
 
-def salvar_guia(info: Dict) -> int:
+def salvar_guia(info: Dict) -> bool:
     """
     Salva as informações do atendimento no Supabase
-    Retorna o ID do registro
     """
-    print(f"\nTentando salvar atendimento: {info}")
-
     try:
-        # Prepara os dados no formato correto
+        # Formata os dados no padrão esperado
         dados = {
+            "guia_id": str(info["guia_id"]),
+            "paciente_nome": str(info["paciente_nome"]),
             "data_execucao": info["data_execucao"],
-            "paciente_carteirinha": info["paciente_carteirinha"],
-            "paciente_nome": info["paciente_nome"],
-            "guia_id": info["guia_id"],
-            "codigo_ficha": info.get("codigo_ficha"),
-            "possui_assinatura": info.get("possui_assinatura", True),
+            "paciente_carteirinha": str(info["paciente_carteirinha"]),
+            "codigo_ficha": str(info["codigo_ficha"]),
+            "possui_assinatura": bool(info["possui_assinatura"]),
         }
 
-        # Insere os dados no Supabase
+        # Insere no Supabase
+        print(f"Tentando salvar atendimento: {dados}")
         response = supabase.table("atendimentos").insert(dados).execute()
-
-        if response.data and len(response.data) > 0:
-            last_id = response.data[0]["id"]
-            print(f"Atendimento salvo com ID: {last_id}")
-            return last_id
-        else:
-            raise Exception("Não foi possível obter o ID do registro inserido")
+        return True
 
     except Exception as e:
         print(f"Erro ao salvar guia: {e}")
         print(f"Dados: {info}")
-        raise e
+        return False
 
 
 def listar_guias(
@@ -221,7 +218,11 @@ def limpar_banco() -> None:
 
 
 def registrar_divergencia(
-    guia_id: str, data_execucao: str, codigo_ficha: str, descricao: str
+    guia_id: str,
+    data_execucao: str,
+    codigo_ficha: str,
+    descricao: str,
+    beneficiario: str = None,
 ) -> Optional[int]:
     """Registra uma nova divergência encontrada na auditoria"""
     try:
@@ -230,6 +231,7 @@ def registrar_divergencia(
             "data_execucao": data_execucao,
             "codigo_ficha": codigo_ficha,
             "descricao_divergencia": descricao,
+            "beneficiario": beneficiario,
             "status": "Pendente",
         }
 
