@@ -21,15 +21,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={inter.className}>
-      <head>
-        <link rel="icon" href="/icones/logo.png" />
-      </head>
-      <body>
-        <div className="flex">
+      <body className="min-h-screen">
+        <div className="flex h-full">
           <Sidebar />
-          <main className="flex-1 p-8">
-            {children}
-          </main>
+          <div className="flex-1">
+            <main className="p-8">
+              {children}
+            </main>
+          </div>
         </div>
       </body>
     </html>

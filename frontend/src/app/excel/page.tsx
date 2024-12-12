@@ -12,11 +12,11 @@ import { API_URL } from '@/config/api';
 
 interface ExcelData {
   id: number;
-  idGuia: string;
-  nomePaciente: string;
-  dataExec: string;
-  carteirinha: string;
-  idPaciente: string;
+  guia_id: string;
+  paciente_nome: string;
+  data_execucao: string;
+  paciente_carteirinha: string;
+  paciente_id: string;
   created_at: string;
 }
 
@@ -66,7 +66,7 @@ export default function ExcelPage() {
       if (result.success) {
         const formattedData = result.data.registros.map((item: ExcelData) => ({
           ...item,
-          dataExec: formatDate(item.dataExec),
+          data_execucao: formatDate(item.data_execucao),
           created_at: formatDate(item.created_at)
         }));
         setData(formattedData);
@@ -116,11 +116,11 @@ export default function ExcelPage() {
     try {
       // Preparar os dados para exportação
       const exportData = data.map(item => ({
-        'Número da guia': item.idGuia,
-        'Beneficiário': item.nomePaciente,
-        'Data': item.dataExec,
-        'Carteira': item.carteirinha,
-        'Id paciente': item.idPaciente,
+        'Número da guia': item.guia_id,
+        'Beneficiário': item.paciente_nome,
+        'Data': item.data_execucao,
+        'Carteira': item.paciente_carteirinha,
+        'Id paciente': item.paciente_id,
         'Data importação': item.created_at,
       }));
 
@@ -168,13 +168,31 @@ export default function ExcelPage() {
     }
   };
 
-  const columns: Column<ExcelData>[] = [
-    { key: 'idGuia', label: 'Número da guia' },
-    { key: 'nomePaciente', label: 'Beneficiário' },
-    { key: 'dataExec', label: 'Data' },
-    { key: 'carteirinha', label: 'Carteira' },
-    { key: 'idPaciente', label: 'Id paciente' },
-    { key: 'created_at', label: 'Data importação' },
+  const columns: Column[] = [
+    {
+      key: 'guia_id',
+      label: 'Número da guia',
+    },
+    {
+      key: 'paciente_nome',
+      label: 'Beneficiário',
+    },
+    {
+      key: 'data_execucao',
+      label: 'Data',
+    },
+    {
+      key: 'paciente_carteirinha',
+      label: 'Carteira',
+    },
+    {
+      key: 'paciente_id',
+      label: 'Id paciente',
+    },
+    {
+      key: 'created_at',
+      label: 'Data importação',
+    },
   ];
 
   if (loading) {
