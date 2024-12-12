@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react';
 import { SortableTable, Column } from '@/components/SortableTable';
 import { Button } from '@/components/ui/button';
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -239,25 +238,17 @@ export default function AuditoriaPage() {
           <div className="flex flex-col gap-2">
             <Label>Data Inicial</Label>
             <DatePicker
-              mode="single"
-              selected={dataInicial}
-              onSelect={setDataInicial}
-              initialFocus
-              className="w-[240px] bg-white border-gray-200"
+              date={dataInicial}
+              setDate={setDataInicial}
             />
           </div>
-
           <div className="flex flex-col gap-2">
             <Label>Data Final</Label>
             <DatePicker
-              mode="single"
-              selected={dataFinal}
-              onSelect={setDataFinal}
-              initialFocus
-              className="w-[240px] bg-white border-gray-200"
+              date={dataFinal}
+              setDate={setDataFinal}
             />
           </div>
-
           <div className="flex items-end">
             <Button
               onClick={iniciarAuditoria}
@@ -299,7 +290,7 @@ export default function AuditoriaPage() {
         )}
 
         <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-4 text-[#6b342f]">Divergências Encontradas</h2>
+          <h2 className="text-lg font-medium mb-4 text-[#6b342f]">Divergências Encontradas</h2>
           {loading ? (
             <div className="text-center py-4">Carregando...</div>
           ) : error ? (
@@ -308,32 +299,32 @@ export default function AuditoriaPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px] cursor-pointer" onClick={() => handleSort('data_registro')}>
+                  <TableHead className="w-[130px] cursor-pointer whitespace-nowrap px-6" onClick={() => handleSort('data_registro')}>
                     Data Registro {sortField === 'data_registro' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('guia_id')}>
+                  <TableHead className="cursor-pointer px-6" onClick={() => handleSort('guia_id')}>
                     Número Guia {sortField === 'guia_id' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('data_execucao')}>
+                  <TableHead className="cursor-pointer px-6" onClick={() => handleSort('data_execucao')}>
                     Data Execução {sortField === 'data_execucao' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Beneficiário</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('status')}>
+                  <TableHead className="px-6">Descrição</TableHead>
+                  <TableHead className="px-6">Beneficiário</TableHead>
+                  <TableHead className="cursor-pointer px-6" onClick={() => handleSort('status')}>
                     Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead className="px-6">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {dados.map((divergencia) => (
                   <TableRow key={divergencia.id}>
-                    <TableCell>{formatarDataExibicao(divergencia.data_registro)}</TableCell>
-                    <TableCell>{divergencia.guia_id}</TableCell>
-                    <TableCell>{formatarDataExibicao(divergencia.data_execucao)}</TableCell>
-                    <TableCell>{divergencia.descricao_divergencia}</TableCell>
-                    <TableCell>{divergencia.beneficiario || '-'}</TableCell>
-                    <TableCell>
+                    <TableCell className="px-6">{formatarDataExibicao(divergencia.data_registro)}</TableCell>
+                    <TableCell className="px-6">{divergencia.guia_id}</TableCell>
+                    <TableCell className="px-6">{formatarDataExibicao(divergencia.data_execucao)}</TableCell>
+                    <TableCell className="px-6">{divergencia.descricao_divergencia}</TableCell>
+                    <TableCell className="px-6">{divergencia.beneficiario || '-'}</TableCell>
+                    <TableCell className="px-6">
                       <div className="flex items-center gap-1.5">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${divergencia.status === 'Resolvido'
                             ? 'bg-[#dcfce7] text-[#15803d]'
@@ -353,11 +344,11 @@ export default function AuditoriaPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-6">
                       {divergencia.status !== 'Resolvido' && (
                         <Button
                           onClick={() => marcarResolvido(divergencia.id)}
-                          className="text-xs bg-[#b49d6b] hover:bg-[#a08b5f]"
+                          className="text-xs bg-[#f0e6d3] hover:bg-[#e6dbc8] text-[#6b342f]"
                         >
                           Marcar como Resolvido
                         </Button>
