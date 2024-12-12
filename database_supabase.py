@@ -307,3 +307,39 @@ def atualizar_status_divergencia(id: int, novo_status: str) -> bool:
     except Exception as e:
         print(f"Erro ao atualizar status da divergência: {e}")
         return False
+
+
+def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
+    """
+    Atualiza um atendimento no Supabase
+    """
+    try:
+        # Formata os dados no padrão esperado
+        dados_atualizados = {
+            "guia_id": str(dados["guia_id"]),
+            "paciente_nome": str(dados["paciente_nome"]),
+            "data_execucao": dados["data_execucao"],
+            "paciente_carteirinha": str(dados["paciente_carteirinha"]),
+            "codigo_ficha": str(dados["codigo_ficha"]),
+            "possui_assinatura": bool(dados["possui_assinatura"]),
+        }
+
+        # Verifica se o registro existe
+        check_response = supabase.table("atendimentos").select("*").eq("codigo_ficha", codigo_ficha).execute()
+        if not check_response.data:
+            return False
+
+        # Se o código da ficha está sendo alterado, verifica se o novo código já existe
+        if codigo_ficha != dados_atualizados["codigo_ficha"]:
+            check_new_code = supabase.table("atendimentos").select("*").eq("codigo_ficha", dados_atualizados["codigo_ficha"]).execute()
+            if check_new_code.data:
+                raise ValueError("O novo código da ficha já existe")
+
+        # Atualiza o registro no Supabase
+        response = supabase.table("atendimentos").update(dados_atualizados).eq("codigo_ficha", codigo_ficha).execute()
+        
+        return True
+
+    except Exception as e:
+        print(f"Erro ao atualizar atendimento: {e}")
+        raise e

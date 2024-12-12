@@ -23,6 +23,7 @@ from database_supabase import (
     contar_protocolos,
     listar_divergencias,
     atualizar_status_divergencia,
+    atualizar_atendimento,
 )
 from pydantic import BaseModel, ValidationError
 import re
@@ -556,96 +557,51 @@ async def atualizar_divergencia(
 
 
 @app.put("/atendimento/{codigo_ficha}")
-async def atualizar_atendimento(codigo_ficha: str, atendimento: AtendimentoUpdate):
+async def atualizar_atendimento_endpoint(codigo_ficha: str, atendimento: AtendimentoUpdate):
     try:
         # Validate the data format
-        if not all(
-            [
-                atendimento.data_execucao,
-                atendimento.paciente_carteirinha,
-                atendimento.paciente_nome,
-                atendimento.guia_id,
-                atendimento.codigo_ficha,
-            ]
-        ):
-            raise HTTPException(
-                status_code=400, detail="Todos os campos são obrigatórios"
-            )
+        if not all([
+            atendimento.data_execucao,
+            atendimento.paciente_carteirinha,
+            atendimento.paciente_nome,
+            atendimento.guia_id,
+            atendimento.codigo_ficha,
+        ]):
+            raise HTTPException(status_code=400, detail="Todos os campos são obrigatórios")
 
         # Validate date format
         try:
             # Expecting date in YYYY-MM-DD format
             datetime.strptime(atendimento.data_execucao, "%Y-%m-%d")
         except ValueError:
-            raise HTTPException(
-                status_code=400, detail="Data em formato inválido. Use YYYY-MM-DD"
-            )
+            raise HTTPException(status_code=400, detail="Data em formato inválido. Use YYYY-MM-DD")
 
-        conn = sqlite3.connect(DATABASE_FILE)
-        cursor = conn.cursor()
+        # Convert the model to a dictionary
+        dados = {
+            "data_execucao": atendimento.data_execucao,
+            "paciente_carteirinha": atendimento.paciente_carteirinha,
+            "paciente_nome": atendimento.paciente_nome,
+            "guia_id": atendimento.guia_id,
+            "possui_assinatura": atendimento.possui_assinatura,
+            "codigo_ficha": atendimento.codigo_ficha,
+        }
 
+        # Update in Supabase
         try:
-            # First check if the record exists
-            cursor.execute(
-                "SELECT 1 FROM atendimentos WHERE codigo_ficha = ?", (codigo_ficha,)
-            )
-            if not cursor.fetchone():
-                raise HTTPException(
-                    status_code=404, detail="Atendimento não encontrado"
-                )
-
-            # Check if the new codigo_ficha already exists (if it's being changed)
-            if codigo_ficha != atendimento.codigo_ficha:
-                cursor.execute(
-                    "SELECT 1 FROM atendimentos WHERE codigo_ficha = ? AND codigo_ficha != ?",
-                    (atendimento.codigo_ficha, codigo_ficha),
-                )
-                if cursor.fetchone():
-                    raise HTTPException(
-                        status_code=400, detail="O novo código da ficha já existe"
-                    )
-
-            # Update the record
-            cursor.execute(
-                """
-                UPDATE atendimentos 
-                SET data_execucao = ?,
-                    paciente_carteirinha = ?,
-                    paciente_nome = ?,
-                    guia_id = ?,
-                    possui_assinatura = ?,
-                    codigo_ficha = ?
-                WHERE codigo_ficha = ?
-            """,
-                (
-                    atendimento.data_execucao,
-                    atendimento.paciente_carteirinha,
-                    atendimento.paciente_nome,
-                    atendimento.guia_id,
-                    atendimento.possui_assinatura,
-                    atendimento.codigo_ficha,
-                    codigo_ficha,
-                ),
-            )
-
-            conn.commit()
+            from database_supabase import atualizar_atendimento
+            success = atualizar_atendimento(codigo_ficha, dados)
+            if not success:
+                raise HTTPException(status_code=404, detail="Atendimento não encontrado")
             return {"message": "Atendimento atualizado com sucesso"}
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao atualizar atendimento no banco de dados: {str(e)}")
 
-        except sqlite3.Error as e:
-            conn.rollback()
-            raise HTTPException(
-                status_code=500,
-                detail=f"Erro ao atualizar atendimento no banco de dados: {str(e)}",
-            )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro interno ao atualizar atendimento: {str(e)}"
-        )
-    finally:
-        if "conn" in locals():
-            conn.close()
+        raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar atendimento: {str(e)}")
 
 
 @app.delete("/atendimento/{codigo_ficha}")
