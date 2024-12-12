@@ -12,12 +12,13 @@ export function formatDate(dateStr: string) {
       return dateStr;
     }
     
-    const dia = String(date.getDate()).padStart(2, '0');
-    const mes = String(date.getMonth() + 1).padStart(2, '0');
-    const ano = date.getFullYear();
-    
-    return `${dia}/${mes}/${ano}`;
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   } catch (error) {
+    console.error('Erro ao formatar data:', error);
     return dateStr;
   }
 }

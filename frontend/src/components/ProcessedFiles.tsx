@@ -61,34 +61,23 @@ const ProcessedFiles = () => {
       setError(null);
       setSyncSuccess(false);
 
-      // Construir a URL base
       const baseUrl = `${API_URL}/atendimentos/`;
-
-      // Construir os parâmetros
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('per_page', perPage.toString());
 
-      // Só adiciona o filtro se tiver 2 ou mais caracteres
       const cleanSearchTerm = debouncedSearchTerm?.trim() || '';
-      console.log('Termo de busca limpo:', cleanSearchTerm);
-
       if (cleanSearchTerm.length >= 2) {
-        console.log('Aplicando filtro com termo:', cleanSearchTerm);
         params.set('paciente_nome', cleanSearchTerm);
-        console.log('Parâmetros da URL:', params.toString());
       }
 
-      // Construir a URL final
       const url = `${baseUrl}?${params.toString()}`;
-      console.log('URL completa:', url);
-
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'omit',  // Mudando para 'omit' já que allow_origins=["*"]
+        credentials: 'omit',
       });
 
       if (!response.ok) {
@@ -99,7 +88,12 @@ const ProcessedFiles = () => {
       console.log('Resultado da busca:', result);
 
       if (result.success) {
-        setAtendimentos(result.data.atendimentos || []);
+        // Format dates before setting the state
+        const formattedAtendimentos = (result.data.atendimentos || []).map((atendimento: Atendimento) => ({
+          ...atendimento,
+          data_execucao: formatDate(atendimento.data_execucao.split('T')[0]) // Remove time part and format
+        }));
+        setAtendimentos(formattedAtendimentos);
         setTotalPages(result.data.pagination.total_pages);
         setTotalRecords(result.data.pagination.total);
       } else {
@@ -214,39 +208,35 @@ const ProcessedFiles = () => {
     if (!editedAtendimento || !originalCodigoFicha) return;
 
     try {
-      // Create a copy of the data to send
       const dataToSend = {
-        data_execucao: editedAtendimento.data_execucao,
-        paciente_carteirinha: editedAtendimento.paciente_carteirinha,  // Changed
-        paciente_nome: editedAtendimento.paciente_nome,
-        guia_id: editedAtendimento.guia_id,                           // Changed
-        possui_assinatura: editedAtendimento.possui_assinatura,
-        codigo_ficha: editedAtendimento.codigo_ficha
+        ...editedAtendimento,
+        data_execucao: editedAtendimento.data_execucao
       };
 
       // Validate required fields
       if (!dataToSend.data_execucao || !dataToSend.paciente_carteirinha ||
-        !dataToSend.paciente_nome || !dataToSend.guia_id ||
-        !dataToSend.codigo_ficha) {
+          !dataToSend.paciente_nome || !dataToSend.guia_id ||
+          !dataToSend.codigo_ficha) {
         throw new Error('Todos os campos são obrigatórios');
       }
 
-      // Convert date format if needed
+      // Convert date from DD/MM/YYYY to YYYY-MM-DD
       if (dataToSend.data_execucao) {
         const parts = dataToSend.data_execucao.split('/');
         if (parts.length === 3) {
           const [day, month, year] = parts;
-          // Ensure year has 4 digits
-          const fullYear = year.length === 2 ? `20${year}` : year;
-          dataToSend.data_execucao = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          // Validate date parts
+          if (!/^\d{2}$/.test(day) || !/^\d{2}$/.test(month) || !/^\d{4}$/.test(year)) {
+            throw new Error('Formato de data inválido. Use DD/MM/YYYY');
+          }
+          dataToSend.data_execucao = `${year}-${month}-${day}`;
         } else {
           throw new Error('Formato de data inválido. Use DD/MM/YYYY');
         }
       }
 
-      console.log('Sending data:', dataToSend); // Debug log
+      console.log('Sending data:', dataToSend);
 
-      // Use the original codigo_ficha for the API endpoint
       const response = await fetch(`${API_URL}/atendimento/${originalCodigoFicha}`, {
         method: 'PUT',
         headers: {
@@ -260,9 +250,15 @@ const ProcessedFiles = () => {
         throw new Error(errorData?.detail || 'Erro ao atualizar o atendimento');
       }
 
+      // Format the date back to DD/MM/YYYY for display
+      const updatedAtendimento = {
+        ...editedAtendimento,
+        data_execucao: formatDate(dataToSend.data_execucao)
+      };
+
       // Update local state with the new data
       setAtendimentos(atendimentos.map(a =>
-        a.codigo_ficha === originalCodigoFicha ? editedAtendimento : a
+        a.codigo_ficha === originalCodigoFicha ? updatedAtendimento : a
       ));
 
       // Clear edit state
