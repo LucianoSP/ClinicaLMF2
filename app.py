@@ -148,21 +148,19 @@ async def extract_info_from_pdf(pdf_path: str):
                             "codigo_ficha": string,  // Campo 1 - FICHA no canto superior direito, formato XX-XXXXXXXX...
                             "registros": [
                                 {
-                                    "data_atendimento": string,         // Campo 2 no formato DD/MM/YYYY
-                                    "numero_carteira": string,          // Campo 3
-                                    "nome_beneficiario": string,        // Campo 4
-                                    "numero_guia_principal": string,    // Campo 5
-                                    "possui_assinatura": boolean        // Campo 6
+                                    "data_atendimento": string,         // Data de Atendimento no formato DD/MM/YYYY
+                                    "numero_carteira": string,          // Número da Carteira
+                                    "nome_beneficiario": string,        // Nome do Beneficiário
+                                    "numero_guia_principal": string,    // Número da Guia Principal
+                                    "possui_assinatura": boolean        // Indica se o atendimento possui assinatura (marcado com x)
                                 }
                             ]
                         }
 
                         Regras de extração:
-                        1. Extraia as informações somente dentro dos retangulos vermelhos. 
-                        2. Inclua uma linha nos registros se a linha tiver o campo 2 (DATA) OU o campo 6 (ASSINATURA) preenchido.
-                        3. No campo 6 (assinatura), não considere como assinado quando a assinatura se parece com um pequeno "x", pois essa marca é para indicar onde é que o paciente deve assinar e não para indicar que ele ja assinou.
-                        4. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano). Se encontrar uma data no formato DD/MM/YY, converta para DD/MM/YYYY.
-                        5. Retorne APENAS o JSON, sem texto adicional
+                        1. Inclua uma linha nos registros se a linha tiver o campo Data de Atendimento OU o campo Assinatura tiver o quadrado preenchido por um "x"
+                        2. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano). Se encontrar uma data no formato DD/MM/YY, converta para DD/MM/YYYY.
+                        3. Retorne APENAS o JSON, sem texto adicional
                     """,
                         },
                     ],
