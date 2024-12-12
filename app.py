@@ -11,9 +11,7 @@ import uvicorn
 import asyncio
 import base64
 import anthropic
-from database import (
-    init_db,
-    formatar_data,
+from database_supabase import (
     salvar_guia,
     salvar_dados_excel,
     listar_guias,
@@ -25,9 +23,7 @@ from database import (
     contar_protocolos,
     listar_divergencias,
     atualizar_status_divergencia,
-    DATABASE_FILE,
 )
-import sqlite3
 from pydantic import BaseModel, ValidationError
 import re
 from math import ceil
@@ -61,32 +57,45 @@ if not os.path.exists(GUIAS_RENOMEADAS_DIR):
 async def startup_event():
     """Inicializa o banco de dados na inicialização"""
     try:
-        # Inicializa o banco de dados
-        if init_db():
-            print("Banco de dados inicializado com sucesso!")
-        else:
-            print("Erro ao inicializar o banco de dados!")
+        logger.info("Conectando ao Supabase...")
+        # Teste a conexão
+        total = contar_protocolos()
+        logger.info(f"Conectado ao Supabase. Total de protocolos: {total}")
     except Exception as e:
-        print(f"Erro durante a inicialização: {e}")
+        logger.error(f"Erro ao conectar ao Supabase: {e}")
+        raise e
 
 
 def formatar_data(data):
     """Formata uma data para o padrão DD/MM/YYYY"""
     try:
         if isinstance(data, str):
-            # Se já estiver no formato DD/MM/YYYY, retorna como está
-            if re.match(r"^\d{2}/\d{2}/\d{4}$", data):
-                return data
+            # Tenta diferentes formatos de entrada
+            formatos = [
+                "%Y-%m-%d",  # ISO format
+                "%d/%m/%Y",  # Brazilian format
+                "%Y/%m/%d",  # Alternative format
+                "%d-%m-%Y",  # Alternative format
+            ]
 
-        # Converter para timestamp se não for
-        if not isinstance(data, pd.Timestamp):
-            data = pd.to_datetime(data)
+            for formato in formatos:
+                try:
+                    data_obj = datetime.strptime(data, formato)
+                    return data_obj.strftime("%d/%m/%Y")
+                except ValueError:
+                    continue
 
-        # Formatar para DD/MM/YYYY
-        return data.strftime("%d/%m/%Y")
+            raise ValueError(f"Formato de data inválido: {data}")
+
+        elif isinstance(data, datetime):
+            return data.strftime("%d/%m/%Y")
+
+        else:
+            raise ValueError(f"Tipo de data inválido: {type(data)}")
+
     except Exception as e:
-        print(f"Erro ao formatar data: {str(e)}")
-        return str(data)
+        logger.error(f"Erro ao formatar data: {e}")
+        raise ValueError(f"Erro ao formatar data: {e}")
 
 
 class Registro(BaseModel):
@@ -298,209 +307,118 @@ async def upload_pdf(
     return results
 
 
-@app.post("/upload-excel/")
+@app.post("/upload/excel/")
 async def upload_excel(file: UploadFile = File(...)):
     """Processa o upload de arquivo Excel"""
-    if not file.filename.endswith((".xls", ".xlsx")):
-        raise HTTPException(status_code=400, detail="Arquivo deve ser .xls ou .xlsx")
-
     try:
-        print(f"Iniciando processamento do arquivo: {file.filename}")
+        if not file.filename.endswith((".xlsx", ".xls")):
+            raise HTTPException(
+                status_code=400, detail="Arquivo deve ser um Excel (.xlsx ou .xls)"
+            )
 
-        # Criar diretório temporário para salvar o arquivo
+        # Salva o arquivo temporariamente
         with tempfile.NamedTemporaryFile(
             delete=False, suffix=Path(file.filename).suffix
-        ) as temp_file:
-            # Copiar conteúdo do arquivo para arquivo temporário
-            shutil.copyfileobj(file.file, temp_file)
-            temp_path = temp_file.name
-            print(f"Arquivo temporário criado: {temp_path}")
-
-        # Ler a planilha Excel
-        try:
-            print("Tentando ler a planilha Excel...")
-            df = pd.read_excel(temp_path, sheet_name="Protocolo")
-            print(
-                f"Planilha lida com sucesso. Colunas encontradas: {', '.join(df.columns)}"
-            )
-        except ValueError as e:
-            if "Protocolo" in str(e):
-                raise HTTPException(
-                    status_code=400, detail="Aba 'Protocolo' não encontrada na planilha"
-                )
-            raise HTTPException(
-                status_code=400, detail=f"Erro ao ler planilha: {str(e)}"
-            )
-
-        # Mapear possíveis variações dos nomes das colunas
-        mapeamento_colunas = {
-            "idGuia": ["idguia", "id_guia", "id guia", "guia", "numero guia"],
-            "nomePaciente": [
-                "nomepaciente",
-                "nome_paciente",
-                "nome paciente",
-                "paciente",
-                "nome",
-            ],
-            "DataExec": [
-                "dataexec",
-                "data_exec",
-                "data exec",
-                "data",
-                "dt_exec",
-                "dtexec",
-            ],
-            "Carteirinha": [
-                "carteirinha",
-                "numero_carteirinha",
-                "num_carteirinha",
-                "carteira",
-            ],
-            "Id_Paciente": [
-                "id_paciente",
-                "idpaciente",
-                "id paciente",
-                "codigo_paciente",
-            ],
-        }
-
-        print("Normalizando nomes das colunas...")
-        # Normalizar nomes das colunas (remover espaços, converter para minúsculo)
-        df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
-        print(f"Colunas normalizadas: {', '.join(df.columns)}")
-
-        # Encontrar as colunas correspondentes
-        colunas_encontradas = {}
-        colunas_faltantes = []
-
-        for col_desejada, variantes in mapeamento_colunas.items():
-            encontrada = False
-            for variante in [col_desejada.lower()] + variantes:
-                if variante in df.columns:
-                    colunas_encontradas[col_desejada] = variante
-                    encontrada = True
-                    print(f"Coluna '{col_desejada}' encontrada como '{variante}'")
-                    break
-            if not encontrada:
-                colunas_faltantes.append(col_desejada)
-                print(f"Coluna '{col_desejada}' não encontrada")
-
-        if colunas_faltantes:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Colunas não encontradas na planilha: {', '.join(colunas_faltantes)}",
-            )
-
-        print("Renomeando colunas...")
-        # Renomear as colunas encontradas para os nomes padrão
-        df = df.rename(columns={v: k for k, v in colunas_encontradas.items()})
-        print(f"Colunas após renomeação: {', '.join(df.columns)}")
+        ) as tmp:
+            shutil.copyfileobj(file.file, tmp)
+            tmp_path = Path(tmp.name)
 
         try:
-            print("Processando dados...")
-            # Selecionar apenas as colunas desejadas
-            df = df[list(mapeamento_colunas.keys())]
-            print(f"Número de linhas antes da limpeza: {len(df)}")
+            # Lê o arquivo Excel
+            df = pd.read_excel(tmp_path)
 
-            # Remover linhas com valores nulos
-            df = df.dropna(subset=list(mapeamento_colunas.keys()))
-            print(f"Número de linhas após limpeza: {len(df)}")
-
-            if df.empty:
-                raise HTTPException(
-                    status_code=400, detail="Nenhum dado válido encontrado na planilha"
-                )
-
-            # Formatar as datas no DataFrame
-            df["DataExec"] = df["DataExec"].apply(formatar_data)
-
-            # Verificar se há alguma data inválida
-            datas_invalidas = df[~df["DataExec"].str.match(r"^\d{2}/\d{2}/\d{4}$")]
-            if not datas_invalidas.empty:
+            # Verifica se as colunas necessárias existem
+            colunas_necessarias = [
+                "Número da Guia",
+                "Nome do Beneficiário",
+                "Data de Execução",
+                "Carteirinha",
+                "Código do Beneficiário",
+            ]
+            colunas_faltantes = [
+                col for col in colunas_necessarias if col not in df.columns
+            ]
+            if colunas_faltantes:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Encontradas {len(datas_invalidas)} datas em formato inválido. Todas as datas devem estar no formato DD/MM/YYYY",
+                    detail=f"Colunas faltantes no arquivo: {', '.join(colunas_faltantes)}",
                 )
 
-            # Converter DataFrame para lista de dicionários
-            registros = df.to_dict("records")
+            # Prepara os dados para salvar
+            registros = []
+            for _, row in df.iterrows():
+                try:
+                    # Formata a data
+                    data_execucao = formatar_data(row["Data de Execução"])
 
-            # Map Excel columns to database fields
-            mapped_registros = []
-            for registro in registros:
-                mapped_registro = {
-                    "guia_id": str(registro["idGuia"]),
-                    "paciente_nome": str(registro["nomePaciente"]),
-                    "data_execucao": registro["DataExec"],
-                    "paciente_carteirinha": str(registro["Carteirinha"]),
-                    "paciente_id": str(registro["Id_Paciente"]),
-                }
-                mapped_registros.append(mapped_registro)
+                    registro = {
+                        "idGuia": str(row["Número da Guia"]).strip(),
+                        "nomePaciente": str(row["Nome do Beneficiário"])
+                        .strip()
+                        .upper(),
+                        "dataExec": data_execucao,
+                        "carteirinha": str(row["Carteirinha"]).strip(),
+                        "idPaciente": str(row["Código do Beneficiário"]).strip(),
+                    }
+                    registros.append(registro)
+                except Exception as e:
+                    logger.error(f"Erro ao processar linha do Excel: {e}")
+                    continue
 
-            print(f"Convertido para {len(registros)} registros")
+            # Salva os dados no banco
+            if not registros:
+                raise HTTPException(
+                    status_code=400, detail="Nenhum registro válido encontrado no Excel"
+                )
 
-            # Salvar no banco de dados
-            if salvar_dados_excel(mapped_registros):
+            if salvar_dados_excel(registros):
                 return {
                     "message": f"Arquivo processado com sucesso. {len(registros)} registros importados."
                 }
             else:
                 raise HTTPException(
-                    status_code=500, detail="Erro ao salvar dados no banco de dados"
+                    status_code=500, detail="Erro ao salvar dados no banco"
                 )
 
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Erro ao processar dados: {str(e)}"
-            )
-
         finally:
-            # Limpar arquivo temporário
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            # Remove o arquivo temporário
+            tmp_path.unlink()
 
-    except HTTPException:
-        raise
     except Exception as e:
+        logger.error(f"Erro ao processar arquivo Excel: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/atendimentos/")
-async def list_files(
+async def list_atendimentos(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-    paciente_nome: str = Query(None, description="Filtro por nome do paciente"),
+    paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
 ):
+    """Lista todos os atendimentos com suporte a paginação e filtro"""
     try:
-        # Calcula o offset com base na página atual
+        logger.info(
+            f"Buscando atendimentos com: page={page}, per_page={per_page}, paciente_nome={paciente_nome}"
+        )
         offset = (page - 1) * per_page
-
-        # Busca os atendimentos do banco de dados
-        atendimentos = listar_guias(
-            offset=offset, limit=per_page, paciente_nome=paciente_nome
+        resultado = listar_guias(
+            limit=per_page, offset=offset, paciente_nome=paciente_nome
         )
 
-        print("Atendimentos retornados do banco:", atendimentos)  # Debug log
-
-        # Conta o total de registros para calcular o número de páginas
-        total_registros = len(
-            listar_guias(offset=0, limit=None, paciente_nome=paciente_nome)
-        )
-        total_paginas = ceil(total_registros / per_page)
-
-        response_data = {
+        return {
             "success": True,
             "data": {
-                "atendimentos": atendimentos,
-                "pagination": {"total_pages": total_paginas, "total": total_registros},
+                "atendimentos": resultado["atendimentos"],
+                "pagination": {
+                    "total": resultado["total"],
+                    "total_pages": ceil(resultado["total"] / per_page),
+                    "current_page": page,
+                    "per_page": per_page,
+                },
             },
         }
-
-        print("Resposta enviada ao frontend:", response_data)  # Debug log
-
-        return response_data
     except Exception as e:
-        logger.error(f"Erro ao listar arquivos: {str(e)}")
+        logger.error(f"Erro ao listar atendimentos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -565,7 +483,7 @@ async def sync_database():
 async def clear_excel_data():
     """Limpa todos os dados da tabela de protocolos do Excel"""
     try:
-        from database import limpar_protocolos_excel
+        from database_supabase import limpar_protocolos_excel
 
         success = limpar_protocolos_excel()
         if success:
@@ -758,17 +676,6 @@ async def excluir_atendimento(codigo_ficha: str):
     finally:
         conn.close()
 
-
-# @app.get("/atendimentos/")
-# async def list_atendimentos(
-#     page: int = Query(1, ge=1, description="Página atual"),
-#     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-#     paciente_nome: str = Query(None, description="Filtro por nome do beneficiário"),
-# ):
-#     """Endpoint para listar atendimentos - redireciona para list-files"""
-#     return await list_files(
-#         page=page, per_page=per_page, paciente_nome=paciente_nome
-#     )
 
 if __name__ == "__main__":
     import uvicorn

@@ -3,11 +3,15 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 
 # Carrega as variáveis de ambiente do arquivo .env
-load_dotenv()
+# load_dotenv() - Nao precisa no replit
 
 # Configurações do Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# SUPABASE_URL = os.getenv("SUPABASE_URL")
+# SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_KEY"]
+
 
 # Cria o cliente do Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
