@@ -32,10 +32,10 @@ def init_db():
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS atendimentos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                data_atendimento TEXT NOT NULL,
-                numero_carteira TEXT NOT NULL,
-                nome_beneficiario TEXT NOT NULL,
-                numero_guia_principal TEXT NOT NULL,
+                data_execucao TEXT NOT NULL,
+                paciente_carteirinha TEXT NOT NULL,
+                paciente_nome TEXT NOT NULL,
+                guia_id TEXT NOT NULL,
                 codigo_ficha TEXT,
                 possui_assinatura BOOLEAN NOT NULL DEFAULT 1
             )
@@ -55,12 +55,12 @@ def init_db():
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS divergencias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            numero_guia TEXT NOT NULL,
-            data_exec TEXT NOT NULL,
+            guia_id TEXT NOT NULL,
+            data_execucao TEXT NOT NULL,
             codigo_ficha TEXT NOT NULL,
             descricao_divergencia TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'Pendente',
-            data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
         print("Tabela 'divergencias' verificada/criada com sucesso!")
@@ -69,11 +69,11 @@ def init_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS protocolos_excel (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                idGuia TEXT NOT NULL,
-                nomePaciente TEXT NOT NULL,
-                dataExec TEXT NOT NULL,
-                carteirinha TEXT NOT NULL,
-                idPaciente TEXT NOT NULL,
+                guia_id TEXT NOT NULL,
+                paciente_nome TEXT NOT NULL,
+                data_execucao TEXT NOT NULL,
+                paciente_carteirinha TEXT NOT NULL,
+                paciente_id TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -129,15 +129,15 @@ def salvar_guia(info: Dict):
     
     # Garantir que a data está no formato correto antes de salvar
     try:
-        info['data_atendimento'] = formatar_data(info['data_atendimento'])
-        print(f"Data formatada: {info['data_atendimento']}")
+        info['data_execucao'] = formatar_data(info['data_execucao'])
+        print(f"Data formatada: {info['data_execucao']}")
     except Exception as e:
         print(f"Erro ao formatar data: {e}")
         raise e
     
     # Validar formato da data
-    if not validar_formato_data(info['data_atendimento']):
-        raise ValueError(f"Data em formato inválido: {info['data_atendimento']}. Use o formato DD/MM/YYYY")
+    if not validar_formato_data(info['data_execucao']):
+        raise ValueError(f"Data em formato inválido: {info['data_execucao']}. Use o formato DD/MM/YYYY")
 
     # Renomear codigo_guia para codigo_ficha se necessário
     if 'codigo_guia' in info and 'codigo_ficha' not in info:
@@ -149,18 +149,18 @@ def salvar_guia(info: Dict):
     try:
         cursor.execute('''
             INSERT INTO atendimentos (
-                data_atendimento,
-                numero_carteira,
-                nome_beneficiario,
-                numero_guia_principal,
+                data_execucao,
+                paciente_carteirinha,
+                paciente_nome,
+                guia_id,
                 codigo_ficha,
                 possui_assinatura
             ) VALUES (?, ?, ?, ?, ?, ?)
         ''', (
-            info['data_atendimento'],
-            info['numero_carteira'],
-            info['nome_beneficiario'],
-            info['numero_guia_principal'],
+            info['data_execucao'],
+            info['paciente_carteirinha'],
+            info['paciente_nome'],
+            info['guia_id'],
             info['codigo_ficha'],
             info.get('possui_assinatura', True)
         ))
@@ -186,19 +186,19 @@ def salvar_dados_excel(registros):
             try:
                 cursor.execute("""
                     INSERT INTO protocolos_excel (
-                        idGuia,
-                        nomePaciente,
-                        dataExec,
-                        carteirinha,
-                        idPaciente,
+                        guia_id,
+                        paciente_nome,
+                        data_execucao,
+                        paciente_carteirinha,
+                        paciente_id,
                         created_at
                     ) VALUES (?, ?, ?, ?, ?, datetime('now'))
                 """, (
-                    str(registro['idGuia']),
-                    str(registro['nomePaciente']),
-                    registro['dataExec'],  # Já formatada como DD/MM/YYYY
-                    str(registro['carteirinha']),
-                    str(registro['idPaciente'])
+                    str(registro['guia_id']),
+                    str(registro['paciente_nome']),
+                    registro['data_execucao'],  # Já formatada como DD/MM/YYYY
+                    str(registro['paciente_carteirinha']),
+                    str(registro['paciente_id'])
                 ))
             except sqlite3.Error as e:
                 print(f"Erro ao salvar registro {registro}: {e}")
@@ -215,10 +215,10 @@ def salvar_dados_excel(registros):
         print(f"Erro ao salvar dados do Excel: {e}")
         return False
 
-def listar_guias(limit: int = 100, offset: int = 0, nome_beneficiario: str = None):
+def listar_guias(limit: int = 100, offset: int = 0, paciente_nome: str = None):
     """Retorna todos os atendimentos como uma lista única com suporte a paginação e filtro"""
     try:
-        print(f"\nBuscando atendimentos para beneficiário: {nome_beneficiario}")
+        print(f"\nBuscando atendimentos para paciente: {paciente_nome}")
         conn = sqlite3.connect(DATABASE_FILE)
         cursor = conn.cursor()
 
@@ -226,10 +226,10 @@ def listar_guias(limit: int = 100, offset: int = 0, nome_beneficiario: str = Non
         query = '''
             SELECT 
                 id,
-                data_atendimento,
-                numero_carteira,
-                nome_beneficiario,
-                numero_guia_principal,
+                data_execucao,
+                paciente_carteirinha,
+                paciente_nome,
+                guia_id,
                 codigo_ficha,
                 possui_assinatura,
                 COUNT(*) OVER() as total_count
@@ -238,19 +238,19 @@ def listar_guias(limit: int = 100, offset: int = 0, nome_beneficiario: str = Non
         params = []
 
         # Adiciona filtro por nome se fornecido e não vazio
-        if nome_beneficiario and isinstance(nome_beneficiario, str):
-            nome_beneficiario = nome_beneficiario.strip()
-            if len(nome_beneficiario) >= 2:
-                print(f"\nAplicando filtro de nome: '{nome_beneficiario}'")
+        if paciente_nome and isinstance(paciente_nome, str):
+            paciente_nome = paciente_nome.strip()
+            if len(paciente_nome) >= 2:
+                print(f"\nAplicando filtro de nome: '{paciente_nome}'")
                 
                 # Dividir o termo de busca em palavras
-                palavras = nome_beneficiario.upper().split()
+                palavras = paciente_nome.upper().split()
                 conditions = []
                 
                 # Criar uma condição para cada palavra
                 for palavra in palavras:
                     print(f"Adicionando condição para palavra: '{palavra}'")
-                    conditions.append('UPPER(nome_beneficiario) LIKE ?')
+                    conditions.append('UPPER(paciente_nome) LIKE ?')
                     params.append(f'%{palavra}%')
                 
                 # Combinar todas as condições com AND
@@ -262,7 +262,7 @@ def listar_guias(limit: int = 100, offset: int = 0, nome_beneficiario: str = Non
 
         # Adiciona ordenação e paginação
         query += '''
-            ORDER BY data_atendimento DESC
+            ORDER BY data_execucao DESC
         '''
         if limit > 0:  # Só adiciona LIMIT se for maior que zero
             query += ' LIMIT ? OFFSET ?'
@@ -282,15 +282,15 @@ def listar_guias(limit: int = 100, offset: int = 0, nome_beneficiario: str = Non
         for row in rows:
             atendimento = {
                 'id': row[0],
-                'data_atendimento': row[1],
-                'numero_carteira': row[2],
-                'nome_beneficiario': row[3],
-                'numero_guia_principal': row[4],
+                'data_execucao': row[1],
+                'paciente_carteirinha': row[2],
+                'paciente_nome': row[3],
+                'guia_id': row[4],
                 'codigo_ficha': row[5],
                 'possui_assinatura': bool(row[6])
             }
             atendimentos.append(atendimento)
-            print(f"Encontrado: {atendimento['nome_beneficiario']} - Guia: {atendimento['numero_guia_principal']}")
+            print(f"Encontrado: {atendimento['paciente_nome']} - Guia: {atendimento['guia_id']}")
 
         print(f"\nTotal de registros encontrados: {len(atendimentos)}")
         print(f"Total geral (com paginação): {total_count}")
@@ -302,7 +302,7 @@ def listar_guias(limit: int = 100, offset: int = 0, nome_beneficiario: str = Non
         print(f"Erro ao listar guias: {e}")
         return {'atendimentos': [], 'total': 0}
 
-def buscar_guia(numero_guia: str):
+def buscar_guia(guia_id: str):
     """Busca atendimentos específicos pelo número da guia"""
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
@@ -310,15 +310,15 @@ def buscar_guia(numero_guia: str):
     cursor.execute('''
         SELECT 
             id,
-            data_atendimento,
-            numero_carteira,
-            nome_beneficiario,
-            numero_guia_principal,
+            data_execucao,
+            paciente_carteirinha,
+            paciente_nome,
+            guia_id,
             codigo_ficha,
             possui_assinatura
         FROM atendimentos
-        WHERE numero_guia_principal = ?
-    ''', (numero_guia,))
+        WHERE guia_id = ?
+    ''', (guia_id,))
     
     rows = cursor.fetchall()
     atendimentos = []
@@ -326,10 +326,10 @@ def buscar_guia(numero_guia: str):
     for row in rows:
         atendimentos.append({
             'id': row[0],
-            'data_atendimento': row[1],
-            'numero_carteira': row[2],
-            'nome_beneficiario': row[3],
-            'numero_guia_principal': row[4],
+            'data_execucao': row[1],
+            'paciente_carteirinha': row[2],
+            'paciente_nome': row[3],
+            'guia_id': row[4],
             'codigo_ficha': row[5],
             'possui_assinatura': bool(row[6])
         })
@@ -358,7 +358,7 @@ def limpar_protocolos_excel():
         print(f"Erro ao limpar protocolos do Excel: {e}")
         return False
 
-def listar_dados_excel(limit: int = 100, offset: int = 0, nome_beneficiario: str = None):
+def listar_dados_excel(limit: int = 100, offset: int = 0, paciente_nome: str = None):
     """Retorna os dados importados do Excel com suporte a paginação e filtro"""
     try:
         conn = sqlite3.connect(DATABASE_FILE)
@@ -368,20 +368,20 @@ def listar_dados_excel(limit: int = 100, offset: int = 0, nome_beneficiario: str
         query = """
             SELECT 
                 id,
-                idGuia,
-                nomePaciente,
-                dataExec,
-                carteirinha,
-                idPaciente,
+                guia_id,
+                paciente_nome,
+                data_execucao,
+                paciente_carteirinha,
+                paciente_id,
                 created_at
             FROM protocolos_excel
         """
         params = []
         
-        # Adicionar filtro se nome_beneficiario for fornecido
-        if nome_beneficiario:
-            query += " WHERE LOWER(nomePaciente) LIKE LOWER(?)"
-            params.append(f"%{nome_beneficiario}%")
+        # Adicionar filtro se paciente_nome for fornecido
+        if paciente_nome:
+            query += " WHERE LOWER(paciente_nome) LIKE LOWER(?)"
+            params.append(f"%{paciente_nome}%")
 
         # Adicionar ordenação e paginação
         query += " ORDER BY created_at DESC"
@@ -395,9 +395,9 @@ def listar_dados_excel(limit: int = 100, offset: int = 0, nome_beneficiario: str
         
         # Contar total de registros
         count_query = "SELECT COUNT(*) FROM protocolos_excel"
-        if nome_beneficiario:
-            count_query += " WHERE LOWER(nomePaciente) LIKE LOWER(?)"
-            cursor.execute(count_query, [f"%{nome_beneficiario}%"])
+        if paciente_nome:
+            count_query += " WHERE LOWER(paciente_nome) LIKE LOWER(?)"
+            cursor.execute(count_query, [f"%{paciente_nome}%"])
         else:
             cursor.execute(count_query)
         
@@ -407,11 +407,11 @@ def listar_dados_excel(limit: int = 100, offset: int = 0, nome_beneficiario: str
         for row in rows:
             registros.append({
                 'id': row[0],
-                'idGuia': row[1],
-                'nomePaciente': row[2],
-                'dataExec': row[3],
-                'carteirinha': row[4],
-                'idPaciente': row[5],
+                'guia_id': row[1],
+                'paciente_nome': row[2],
+                'data_execucao': row[3],
+                'paciente_carteirinha': row[4],
+                'paciente_id': row[5],
                 'created_at': row[6]
             })
 
@@ -429,16 +429,16 @@ def listar_dados_excel(limit: int = 100, offset: int = 0, nome_beneficiario: str
         print(f"Erro ao listar dados do Excel: {e}")
         return {'registros': [], 'total': 0, 'total_pages': 1}
 
-def registrar_divergencia(numero_guia: str, data_exec: str, codigo_ficha: str, descricao: str):
+def registrar_divergencia(guia_id: str, data_execucao: str, codigo_ficha: str, descricao: str):
     """Registra uma nova divergência encontrada na auditoria"""
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
     
     try:
         cursor.execute('''
-        INSERT INTO divergencias (numero_guia, data_exec, codigo_ficha, descricao_divergencia)
+        INSERT INTO divergencias (guia_id, data_execucao, codigo_ficha, descricao_divergencia)
         VALUES (?, ?, ?, ?)
-        ''', (numero_guia, data_exec, codigo_ficha, descricao))
+        ''', (guia_id, data_execucao, codigo_ficha, descricao))
         
         conn.commit()
         return cursor.lastrowid
@@ -485,7 +485,7 @@ def listar_divergencias(limit: int = 100, offset: int = 0, status: str = None):
         
         # Consulta principal com paginação
         query = f"""
-        SELECT id, numero_guia, data_exec, codigo_ficha, descricao_divergencia, status, data_registro
+        SELECT id, guia_id, data_execucao, codigo_ficha, descricao_divergencia, status, data_registro
         FROM divergencias
         {where_clause}
         ORDER BY data_registro DESC
@@ -504,8 +504,8 @@ def listar_divergencias(limit: int = 100, offset: int = 0, status: str = None):
         for div in divergencias:
             resultados.append({
                 'id': div[0],
-                'numero_guia': div[1],
-                'data_exec': div[2],
+                'guia_id': div[1],
+                'data_execucao': div[2],
                 'codigo_ficha': div[3],
                 'descricao_divergencia': div[4],
                 'status': div[5],

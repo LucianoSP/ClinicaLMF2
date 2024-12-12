@@ -85,10 +85,10 @@ def formatar_data(data):
 
 
 class Registro(BaseModel):
-    data_atendimento: str
-    numero_carteira: str
-    nome_beneficiario: str
-    numero_guia_principal: str
+    data_execucao: str
+    paciente_carteirinha: str
+    paciente_nome: str
+    guia_id: str
     possui_assinatura: bool
 
 
@@ -98,10 +98,10 @@ class DadosGuia(BaseModel):
 
 
 class AtendimentoUpdate(BaseModel):
-    data_atendimento: str
-    numero_carteira: str
-    nome_beneficiario: str
-    numero_guia_principal: str
+    data_execucao: str
+    paciente_carteirinha: str
+    paciente_nome: str
+    guia_id: str
     possui_assinatura: bool
     codigo_ficha: str
 
@@ -148,10 +148,10 @@ async def extract_info_from_pdf(pdf_path: str):
                             "codigo_ficha": string,  // Campo 1 - FICHA no canto superior direito, formato XX-XXXXXXXX...
                             "registros": [
                                 {
-                                    "data_atendimento": string,         // Data de Atendimento no formato DD/MM/YYYY
-                                    "numero_carteira": string,          // Número da Carteira
-                                    "nome_beneficiario": string,        // Nome do Beneficiário
-                                    "numero_guia_principal": string,    // Número da Guia Principal
+                                    "data_execucao": string,         // Data de Atendimento no formato DD/MM/YYYY
+                                    "paciente_carteirinha": string,          // Número da Carteira
+                                    "paciente_nome": string,        // Nome do Beneficiário
+                                    "guia_id": string,    // Número da Guia Principal
                                     "possui_assinatura": boolean        // Indica se o atendimento possui assinatura (marcado com x)
                                 }
                             ]
@@ -173,7 +173,7 @@ async def extract_info_from_pdf(pdf_path: str):
 
         # Garantir que todas as datas estejam no formato correto
         for registro in dados_extraidos["registros"]:
-            registro["data_atendimento"] = formatar_data(registro["data_atendimento"])
+            registro["data_execucao"] = formatar_data(registro["data_execucao"])
 
         # Validar usando Pydantic
         dados_validados = DadosGuia(**dados_extraidos)
@@ -260,7 +260,7 @@ async def upload_pdf(
 
                 # Criar uma cópia do PDF original com o novo nome
                 data_atual = datetime.now().strftime("%d-%m-%Y")
-                novo_nome = f"{registro['numero_guia_principal']}-{data_atual}-{registro['nome_beneficiario']}.pdf"
+                novo_nome = f"{registro['guia_id']}-{data_atual}-{registro['paciente_nome']}.pdf"
                 novo_nome = re.sub(
                     r'[<>:"/\\|?*]', "", novo_nome
                 )  # Remove caracteres inválidos para nome de arquivo
@@ -623,10 +623,10 @@ async def atualizar_atendimento(codigo_ficha: str, atendimento: AtendimentoUpdat
         # Validate the data format
         if not all(
             [
-                atendimento.data_atendimento,
-                atendimento.numero_carteira,
-                atendimento.nome_beneficiario,
-                atendimento.numero_guia_principal,
+                atendimento.data_execucao,
+                atendimento.paciente_carteirinha,
+                atendimento.paciente_nome,
+                atendimento.guia_id,
                 atendimento.codigo_ficha,
             ]
         ):
@@ -637,7 +637,7 @@ async def atualizar_atendimento(codigo_ficha: str, atendimento: AtendimentoUpdat
         # Validate date format
         try:
             # Expecting date in YYYY-MM-DD format
-            datetime.strptime(atendimento.data_atendimento, "%Y-%m-%d")
+            datetime.strptime(atendimento.data_execucao, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(
                 status_code=400, detail="Data em formato inválido. Use YYYY-MM-DD"
@@ -671,19 +671,19 @@ async def atualizar_atendimento(codigo_ficha: str, atendimento: AtendimentoUpdat
             cursor.execute(
                 """
                 UPDATE atendimentos 
-                SET data_atendimento = ?,
-                    numero_carteira = ?,
-                    nome_beneficiario = ?,
-                    numero_guia_principal = ?,
+                SET data_execucao = ?,
+                    paciente_carteirinha = ?,
+                    paciente_nome = ?,
+                    guia_id = ?,
                     possui_assinatura = ?,
                     codigo_ficha = ?
                 WHERE codigo_ficha = ?
             """,
                 (
-                    atendimento.data_atendimento,
-                    atendimento.numero_carteira,
-                    atendimento.nome_beneficiario,
-                    atendimento.numero_guia_principal,
+                    atendimento.data_execucao,
+                    atendimento.paciente_carteirinha,
+                    atendimento.paciente_nome,
+                    atendimento.guia_id,
                     atendimento.possui_assinatura,
                     atendimento.codigo_ficha,
                     codigo_ficha,

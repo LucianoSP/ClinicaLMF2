@@ -41,7 +41,7 @@ CREATE TABLE divergencias (
     data_execucao TIMESTAMP NOT NULL,
     codigo_ficha TEXT NOT NULL,
     descricao_divergencia TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'Pendente',
+    status TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
     -- Índices para melhor performance
@@ -52,10 +52,18 @@ CREATE TABLE divergencias (
 -- Criar enums para status
 CREATE TYPE status_divergencia AS ENUM ('Pendente', 'Resolvido', 'Em Análise');
 
+-- Remover o valor default da coluna status
+ALTER TABLE divergencias 
+    ALTER COLUMN status DROP DEFAULT;
+
 -- Alterar coluna status para usar enum
 ALTER TABLE divergencias 
     ALTER COLUMN status TYPE status_divergencia 
     USING status::status_divergencia;
+
+-- Adicionar novo valor default com o tipo correto
+ALTER TABLE divergencias 
+    ALTER COLUMN status SET DEFAULT 'Pendente'::status_divergencia;
 
 -- Adicionar restrições de chave estrangeira
 ALTER TABLE divergencias
