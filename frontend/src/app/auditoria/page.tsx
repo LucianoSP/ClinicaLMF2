@@ -239,25 +239,33 @@ export default function AuditoriaPage() {
           <div className="flex flex-col gap-2">
             <Label>Data Inicial</Label>
             <DatePicker
-              date={dataInicial}
-              setDate={setDataInicial}
+              mode="single"
+              selected={dataInicial}
+              onSelect={setDataInicial}
+              initialFocus
+              className="w-[240px] bg-white border-gray-200"
             />
           </div>
+
           <div className="flex flex-col gap-2">
             <Label>Data Final</Label>
             <DatePicker
-              date={dataFinal}
-              setDate={setDataFinal}
+              mode="single"
+              selected={dataFinal}
+              onSelect={setDataFinal}
+              initialFocus
+              className="w-[240px] bg-white border-gray-200"
             />
           </div>
-          <div className="flex flex-col justify-end">
-            <button
+
+          <div className="flex items-end">
+            <Button
               onClick={iniciarAuditoria}
               disabled={executandoAuditoria || !dataInicial || !dataFinal}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
             >
               {executandoAuditoria ? "Executando..." : "Iniciar Auditoria"}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -272,6 +280,19 @@ export default function AuditoriaPage() {
               <div>
                 <p className="text-sm text-gray-600">Divergências Encontradas</p>
                 <p className="text-2xl font-semibold">{resultadoAuditoria.divergencias_encontradas}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Erro</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{error}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -315,8 +336,8 @@ export default function AuditoriaPage() {
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${divergencia.status === 'Resolvido'
-                          ? 'bg-[#dcfce7] text-[#15803d]'
-                          : 'bg-[#fef9c3] text-[#854d0e]'
+                            ? 'bg-[#dcfce7] text-[#15803d]'
+                            : 'bg-[#fef9c3] text-[#854d0e]'
                           }`}>
                           {divergencia.status === 'Resolvido' ? (
                             <>
