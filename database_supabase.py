@@ -281,6 +281,7 @@ def listar_divergencias(
                     "data_execucao": div["data_execucao"],
                     "codigo_ficha": div["codigo_ficha"],
                     "descricao_divergencia": div["descricao_divergencia"],
+                    "beneficiario": div.get("paciente_nome", None),
                     "status": div["status"],
                     "data_registro": div["created_at"],
                 }
