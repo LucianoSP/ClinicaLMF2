@@ -12,7 +12,7 @@ Atualmente existem variações:
 
 ### Dados do Paciente
 Atualmente existem variações:
-- `nome_beneficiario` (atendimentos)
+- `paciente_nome` (atendimentos)
 - `nomePaciente` (protocolos_excel)
 
 **Padronização sugerida:** `paciente_nome`
@@ -26,7 +26,7 @@ Atualmente existem variações:
 
 ### Datas
 Atualmente existem variações:
-- `data_atendimento` (atendimentos)
+- `data_execucao` (atendimentos)
 - `dataExec` (protocolos_excel)
 - `data_exec` (divergencias)
 

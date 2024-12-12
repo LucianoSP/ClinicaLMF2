@@ -150,9 +150,9 @@ INSERT INTO atendimentos
     (data_execucao, paciente_carteirinha, paciente_nome, guia_id, 
      codigo_ficha, possui_assinatura)
 SELECT 
-    TO_TIMESTAMP(data_atendimento, 'DD/MM/YYYY'),
+    TO_TIMESTAMP(data_execucao, 'DD/MM/YYYY'),
     numero_carteira,
-    nome_beneficiario,
+    paciente_nome,
     numero_guia_principal,
     codigo_ficha,
     possui_assinatura

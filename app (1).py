@@ -560,7 +560,6 @@ async def clear_excel_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Auditoria
 @app.get("/auditoria/divergencias/")
 async def get_divergencias(
     page: int = Query(1, ge=1, description="Página atual"),

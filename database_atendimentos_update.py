@@ -4,7 +4,8 @@ def init_db():
         cursor = conn.cursor()
 
         # Criar tabela temporária com a nova estrutura
-        cursor.execute('''
+        cursor.execute(
+            """
         CREATE TABLE IF NOT EXISTS atendimentos_new (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             data_execucao TEXT NOT NULL,
@@ -14,25 +15,28 @@ def init_db():
             codigo_ficha TEXT,
             possui_assinatura BOOLEAN NOT NULL DEFAULT 1
         )
-        ''')
+        """
+        )
 
         # Copiar dados da tabela antiga para a nova
-        cursor.execute('''
+        cursor.execute(
+            """
         INSERT INTO atendimentos_new (
             id, data_execucao, paciente_carteirinha, paciente_nome, 
             guia_id, codigo_ficha, possui_assinatura
         )
         SELECT 
-            id, data_atendimento, numero_carteira, nome_beneficiario,
+            id, data_execucao, numero_carteira, paciente_nome,
             numero_guia_principal, codigo_ficha, possui_assinatura
         FROM atendimentos
-        ''')
+        """
+        )
 
         # Remover tabela antiga
-        cursor.execute('DROP TABLE atendimentos')
+        cursor.execute("DROP TABLE atendimentos")
 
         # Renomear nova tabela
-        cursor.execute('ALTER TABLE atendimentos_new RENAME TO atendimentos')
+        cursor.execute("ALTER TABLE atendimentos_new RENAME TO atendimentos")
 
         conn.commit()
         conn.close()

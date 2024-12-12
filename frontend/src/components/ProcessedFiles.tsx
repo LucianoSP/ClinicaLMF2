@@ -13,10 +13,10 @@ import { useDebounce } from '../hooks/useDebounce';
 import { API_URL } from '../config/api';
 
 interface Registro {
-  data_atendimento: string;
-  numero_carteira: string;
-  nome_beneficiario: string;
-  numero_guia_principal: string;
+  data_execucao: string;
+  paciente_carteirinha: string;  // Changed from numero_carteira
+  paciente_nome: string;
+  guia_id: string;              // Changed from numero_guia_principal
   possui_assinatura: boolean;
   codigo_ficha: string;
 }
@@ -27,10 +27,10 @@ interface DadosGuia {
 }
 
 interface Atendimento {
-  data_atendimento: string;
-  numero_carteira: string;
-  nome_beneficiario: string;
-  numero_guia_principal: string;
+  data_execucao: string;
+  paciente_carteirinha: string;  // Changed from numero_carteira
+  paciente_nome: string;
+  guia_id: string;              // Changed from numero_guia_principal
   possui_assinatura: boolean;
   codigo_ficha: string;
 }
@@ -75,7 +75,7 @@ const ProcessedFiles = () => {
 
       if (cleanSearchTerm.length >= 2) {
         console.log('Aplicando filtro com termo:', cleanSearchTerm);
-        params.set('nome_beneficiario', cleanSearchTerm);
+        params.set('paciente_nome', cleanSearchTerm);
         console.log('Parâmetros da URL:', params.toString());
       }
 
@@ -165,10 +165,10 @@ const ProcessedFiles = () => {
     try {
       // Preparar os dados para exportação
       const exportData = atendimentos.map(item => ({
-        'DATA': item.data_atendimento,
-        'CARTEIRA': item.numero_carteira,
-        'BENEFICIÁRIO': item.nome_beneficiario,
-        'NÚMERO DA GUIA': item.numero_guia_principal,
+        'DATA': item.data_execucao,
+        'CARTEIRA': item.paciente_carteirinha,  // Changed
+        'BENEFICIÁRIO': item.paciente_nome,
+        'NÚMERO DA GUIA': item.guia_id,         // Changed
         'CÓDIGO DA FICHA': item.codigo_ficha,
         'ASSINATURA': item.possui_assinatura ? 'Sim' : 'Não'
       }));
@@ -216,29 +216,29 @@ const ProcessedFiles = () => {
     try {
       // Create a copy of the data to send
       const dataToSend = {
-        data_atendimento: editedAtendimento.data_atendimento,
-        numero_carteira: editedAtendimento.numero_carteira,
-        nome_beneficiario: editedAtendimento.nome_beneficiario,
-        numero_guia_principal: editedAtendimento.numero_guia_principal,
+        data_execucao: editedAtendimento.data_execucao,
+        paciente_carteirinha: editedAtendimento.paciente_carteirinha,  // Changed
+        paciente_nome: editedAtendimento.paciente_nome,
+        guia_id: editedAtendimento.guia_id,                           // Changed
         possui_assinatura: editedAtendimento.possui_assinatura,
         codigo_ficha: editedAtendimento.codigo_ficha
       };
 
       // Validate required fields
-      if (!dataToSend.data_atendimento || !dataToSend.numero_carteira ||
-        !dataToSend.nome_beneficiario || !dataToSend.numero_guia_principal ||
+      if (!dataToSend.data_execucao || !dataToSend.paciente_carteirinha ||
+        !dataToSend.paciente_nome || !dataToSend.guia_id ||
         !dataToSend.codigo_ficha) {
         throw new Error('Todos os campos são obrigatórios');
       }
 
       // Convert date format if needed
-      if (dataToSend.data_atendimento) {
-        const parts = dataToSend.data_atendimento.split('/');
+      if (dataToSend.data_execucao) {
+        const parts = dataToSend.data_execucao.split('/');
         if (parts.length === 3) {
           const [day, month, year] = parts;
           // Ensure year has 4 digits
           const fullYear = year.length === 2 ? `20${year}` : year;
-          dataToSend.data_atendimento = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          dataToSend.data_execucao = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         } else {
           throw new Error('Formato de data inválido. Use DD/MM/YYYY');
         }
@@ -315,10 +315,10 @@ const ProcessedFiles = () => {
   };
 
   const columns: Column<Atendimento>[] = [
-    { key: 'data_atendimento', label: 'Data', editable: true },
-    { key: 'numero_carteira', label: 'Carteira', editable: true },
-    { key: 'nome_beneficiario', label: 'Beneficiário', editable: true },
-    { key: 'numero_guia_principal', label: 'Número da Guia', editable: true },
+    { key: 'data_execucao', label: 'Data', editable: true },
+    { key: 'paciente_carteirinha', label: 'Carteira', editable: true },
+    { key: 'paciente_nome', label: 'Beneficiário', editable: true },
+    { key: 'guia_id', label: 'Número da Guia', editable: true },
     { key: 'possui_assinatura', label: 'Assinatura', editable: true, type: 'boolean' },
     { key: 'codigo_ficha', label: 'Código da Ficha', editable: true }
   ];
@@ -474,7 +474,7 @@ const ProcessedFiles = () => {
             <h2 className="text-lg font-semibold mb-4">Confirmar Exclusão</h2>
             <p className="text-gray-600">
               Tem certeza que deseja excluir o atendimento do beneficiário{' '}
-              <span className="font-medium">{atendimentoToDelete.nome_beneficiario}</span>?
+              <span className="font-medium">{atendimentoToDelete.paciente_nome}</span>?
               Esta ação não pode ser desfeita.
             </p>
             <div className="mt-6 flex justify-end space-x-3">

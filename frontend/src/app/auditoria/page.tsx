@@ -19,9 +19,9 @@ import { API_URL } from '@/config/api';
 interface Atendimento {
   id: number;
   numero_carteira: string;
-  nome_beneficiario: string;
+  paciente_nome: string;
   numero_guia_principal?: string;
-  data_atendimento?: string;
+  data_execucao?: string;
 }
 
 interface Divergencia {
@@ -82,40 +82,40 @@ export default function AuditoriaPage() {
     setError(null);
     try {
       console.log('Buscando divergências...');
-  
+
       // Construir a URL base
       const baseUrl = `${API_URL}/auditoria/divergencias/`;
-  
+
       // Construir os parâmetros
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: '10'
       });
-  
+
       // Construir a URL final
       const url = `${baseUrl}?${params.toString()}`;
       console.log('URL completa:', url);
-  
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         },
       });
-  
+
       if (!response.ok) {
         const errorText = await response.text(); // Capturar a mensagem de erro da resposta
         throw new Error(`Erro ao buscar divergências: ${response.status} - ${errorText}`);
       }
-  
+
       const data = await response.json();
       console.log('Dados recebidos:', data);
-  
+
       // Verificar se a resposta contém a propriedade 'success' e se 'divergencias' é um array
       if (!data || !data.success || !Array.isArray(data.divergencias)) {
         throw new Error('Formato de resposta inválido');
       }
-  
+
       // Processar as divergências para extrair o beneficiário
       const divergenciasProcessadas = data.divergencias.map(div => {
         const { descricao, beneficiario } = extrairBeneficiario(div.descricao_divergencia);
@@ -125,9 +125,9 @@ export default function AuditoriaPage() {
           beneficiario
         };
       });
-  
+
       setDados(divergenciasProcessadas);
-      setTotalPages(Math.ceil(data.total / 10)); 
+      setTotalPages(Math.ceil(data.total / 10));
     } catch (err) {
       console.error('Erro ao buscar divergências:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');

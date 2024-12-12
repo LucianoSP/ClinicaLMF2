@@ -60,9 +60,14 @@ if not os.path.exists(GUIAS_RENOMEADAS_DIR):
 @app.on_event("startup")
 async def startup_event():
     """Inicializa o banco de dados na inicialização"""
-    if not init_db():
-        raise Exception("Falha ao inicializar o banco de dados!")
-    print("Banco de dados inicializado com sucesso!")
+    try:
+        # Inicializa o banco de dados
+        if init_db():
+            print("Banco de dados inicializado com sucesso!")
+        else:
+            print("Erro ao inicializar o banco de dados!")
+    except Exception as e:
+        print(f"Erro durante a inicialização: {e}")
 
 
 def formatar_data(data):
@@ -419,10 +424,23 @@ async def upload_excel(file: UploadFile = File(...)):
 
             # Converter DataFrame para lista de dicionários
             registros = df.to_dict("records")
+
+            # Map Excel columns to database fields
+            mapped_registros = []
+            for registro in registros:
+                mapped_registro = {
+                    "guia_id": str(registro["idGuia"]),
+                    "paciente_nome": str(registro["nomePaciente"]),
+                    "data_execucao": registro["DataExec"],
+                    "paciente_carteirinha": str(registro["Carteirinha"]),
+                    "paciente_id": str(registro["Id_Paciente"]),
+                }
+                mapped_registros.append(mapped_registro)
+
             print(f"Convertido para {len(registros)} registros")
 
             # Salvar no banco de dados
-            if salvar_dados_excel(registros):
+            if salvar_dados_excel(mapped_registros):
                 return {
                     "message": f"Arquivo processado com sucesso. {len(registros)} registros importados."
                 }
@@ -451,34 +469,38 @@ async def upload_excel(file: UploadFile = File(...)):
 async def list_files(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-    nome_beneficiario: str = Query(None, description="Filtro por nome do beneficiário"),
+    paciente_nome: str = Query(None, description="Filtro por nome do paciente"),
 ):
     try:
-        print(f"\n=== Requisição list-files ===")
-        print(f"Página: {page}")
-        print(f"Por página: {per_page}")
-        print(f"Nome beneficiário: '{nome_beneficiario}'")
-
+        # Calcula o offset com base na página atual
         offset = (page - 1) * per_page
-        result = listar_guias(
-            limit=per_page, offset=offset, nome_beneficiario=nome_beneficiario
+
+        # Busca os atendimentos do banco de dados
+        atendimentos = listar_guias(
+            offset=offset, limit=per_page, paciente_nome=paciente_nome
         )
+
+        print("Atendimentos retornados do banco:", atendimentos)  # Debug log
+
+        # Conta o total de registros para calcular o número de páginas
+        total_registros = len(
+            listar_guias(offset=0, limit=None, paciente_nome=paciente_nome)
+        )
+        total_paginas = ceil(total_registros / per_page)
 
         response_data = {
             "success": True,
             "data": {
-                "atendimentos": result["atendimentos"],
-                "pagination": {
-                    "total": result["total"],
-                    "page": page,
-                    "per_page": per_page,
-                    "total_pages": ceil(result["total"] / per_page),
-                },
+                "atendimentos": atendimentos,
+                "pagination": {"total_pages": total_paginas, "total": total_registros},
             },
         }
+
+        print("Resposta enviada ao frontend:", response_data)  # Debug log
+
         return response_data
     except Exception as e:
-        print(f"Erro na API: {str(e)}")
+        logger.error(f"Erro ao listar arquivos: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -495,19 +517,17 @@ async def get_guia(numero_guia: str):
 async def list_excel(
     page: int = Query(1, description="Página atual"),
     per_page: int = Query(10, description="Itens por página"),
-    nome_beneficiario: str = Query(
-        None, description="Filtrar por nome do beneficiário"
-    ),
+    paciente_nome: str = Query(None, description="Filtrar por nome do beneficiário"),
 ):
     """Lista os dados importados do Excel com suporte a paginação e filtro"""
     try:
         offset = (page - 1) * per_page
 
         print(
-            f"Buscando dados com: page={page}, per_page={per_page}, nome_beneficiario={nome_beneficiario}"
+            f"Buscando dados com: page={page}, per_page={per_page}, paciente_nome={paciente_nome}"
         )
         resultado = listar_dados_excel(
-            limit=per_page, offset=offset, nome_beneficiario=nome_beneficiario
+            limit=per_page, offset=offset, paciente_nome=paciente_nome
         )
 
         return {
@@ -743,12 +763,16 @@ async def excluir_atendimento(codigo_ficha: str):
 # async def list_atendimentos(
 #     page: int = Query(1, ge=1, description="Página atual"),
 #     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-#     nome_beneficiario: str = Query(None, description="Filtro por nome do beneficiário"),
+#     paciente_nome: str = Query(None, description="Filtro por nome do beneficiário"),
 # ):
 #     """Endpoint para listar atendimentos - redireciona para list-files"""
 #     return await list_files(
-#         page=page, per_page=per_page, nome_beneficiario=nome_beneficiario
+#         page=page, per_page=per_page, paciente_nome=paciente_nome
 #     )
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+# uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)

@@ -26,7 +26,7 @@ Desenvolver uma solução que compare as duas tabelas para identificar divergên
 
 As inconsistências a serem identificadas incluem:
 
-- **Datas Não Preenchidas**: Atendimentos onde o campo `data_atendimento` está vazio ou nulo.
+- **Datas Não Preenchidas**: Atendimentos onde o campo `data_execucao` está vazio ou nulo.
 
 - **Número da Guia Não Preenchido**: Atendimentos onde o campo `numero_guia_principal` está vazio ou nulo, possivelmente porque o paciente estava sem guia no dia.
 
@@ -76,9 +76,9 @@ As inconsistências a serem identificadas incluem:
 
 - **Campos**:
   - `id`: Identificador único do atendimento.
-  - `data_atendimento`: Data em que o atendimento foi realizado.
+  - `data_execucao`: Data em que o atendimento foi realizado.
   - `numero_carteira`: Número da carteira do paciente.
-  - `nome_beneficiario`: Nome do paciente beneficiário.
+  - `paciente_nome`: Nome do paciente beneficiário.
   - `numero_guia_principal`: Número da guia principal associada ao atendimento.
   - `codigo_guia`: Código específico da guia.
   - `possui_assinatura`: Indica se o atendimento possui assinatura (1 para verdadeiro, 0 para falso).
@@ -104,13 +104,13 @@ As inconsistências a serem identificadas incluem:
 
 6.2. **Verificação dos Atendimentos**
 
-- Para cada grupo identificado, buscar os atendimentos correspondentes na tabela `atendimentos` com base em `codigo_guia` e `data_atendimento`.
+- Para cada grupo identificado, buscar os atendimentos correspondentes na tabela `atendimentos` com base em `codigo_guia` e `data_execucao`.
 
 - Comparar a quantidade de atendimentos encontrados com a quantidade de execuções esperadas.
 
 6.3. **Identificação de Problemas Específicos**
 
-- **Datas Não Preenchidas**: Verificar se há atendimentos sem `data_atendimento`.
+- **Datas Não Preenchidas**: Verificar se há atendimentos sem `data_execucao`.
 
 - **Número da Guia Não Preenchido**: Identificar atendimentos sem `numero_guia_principal`.
 

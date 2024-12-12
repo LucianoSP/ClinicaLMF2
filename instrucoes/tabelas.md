@@ -19,9 +19,9 @@ erDiagram
 
     atendimentos {
         int id PK
-        text data_atendimento
+        text data_execucao
         text numero_carteira
-        text nome_beneficiario
+        text paciente_nome
         text numero_guia_principal
         text codigo_ficha
         boolean possui_assinatura

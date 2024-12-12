@@ -50,7 +50,7 @@ export default function ExcelPage() {
       // Só adiciona o filtro se tiver 2 ou mais caracteres
       const cleanSearchTerm = debouncedSearchTerm?.trim() || '';
       if (cleanSearchTerm.length >= 2) {
-        params.set('nome_beneficiario', cleanSearchTerm);
+        params.set('paciente_nome', cleanSearchTerm);
       }
 
       // Construir a URL final

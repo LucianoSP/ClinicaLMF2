@@ -81,10 +81,10 @@ def exportar_atendimentos(conn):
 
     query = """
     SELECT 
-        data_atendimento as data_execucao,
-        numero_carteira as paciente_carteirinha,
-        nome_beneficiario as paciente_nome,
-        numero_guia_principal as guia_id,
+        data_execucao as data_execucao,
+        paciente_carteirinhaas paciente_carteirinha,
+        paciente_nomeas paciente_nome,
+        guia_idas guia_id,
         codigo_ficha,
         possui_assinatura
     FROM atendimentos
