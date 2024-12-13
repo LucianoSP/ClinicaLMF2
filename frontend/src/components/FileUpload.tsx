@@ -11,6 +11,7 @@ export function FileUpload() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [...prev, ...acceptedFiles]);
@@ -88,9 +89,15 @@ export function FileUpload() {
       // Verificar se todos os arquivos foram processados com sucesso
       const allSuccess = results.every(r => r.status === 'success');
       if (allSuccess) {
-        // Limpar arquivos e redirecionar para a página de relatórios
+        // Mostrar URLs dos arquivos enviados
+        const uploadedUrls = results.flatMap(r => r.uploaded_files || []);
+        if (uploadedUrls.length > 0) {
+          setSuccess(`Arquivos enviados com sucesso! URLs:\n${uploadedUrls.map(f => f.url).join('\n')}`);
+        } else {
+          setSuccess('Arquivos processados com sucesso!');
+        }
+        // Limpar arquivos sem redirecionar
         setFiles([]);
-        router.push('/atendimentos');
       }
     } catch (err) {
       console.error('Upload error:', err);
@@ -126,10 +133,10 @@ export function FileUpload() {
                 {isDragActive ? (
                   <p>Solte os arquivos aqui...</p>
                 ) : (
-                  <>
+                  <div>
                     <p className="text-base">Arraste e solte arquivos PDF aqui, ou</p>
                     <p className="text-sm text-larissa-primary hover:text-larissa-primary-hover">clique para selecionar</p>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -138,6 +145,12 @@ export function FileUpload() {
           {error && (
             <div className="bg-red-50 p-4 rounded-md">
               <p className="text-red-700">{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 p-4 rounded-md">
+              <p className="text-green-700">{success}</p>
             </div>
           )}
 

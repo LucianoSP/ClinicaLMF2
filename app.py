@@ -24,6 +24,7 @@ from database_supabase import (
     listar_divergencias,
     atualizar_status_divergencia,
     atualizar_atendimento,
+    upload_arquivo_storage,  # Import the upload_arquivo_storage function
 )
 from pydantic import BaseModel, ValidationError
 import re
@@ -257,33 +258,38 @@ async def upload_pdf(
                 shutil.copyfileobj(file.file, buffer)
 
             # Extrair informações do PDF
-            atendimentos = await extract_info_from_pdf(temp_pdf_path)
-
-            if atendimentos.get("status_validacao") == "falha":
-                raise Exception(
-                    atendimentos.get("erro", "Erro desconhecido ao processar PDF")
-                )
+            info = await extract_info_from_pdf(temp_pdf_path)
+            
+            if info.get("status_validacao") == "falha":
+                raise Exception(info.get("erro", "Erro desconhecido ao processar PDF"))
+            
+            # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente
+            data_formatada = info["json"]["registros"][0]["data_execucao"].replace("/", "-")
+            paciente_nome = info["json"]["registros"][0]["paciente_nome"]
+            novo_nome = f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
+            
+            # Faz upload do arquivo para o Storage
+            arquivo_url = upload_arquivo_storage(temp_pdf_path, novo_nome)
+            if arquivo_url:
+                uploaded_files = [{
+                    "nome": novo_nome,
+                    "url": arquivo_url
+                }]
+            else:
+                uploaded_files = []
 
             # Salvar cada atendimento no banco de dados
             saved_ids = []
-            dados_guia = atendimentos["json"]
+            dados_guia = info["json"]
             for registro in dados_guia["registros"]:
-                # Adicionar codigo_ficha ao registro
+                # Adicionar codigo_ficha e arquivo_url ao registro
                 registro["codigo_ficha"] = dados_guia["codigo_ficha"]
+                if arquivo_url:
+                    registro["arquivo_url"] = arquivo_url
+                
+                # Salvar registro no banco
                 atendimento_id = salvar_guia(registro)
                 saved_ids.append(atendimento_id)
-
-                # Criar uma cópia do PDF original com o novo nome
-                data_atual = datetime.now().strftime("%d-%m-%Y")
-                novo_nome = f"{registro['guia_id']}-{data_atual}-{registro['paciente_nome']}.pdf"
-                novo_nome = re.sub(
-                    r'[<>:"/\\|?*]', "", novo_nome
-                )  # Remove caracteres inválidos para nome de arquivo
-                novo_caminho = os.path.join(GUIAS_RENOMEADAS_DIR, novo_nome)
-
-                # Se ainda não salvamos uma cópia deste PDF, salvar agora
-                if not os.path.exists(novo_caminho):
-                    shutil.copy2(temp_pdf_path, novo_caminho)
 
             results.append(
                 {
@@ -292,6 +298,7 @@ async def upload_pdf(
                     "status": "success",
                     "filename": file.filename,
                     "saved_ids": saved_ids,
+                    "uploaded_files": uploaded_files  # Adiciona URLs dos arquivos à resposta
                 }
             )
 

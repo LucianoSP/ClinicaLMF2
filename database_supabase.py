@@ -1,6 +1,8 @@
 from typing import Dict, List, Optional
 from datetime import datetime
 from config import supabase
+import os
+import traceback
 
 
 def salvar_dados_excel(registros: List[Dict]) -> bool:
@@ -115,6 +117,7 @@ def salvar_guia(info: Dict) -> bool:
             "paciente_carteirinha": str(info["paciente_carteirinha"]),
             "codigo_ficha": str(info["codigo_ficha"]),
             "possui_assinatura": bool(info["possui_assinatura"]),
+            "arquivo_url": info.get("arquivo_url")  # Adiciona URL do arquivo se existir
         }
 
         # Insere no Supabase
@@ -171,6 +174,7 @@ def listar_guias(
                 "guia_id": row["guia_id"],
                 "codigo_ficha": row["codigo_ficha"],
                 "possui_assinatura": bool(row["possui_assinatura"]),
+                "arquivo_url": row.get("arquivo_url", None)
             }
             atendimentos.append(atendimento)
 
@@ -199,6 +203,7 @@ def buscar_guia(guia_id: str) -> List[Dict]:
                     "guia_id": row["guia_id"],
                     "codigo_ficha": row["codigo_ficha"],
                     "possui_assinatura": bool(row["possui_assinatura"]),
+                    "arquivo_url": row.get("arquivo_url", None)
                 }
             )
 
@@ -323,6 +328,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
             "paciente_carteirinha": str(dados["paciente_carteirinha"]),
             "codigo_ficha": str(dados["codigo_ficha"]),
             "possui_assinatura": bool(dados["possui_assinatura"]),
+            "arquivo_url": dados.get("arquivo_url", None)
         }
 
         # Verifica se o registro existe
@@ -344,3 +350,49 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
     except Exception as e:
         print(f"Erro ao atualizar atendimento: {e}")
         raise e
+
+
+def upload_arquivo_storage(arquivo_path: str, novo_nome: str) -> str:
+    """
+    Faz upload de um arquivo para o Supabase Storage.
+    
+    Args:
+        arquivo_path (str): Caminho local do arquivo
+        novo_nome (str): Nome do arquivo no Storage
+        
+    Returns:
+        str: URL pública do arquivo ou None se houver erro
+    """
+    try:
+        print(f"Iniciando upload do arquivo {novo_nome}")
+        
+        # Verifica se o arquivo existe
+        if not os.path.exists(arquivo_path):
+            print(f"ERRO: Arquivo não encontrado: {arquivo_path}")
+            return None
+            
+        # Lê o arquivo
+        with open(arquivo_path, "rb") as f:
+            file_bytes = f.read()
+            print(f"Arquivo lido com sucesso. Tamanho: {len(file_bytes)} bytes")
+            
+        # Upload do arquivo para o bucket 'fichas_renomeadas'
+        print(f"Iniciando upload para o bucket fichas_renomeadas...")
+        response = supabase.storage.from_("fichas_renomeadas").upload(
+            path=novo_nome,
+            file=file_bytes,
+            file_options={"content-type": "application/pdf"}
+        )
+        print(f"Response do upload: {response}")
+        
+        # Retorna a URL pública do arquivo
+        url = supabase.storage.from_("fichas_renomeadas").get_public_url(novo_nome)
+        print(f"URL pública gerada: {url}")
+        print(f"Arquivo {novo_nome} enviado com sucesso para o Storage")
+        return url
+        
+    except Exception as e:
+        print(f"Erro ao fazer upload do arquivo para o Storage: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        print(f"Traceback completo: {traceback.format_exc()}")
+        return None
