@@ -3,6 +3,7 @@
 import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { TrashIcon } from './TrashIcon';
 import { API_URL } from '../config/api';
+import { FiDownload } from 'react-icons/fi';
 
 interface StorageFile {
   nome: string;
@@ -76,6 +77,24 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
     }
   };
 
+  const deleteFile = async (fileName: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/storage-files/${fileName}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Erro ao deletar arquivo');
+      }
+      await fetchFiles(); // Recarrega a lista
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao deletar arquivo');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Formata o tamanho do arquivo para exibição
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -100,43 +119,42 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
         {files.length > 0 && (
           <button
             onClick={deleteAllFiles}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[#b75950] hover:bg-[#a54d45] text-white rounded-md transition-colors"
           >
-            <TrashIcon className="h-5 w-5" />
-            Apagar Todos
+            Limpar Storage
           </button>
         )}
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
-      )}
+      {error && <div className="text-red-500 mb-4">{error}</div>}
 
       {files.length === 0 ? (
-        <p className="text-gray-600">Nenhum arquivo encontrado no storage.</p>
+        <div className="text-gray-500">Nenhum arquivo encontrado</div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {files.map((file) => (
-            <div
-              key={file.nome}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
+            <div key={file.nome} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
               <div className="flex-1">
-                <p className="font-medium text-gray-800">{file.nome}</p>
-                <p className="text-sm text-gray-600">
-                  Tamanho: {formatFileSize(file.size)}
-                </p>
+                <div className="text-sm font-medium text-gray-700">{file.nome}</div>
+                <div className="text-xs text-gray-500">
+                  {formatFileSize(file.size)} • {new Date(file.created_at).toLocaleDateString()}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center space-x-3">
                 <a
                   href={file.url}
-                  download
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#C5A880] hover:text-[#B39770] transition-colors"
                 >
-                  Download
+                  <FiDownload size={20} />
                 </a>
+                <button
+                  onClick={() => deleteFile(file.nome)}
+                  className="text-[#C5A880] hover:text-[#B39770] transition-colors"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                </button>
               </div>
             </div>
           ))}

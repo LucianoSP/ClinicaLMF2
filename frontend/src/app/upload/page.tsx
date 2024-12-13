@@ -22,7 +22,7 @@ export default function UploadPage() {
           onClick={() => setActiveTab('pdf')}
           className={`px-4 py-2 rounded-lg font-medium ${
             activeTab === 'pdf'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#C5A880] text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -32,7 +32,7 @@ export default function UploadPage() {
           onClick={() => setActiveTab('excel')}
           className={`px-4 py-2 rounded-lg font-medium ${
             activeTab === 'excel'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#C5A880] text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >

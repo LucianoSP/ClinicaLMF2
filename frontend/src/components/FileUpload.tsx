@@ -164,59 +164,47 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-4xl mx-auto p-6">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-          isDragActive ? 'border-[#b49d6b] bg-[#f9f6f2]' : 'border-gray-300 hover:border-[#b49d6b]'
-        }`}
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+          ${isDragActive ? 'border-[#C5A880] bg-[#C5A880]/10' : 'border-gray-300 hover:border-[#C5A880]'}`}
       >
         <input {...getInputProps()} />
-        {isDragActive ? (
-          <p className="text-[#b49d6b]">Solte os arquivos aqui...</p>
-        ) : (
-          <p>
-            Arraste e solte arquivos PDF aqui, ou clique para selecionar
-          </p>
-        )}
+        <p className="text-gray-600">
+          Arraste e solte arquivos PDF aqui, ou clique para selecionar
+        </p>
       </div>
 
       {files.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <h3 className="font-medium text-gray-700 mb-2">Arquivos Selecionados:</h3>
+        <div className="mt-4">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-medium text-gray-700">Arquivos Selecionados</h3>
+            <button
+              onClick={handleUpload}
+              disabled={isLoading}
+              className="px-4 py-2 bg-[#C5A880] hover:bg-[#B39770] text-white rounded-md transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Enviando...' : 'Enviar Arquivos'}
+            </button>
+          </div>
           <div className="space-y-2">
             {files.map((file) => (
-              <div
-                key={file.name}
-                className="flex items-center justify-between bg-gray-50 p-2 rounded"
-              >
-                <span className="text-gray-700 text-sm truncate max-w-[70%]" title={file.name}>
-                  {file.name}
-                </span>
+              <div key={file.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-gray-700">{file.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {(file.size / 1024).toFixed(2)} KB
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-
-          <button
-            onClick={handleUpload}
-            disabled={isLoading}
-            className={`mt-4 px-4 py-2 rounded text-white text-sm font-medium w-[120px] ${
-              isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-[#b49d6b] hover:bg-[#a08b5f]'
-            }`}
-          >
-            {isLoading ? 'Processando...' : 'Processar'}
-          </button>
         </div>
       )}
 
-      {error && <div className="mt-4 text-red-500 whitespace-pre-line">{error}</div>}
+      {error && <div className="mt-4 text-red-500">{error}</div>}
       {success && <div className="mt-4 text-green-500">{success}</div>}
-
-      {uploadedFiles.length > 0 && (
-        <FileList files={uploadedFiles} onDelete={handleDelete} />
-      )}
     </div>
   );
 };
