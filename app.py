@@ -79,17 +79,17 @@ def formatar_data(data):
         if isinstance(data, str):
             # Remove espaços extras
             data = data.strip()
-            
+
             # Lista de possíveis formatos, do mais específico para o mais genérico
             formatos = [
-                "%d/%m/%Y",    # 31/12/2024
-                "%Y-%m-%d",    # 2024-12-31
-                "%d-%m-%Y",    # 31-12-2024
-                "%Y/%m/%d",    # 2024/12/31
-                "%d.%m.%Y",    # 31.12.2024
-                "%Y.%m.%d",    # 2024.12.31
-                "%d %m %Y",    # 31 12 2024
-                "%Y %m %d",    # 2024 12 31
+                "%d/%m/%Y",  # 31/12/2024
+                "%Y-%m-%d",  # 2024-12-31
+                "%d-%m-%Y",  # 31-12-2024
+                "%Y/%m/%d",  # 2024/12/31
+                "%d.%m.%Y",  # 31.12.2024
+                "%Y.%m.%d",  # 2024.12.31
+                "%d %m %Y",  # 31 12 2024
+                "%Y %m %d",  # 2024 12 31
             ]
 
             # Se a data tem 8 dígitos seguidos, pode ser DDMMYYYY ou YYYYMMDD
@@ -101,7 +101,7 @@ def formatar_data(data):
                         return data_obj.strftime("%d/%m/%Y")
                 except ValueError:
                     pass
-                
+
                 # Tenta interpretar como YYYYMMDD
                 try:
                     data_obj = datetime.strptime(data, "%Y%m%d")
@@ -121,11 +121,13 @@ def formatar_data(data):
                     continue
 
             # Se chegou aqui, tenta trocar dia/mês se a data parece inválida
-            partes = re.split(r'[/\-\. ]', data)
+            partes = re.split(r"[/\-\. ]", data)
             if len(partes) == 3:
                 # Se parece ser DD/MM/YYYY mas é inválida, tenta MM/DD/YYYY
                 try:
-                    data_obj = datetime.strptime(f"{partes[1]}/{partes[0]}/{partes[2]}", "%d/%m/%Y")
+                    data_obj = datetime.strptime(
+                        f"{partes[1]}/{partes[0]}/{partes[2]}", "%d/%m/%Y"
+                    )
                     if data_obj.year >= 2000 and data_obj.year <= 2100:
                         return data_obj.strftime("%d/%m/%Y")
                 except ValueError:
@@ -218,8 +220,9 @@ async def extract_info_from_pdf(pdf_path: str):
 
                         Regras de extração:
                         1. Inclua uma linha nos registros se a linha tiver o campo Data de Atendimento OU o campo Assinatura tiver o quadrado preenchido por um "x"
-                        2. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano). Se encontrar uma data no formato DD/MM/YY, converta para DD/MM/YYYY.
-                        3. Retorne APENAS o JSON, sem texto adicional
+                        2. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano). Se encontrar uma data no formato DD/MM/YY, converta para DD/MM/YYYY. 
+                        3. Todas as datas no campo Data de Atendimento devem ser válidas (30/02/2024 seria uma data inválida) e iguais para todas as linhas.   
+                        4. Retorne APENAS o JSON, sem texto adicional
                     """,
                         },
                     ],
@@ -302,22 +305,23 @@ async def upload_pdf(
 
             # Extrair informações do PDF
             info = await extract_info_from_pdf(temp_pdf_path)
-            
+
             if info.get("status_validacao") == "falha":
                 raise Exception(info.get("erro", "Erro desconhecido ao processar PDF"))
-            
+
             # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente
-            data_formatada = info["json"]["registros"][0]["data_execucao"].replace("/", "-")
+            data_formatada = info["json"]["registros"][0]["data_execucao"].replace(
+                "/", "-"
+            )
             paciente_nome = info["json"]["registros"][0]["paciente_nome"]
-            novo_nome = f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
-            
+            novo_nome = (
+                f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
+            )
+
             # Faz upload do arquivo para o Storage
             arquivo_url = upload_arquivo_storage(temp_pdf_path, novo_nome)
             if arquivo_url:
-                uploaded_files = [{
-                    "nome": novo_nome,
-                    "url": arquivo_url
-                }]
+                uploaded_files = [{"nome": novo_nome, "url": arquivo_url}]
             else:
                 uploaded_files = []
 
@@ -330,7 +334,7 @@ async def upload_pdf(
                     registro["codigo_ficha"] = dados_guia["codigo_ficha"]
                     if arquivo_url:
                         registro["arquivo_url"] = arquivo_url
-                    
+
                     # Salvar registro no banco
                     atendimento_id = salvar_guia(registro)
                     if atendimento_id:
@@ -347,7 +351,7 @@ async def upload_pdf(
                         "status": "success",
                         "filename": file.filename,
                         "saved_ids": saved_ids,
-                        "uploaded_files": uploaded_files  # Adiciona URLs dos arquivos à resposta
+                        "uploaded_files": uploaded_files,  # Adiciona URLs dos arquivos à resposta
                     }
                 )
             else:
@@ -355,7 +359,7 @@ async def upload_pdf(
                     {
                         "message": "Erro ao salvar atendimentos no banco de dados",
                         "status": "error",
-                        "filename": file.filename
+                        "filename": file.filename,
                     }
                 )
 
@@ -621,24 +625,32 @@ async def atualizar_divergencia(
 
 
 @app.put("/atendimento/{codigo_ficha}")
-async def atualizar_atendimento_endpoint(codigo_ficha: str, atendimento: AtendimentoUpdate):
+async def atualizar_atendimento_endpoint(
+    codigo_ficha: str, atendimento: AtendimentoUpdate
+):
     try:
         # Validate the data format
-        if not all([
-            atendimento.data_execucao,
-            atendimento.paciente_carteirinha,
-            atendimento.paciente_nome,
-            atendimento.guia_id,
-            atendimento.codigo_ficha,
-        ]):
-            raise HTTPException(status_code=400, detail="Todos os campos são obrigatórios")
+        if not all(
+            [
+                atendimento.data_execucao,
+                atendimento.paciente_carteirinha,
+                atendimento.paciente_nome,
+                atendimento.guia_id,
+                atendimento.codigo_ficha,
+            ]
+        ):
+            raise HTTPException(
+                status_code=400, detail="Todos os campos são obrigatórios"
+            )
 
         # Validate date format
         try:
             # Expecting date in YYYY-MM-DD format
             datetime.strptime(atendimento.data_execucao, "%Y-%m-%d")
         except ValueError:
-            raise HTTPException(status_code=400, detail="Data em formato inválido. Use YYYY-MM-DD")
+            raise HTTPException(
+                status_code=400, detail="Data em formato inválido. Use YYYY-MM-DD"
+            )
 
         # Convert the model to a dictionary
         dados = {
@@ -653,19 +665,27 @@ async def atualizar_atendimento_endpoint(codigo_ficha: str, atendimento: Atendim
         # Update in Supabase
         try:
             from database_supabase import atualizar_atendimento
+
             success = atualizar_atendimento(codigo_ficha, dados)
             if not success:
-                raise HTTPException(status_code=404, detail="Atendimento não encontrado")
+                raise HTTPException(
+                    status_code=404, detail="Atendimento não encontrado"
+                )
             return {"message": "Atendimento atualizado com sucesso"}
         except ValueError as ve:
             raise HTTPException(status_code=400, detail=str(ve))
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Erro ao atualizar atendimento no banco de dados: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro ao atualizar atendimento no banco de dados: {str(e)}",
+            )
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro interno ao atualizar atendimento: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro interno ao atualizar atendimento: {str(e)}"
+        )
 
 
 @app.delete("/atendimento/{codigo_ficha}")
