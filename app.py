@@ -25,6 +25,7 @@ from database_supabase import (
     atualizar_status_divergencia,
     atualizar_atendimento,
     upload_arquivo_storage,  # Import the upload_arquivo_storage function
+    deletar_arquivos_storage,  # Import the deletar_arquivos_storage function
 )
 from pydantic import BaseModel, ValidationError
 import re
@@ -638,6 +639,21 @@ async def excluir_atendimento(codigo_ficha: str):
         )
     finally:
         conn.close()
+
+
+@app.delete("/delete-files/")
+async def delete_files(files: list[str]):
+    """
+    Deleta arquivos do Storage do Supabase
+    """
+    try:
+        success = deletar_arquivos_storage(files)
+        if success:
+            return {"message": "Arquivos deletados com sucesso"}
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao deletar arquivos")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

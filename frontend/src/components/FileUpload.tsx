@@ -1,17 +1,46 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useRouter } from 'next/navigation';
 import { API_URL } from '../config/api';
+import { FileList } from './FileList';
+
+interface FileInfo {
+  nome: string;
+  url: string;
+}
+
+const STORAGE_KEY = 'uploadedPDFFiles';
 
 export function FileUpload() {
-  const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
+
+  // Carregar arquivos salvos ao montar o componente
+  useEffect(() => {
+    const savedFiles = localStorage.getItem(STORAGE_KEY);
+    if (savedFiles) {
+      setUploadedFiles(JSON.parse(savedFiles));
+    }
+  }, []);
+
+  // Salvar arquivos no localStorage quando a lista mudar
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(uploadedFiles));
+  }, [uploadedFiles]);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [...prev, ...acceptedFiles]);
@@ -38,14 +67,12 @@ export function FileUpload() {
 
     try {
       const results = [];
-      // Processar arquivos sequencialmente
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const formData = new FormData();
         formData.append('files', file);
 
         try {
-          // Atualizar progresso para "processando"
           setUploadProgress(prev => ({
             ...prev,
             [file.name]: 1
@@ -59,7 +86,7 @@ export function FileUpload() {
           });
 
           const result = await response.json();
-          const fileResult = result[0]; // Pegar o primeiro resultado já que estamos enviando um arquivo por vez
+          const fileResult = result[0];
 
           setUploadProgress(prev => ({
             ...prev,
@@ -86,109 +113,95 @@ export function FileUpload() {
         }
       }
 
-      // Verificar se todos os arquivos foram processados com sucesso
       const allSuccess = results.every(r => r.status === 'success');
       if (allSuccess) {
-        // Mostrar URLs dos arquivos enviados
-        const uploadedUrls = results.flatMap(r => r.uploaded_files || []);
-        if (uploadedUrls.length > 0) {
-          setSuccess(`Arquivos enviados com sucesso! URLs:\n${uploadedUrls.map(f => f.url).join('\n')}`);
+        const newUploadedFiles = results.flatMap(r => r.uploaded_files || []);
+        if (newUploadedFiles.length > 0) {
+          setUploadedFiles(prev => [...prev, ...newUploadedFiles]);
+          setSuccess('Arquivos enviados com sucesso!');
         } else {
           setSuccess('Arquivos processados com sucesso!');
         }
-        // Limpar arquivos sem redirecionar
         setFiles([]);
       }
     } catch (err) {
-      console.error('Upload error:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao fazer upload dos arquivos');
-      files.forEach(file => {
-        setUploadProgress(prev => ({
-          ...prev,
-          [file.name]: 0
-        }));
-      });
+      setError('Erro ao fazer upload dos arquivos');
+      console.error('Erro:', err);
     } finally {
       setUploading(false);
     }
   };
 
+  const clearUploadedFiles = useCallback(() => {
+    setUploadedFiles([]);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="space-y-4">
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${isDragActive ? 'border-larissa-primary bg-larissa-light' : 'border-larissa-secondary/30 hover:border-larissa-secondary'}`}
-          >
-            <input {...getInputProps()} />
-            <div className="space-y-2">
-              <div className="flex justify-center">
-                <svg className="h-12 w-12 text-larissa-secondary" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div className="text-larissa-dark">
-                {isDragActive ? (
-                  <p>Solte os arquivos aqui...</p>
-                ) : (
-                  <div>
-                    <p className="text-base">Arraste e solte arquivos PDF aqui, ou</p>
-                    <p className="text-sm text-larissa-primary hover:text-larissa-primary-hover">clique para selecionar</p>
-                  </div>
-                )}
-              </div>
+    <div className="max-w-3xl mx-auto p-4">
+      <div
+        {...getRootProps()}
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+          ${isDragActive ? 'border-[#b49d6b] bg-[#b49d6b]/10' : 'border-gray-300 hover:border-[#b49d6b]'}`}
+      >
+        <input {...getInputProps()} />
+        {isDragActive ? (
+          <p className="text-[#b49d6b]">Solte os arquivos aqui...</p>
+        ) : (
+          <p>Arraste e solte arquivos PDF aqui, ou <span className="text-[#b49d6b]">clique para selecionar</span></p>
+        )}
+      </div>
+
+      {files.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-2">Arquivos Selecionados</h3>
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="space-y-1">
+              {files.map((file, index) => (
+                <div key={index} className="flex items-center justify-between py-1">
+                  <span className="text-gray-700 text-sm truncate max-w-[70%]" title={file.name}>
+                    {file.name}
+                  </span>
+                  {uploadProgress[file.name] > 0 && uploadProgress[file.name] < 100 && (
+                    <span className="text-[#b49d6b] text-sm">Processando...</span>
+                  )}
+                  {uploadProgress[file.name] === 100 && (
+                    <span className="text-green-500 text-sm">Concluído</span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
-          {error && (
-            <div className="bg-red-50 p-4 rounded-md">
-              <p className="text-red-700">{error}</p>
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-50 p-4 rounded-md">
-              <p className="text-green-700">{success}</p>
-            </div>
-          )}
-
-          {files.length > 0 && (
-            <div className="space-y-4">
-              {files.map(file => (
-                <div key={file.name} className="bg-larissa-light/30 p-4 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-larissa-dark font-medium">{file.name}</span>
-                    <span className="text-sm text-larissa-primary font-medium">
-                      {uploadProgress[file.name]}%
-                    </span>
-                  </div>
-                  <div className="mt-2 w-full bg-larissa-light rounded-full h-2">
-                    <div
-                      className="bg-larissa-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress[file.name]}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-
-              <button
-                onClick={uploadFiles}
-                disabled={uploading}
-                className={`
-                  flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium w-full
-                  ${uploading
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-[#b49d6b] text-white hover:bg-[#a08b5f] transition-colors'
-                  }`}
-              >
-                {uploading ? `Processando (${Object.values(uploadProgress).filter(p => p === 100).length}/${files.length})...` : `Processar ${files.length} ${files.length === 1 ? 'Arquivo' : 'Arquivos'}`}
-              </button>
-            </div>
-          )}
+          <button
+            onClick={uploadFiles}
+            disabled={uploading}
+            className={`mt-4 px-4 py-2 rounded text-white text-sm font-medium w-[120px] ${
+              uploading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-[#b49d6b] hover:bg-[#a08b5f]'
+            }`}
+          >
+            {uploading ? 'Processando...' : 'Processar'}
+          </button>
         </div>
-      </div>
+      )}
+
+      {error && (
+        <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+          {success}
+        </div>
+      )}
+
+      {uploadedFiles.length > 0 && (
+        <FileList files={uploadedFiles} onClear={clearUploadedFiles} />
+      )}
     </div>
   );
 }

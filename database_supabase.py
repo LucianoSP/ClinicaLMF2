@@ -396,3 +396,27 @@ def upload_arquivo_storage(arquivo_path: str, novo_nome: str) -> str:
         print(f"Tipo do erro: {type(e)}")
         print(f"Traceback completo: {traceback.format_exc()}")
         return None
+
+
+def deletar_arquivos_storage(nomes_arquivos: list[str]) -> bool:
+    """
+    Deleta múltiplos arquivos do Supabase Storage.
+    
+    Args:
+        nomes_arquivos (list[str]): Lista com os nomes dos arquivos para deletar
+        
+    Returns:
+        bool: True se todos os arquivos foram deletados com sucesso
+    """
+    try:
+        for nome in nomes_arquivos:
+            try:
+                supabase.storage.from_('fichas_renomeadas').remove([nome])
+                print(f"Arquivo {nome} deletado com sucesso do Storage")
+            except Exception as e:
+                print(f"Erro ao deletar arquivo {nome}: {str(e)}")
+                continue
+        return True
+    except Exception as e:
+        print(f"Erro ao deletar arquivos do Storage: {str(e)}")
+        return False
