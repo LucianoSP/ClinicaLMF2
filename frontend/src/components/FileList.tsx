@@ -1,86 +1,83 @@
 'use client';
 
+import React from 'react';
 import { useState } from 'react';
-import { API_URL } from '../config/api';
+import { TrashIcon } from './TrashIcon';
+import { STORAGE_KEY } from '../config/storage';
 
-interface FileInfo {
+interface UploadedFile {
   nome: string;
   url: string;
 }
 
 interface FileListProps {
-  files: FileInfo[];
-  onClear: () => void;
+  files: UploadedFile[];
+  onDelete: (nome: string) => void;
 }
 
-export function FileList({ files, onClear }: FileListProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+const FileList: React.FC<FileListProps> = ({ files, onDelete }) => {
+  const [expandedFile, setExpandedFile] = useState<string | null>(null);
 
-  const handleClear = async () => {
-    if (!confirm('Tem certeza que deseja apagar todos os arquivos?')) {
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      const response = await fetch(`${API_URL}/delete-files/`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(files.map(f => f.nome)),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao deletar arquivos');
+  // Atualizar localStorage quando um arquivo for deletado
+  const handleDelete = (nome: string) => {
+    onDelete(nome);
+    const savedFiles = localStorage.getItem(STORAGE_KEY);
+    if (savedFiles) {
+      try {
+        const parsedFiles = JSON.parse(savedFiles);
+        const updatedFiles = parsedFiles.filter((file: UploadedFile) => file.nome !== nome);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedFiles));
+      } catch (e) {
+        console.error('Erro ao atualizar localStorage:', e);
       }
-
-      onClear();
-    } catch (error) {
-      console.error('Erro ao deletar arquivos:', error);
-      alert('Erro ao deletar arquivos. Tente novamente.');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
+  if (!files || files.length === 0) {
+    return null;
+  }
+
   return (
     <div className="mt-4">
-      <h3 className="text-lg font-semibold mb-2">Arquivos Disponíveis</h3>
-      <div className="bg-white rounded-lg shadow">
-        <div className="divide-y">
-          {files.map((file, index) => (
-            <div key={index} className="flex items-center justify-between p-3">
-              <span className="text-gray-700 truncate max-w-[70%]" title={file.nome}>
-                {file.nome}
-              </span>
-              <a
-                href={file.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors"
-                download
-                title="Download"
+      <h3 className="text-lg font-semibold mb-2">Arquivos Processados:</h3>
+      <div className="space-y-2">
+        {files.map((file) => (
+          <div
+            key={file.nome}
+            className="flex items-center justify-between p-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
+            <div className="flex-1">
+              <button
+                onClick={() => setExpandedFile(expandedFile === file.nome ? null : file.nome)}
+                className="text-left w-full"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </a>
+                <span className="font-medium text-gray-700">{file.nome}</span>
+              </button>
+              {expandedFile === file.nome && (
+                <div className="mt-2 text-sm text-gray-600">
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Visualizar PDF
+                  </a>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+            <button
+              onClick={() => handleDelete(file.nome)}
+              className="ml-2 p-1 text-red-600 hover:text-red-800 transition-colors"
+              title="Remover arquivo"
+            >
+              <TrashIcon className="h-5 w-5" />
+            </button>
+          </div>
+        ))}
       </div>
-      <button
-        onClick={handleClear}
-        disabled={isDeleting}
-        className={`mt-4 px-4 py-2 rounded text-white text-sm font-medium ${
-          isDeleting
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-[#dc3545] hover:bg-[#c82333]'
-        }`}
-      >
-        {isDeleting ? 'Apagando...' : 'Apagar Todos os Arquivos'}
-      </button>
     </div>
   );
-}
+};
+
+export default FileList;

@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { API_URL } from '@/config/api';
 
-export function ExcelUpload() {
+interface ExcelUploadProps {}
+
+export default function ExcelUpload({}: ExcelUploadProps) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -106,8 +108,7 @@ export function ExcelUpload() {
       <button
         onClick={uploadFile}
         disabled={!file || uploading}
-        className={`
-          flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium w-full
+        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium w-full
           ${!file || uploading
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : 'bg-[#b49d6b] text-white hover:bg-[#a08b5f] transition-colors'

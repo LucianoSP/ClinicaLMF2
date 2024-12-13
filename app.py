@@ -1,38 +1,42 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, ValidationError
 import os
 import pandas as pd
 import tempfile
+import traceback
 import shutil
-from pathlib import Path
-import json
 from datetime import datetime
-import uvicorn
-import asyncio
-import base64
-import anthropic
+from typing import List, Optional, Dict
 from database_supabase import (
-    salvar_guia,
     salvar_dados_excel,
+    listar_dados_excel,
+    limpar_protocolos_excel,
+    salvar_guia,
     listar_guias,
     buscar_guia,
     limpar_banco,
-    limpar_protocolos_excel,
-    listar_dados_excel,
     registrar_divergencia,
-    contar_protocolos,
     listar_divergencias,
     atualizar_status_divergencia,
     atualizar_atendimento,
-    upload_arquivo_storage,  # Import the upload_arquivo_storage function
-    deletar_arquivos_storage,  # Import the deletar_arquivos_storage function
+    upload_arquivo_storage,
+    deletar_arquivos_storage,
+    list_storage_files,
+    supabase,  # Importando o cliente supabase
 )
-from pydantic import BaseModel, ValidationError
+import json
+from datetime import timedelta
+import asyncio
+import base64
+import anthropic
+from pathlib import Path
 import re
 from math import ceil
 from auditoria import realizar_auditoria
 import logging
-from datetime import timedelta
+import uvicorn
+import sqlite3
 
 api_key = os.environ["ANTHROPIC_API_KEY"]
 
@@ -40,12 +44,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PDF Processor API")
 
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # Permitir todas as origens em desenvolvimento
+    allow_credentials=True,  # Permitir cookies
+    allow_methods=["*"],  # Permitir todos os métodos
+    allow_headers=["*"],  # Permitir todos os headers
+    expose_headers=["*"]  # Expor todos os headers
 )
 
 # Criar diretório para arquivos temporários se não existir
@@ -62,9 +68,8 @@ async def startup_event():
     """Inicializa o banco de dados na inicialização"""
     try:
         logger.info("Conectando ao Supabase...")
-        # Teste a conexão
-        total = contar_protocolos()
-        logger.info(f"Conectado ao Supabase. Total de protocolos: {total}")
+        # Apenas loga a conexão bem sucedida
+        logger.info("Conectado ao Supabase com sucesso")
     except Exception as e:
         logger.error(f"Erro ao conectar ao Supabase: {e}")
         raise e
@@ -286,92 +291,95 @@ async def upload_pdf(
         raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
 
     results = []
+    processed_files = set()  # Para evitar processar o mesmo arquivo mais de uma vez
+
     for file in files:
         if not file.filename.endswith(".pdf"):
-            results.append(
-                {
-                    "message": "Apenas arquivos PDF são permitidos",
-                    "status": "error",
-                    "filename": file.filename,
-                }
-            )
+            results.append({
+                "status": "error",
+                "filename": file.filename,
+                "message": "Apenas arquivos PDF são permitidos"
+            })
             continue
 
-        # Salvar o arquivo temporariamente
-        temp_pdf_path = os.path.join(TEMP_DIR, file.filename)
+        # Evita processar o mesmo arquivo mais de uma vez
+        if file.filename in processed_files:
+            continue
+        processed_files.add(file.filename)
+
         try:
-            with open(temp_pdf_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            # Salvar o arquivo temporariamente
+            temp_pdf_path = os.path.join(TEMP_DIR, file.filename)
+            try:
+                with open(temp_pdf_path, "wb") as temp_file:
+                    content = await file.read()
+                    temp_file.write(content)
+                    
+                print(f"Iniciando upload do arquivo {file.filename}")
+                print(f"Arquivo lido com sucesso. Tamanho: {len(content)} bytes")
 
-            # Extrair informações do PDF
-            info = await extract_info_from_pdf(temp_pdf_path)
+                # Extrair informações do PDF
+                info = await extract_info_from_pdf(temp_pdf_path)
 
-            if info.get("status_validacao") == "falha":
-                raise Exception(info.get("erro", "Erro desconhecido ao processar PDF"))
+                if info.get("status_validacao") == "falha":
+                    raise Exception(info.get("erro", "Erro desconhecido ao processar PDF"))
 
-            # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente
-            data_formatada = info["json"]["registros"][0]["data_execucao"].replace(
-                "/", "-"
-            )
-            paciente_nome = info["json"]["registros"][0]["paciente_nome"]
-            novo_nome = (
-                f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
-            )
+                # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente
+                data_formatada = info["json"]["registros"][0]["data_execucao"].replace("/", "-")
+                paciente_nome = info["json"]["registros"][0]["paciente_nome"]
+                novo_nome = f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
 
-            # Faz upload do arquivo para o Storage
-            arquivo_url = upload_arquivo_storage(temp_pdf_path, novo_nome)
-            if arquivo_url:
-                uploaded_files = [{"nome": novo_nome, "url": arquivo_url}]
-            else:
-                uploaded_files = []
+                # Faz upload do arquivo para o Storage
+                arquivo_url = upload_arquivo_storage(temp_pdf_path, novo_nome)
+                
+                # Prepara o resultado
+                result = {
+                    "status": "success",
+                    "filename": file.filename,
+                    "saved_ids": [],
+                    "uploaded_files": []
+                }
 
-            # Salvar cada atendimento no banco de dados
-            saved_ids = []
-            dados_guia = info["json"]
-            for registro in dados_guia["registros"]:
-                try:
-                    # Adicionar codigo_ficha e arquivo_url ao registro
-                    registro["codigo_ficha"] = dados_guia["codigo_ficha"]
-                    if arquivo_url:
-                        registro["arquivo_url"] = arquivo_url
+                if arquivo_url:
+                    result["uploaded_files"].append({
+                        "nome": novo_nome,
+                        "url": arquivo_url
+                    })
 
-                    # Salvar registro no banco
-                    atendimento_id = salvar_guia(registro)
-                    if atendimento_id:
-                        saved_ids.append(atendimento_id)
-                except Exception as e:
-                    print(f"Erro ao salvar atendimento: {str(e)}")
-                    continue
+                # Processa os registros do PDF
+                dados_guia = info["json"]
+                if dados_guia["registros"]:
+                    saved_ids = []
+                    for registro in dados_guia["registros"]:
+                        registro["codigo_ficha"] = dados_guia["codigo_ficha"]
+                        if arquivo_url:
+                            registro["arquivo_url"] = arquivo_url
 
-            if saved_ids:
-                results.append(
-                    {
-                        "message": "Arquivo processado com sucesso",
-                        "atendimentos": dados_guia["registros"],
-                        "status": "success",
-                        "filename": file.filename,
-                        "saved_ids": saved_ids,
-                        "uploaded_files": uploaded_files,  # Adiciona URLs dos arquivos à resposta
-                    }
-                )
-            else:
-                results.append(
-                    {
-                        "message": "Erro ao salvar atendimentos no banco de dados",
-                        "status": "error",
-                        "filename": file.filename,
-                    }
-                )
+                        # Salvar registro no banco
+                        atendimento_id = salvar_guia(registro)
+                        if atendimento_id:
+                            saved_ids.append(atendimento_id)
+
+                    if saved_ids:
+                        result["saved_ids"] = saved_ids
+                    else:
+                        result["status"] = "error"
+                        result["message"] = "Erro ao salvar atendimentos no banco de dados"
+
+                results.append(result)
+
+            finally:
+                # Limpa o arquivo temporário
+                if os.path.exists(temp_pdf_path):
+                    os.remove(temp_pdf_path)
 
         except Exception as e:
-            results.append(
-                {"message": str(e), "status": "error", "filename": file.filename}
-            )
-
-        finally:
-            # Limpar arquivos temporários
-            if os.path.exists(temp_pdf_path):
-                os.remove(temp_pdf_path)
+            print(f"Erro ao processar {file.filename}: {str(e)}")
+            results.append({
+                "status": "error",
+                "filename": file.filename,
+                "message": str(e)
+            })
 
     return results
 
@@ -728,6 +736,77 @@ async def delete_files(files: list[str]):
             return {"message": "Arquivos deletados com sucesso"}
         else:
             raise HTTPException(status_code=500, detail="Erro ao deletar arquivos")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/storage-files/")
+async def list_storage_files_endpoint():
+    """
+    Lista todos os arquivos no bucket fichas_renomeadas do Supabase Storage.
+    """
+    try:
+        # Lista os arquivos no bucket usando a função auxiliar
+        files = list_storage_files()
+        print("Arquivos encontrados:", files)
+        
+        if not files:
+            return []
+            
+        # Para cada arquivo, gera a URL pública
+        files_with_urls = []
+        for file in files:
+            try:
+                name = file.get('name')
+                if not name:
+                    print(f"Arquivo sem nome: {file}")
+                    continue
+                    
+                url = supabase.storage.from_("fichas_renomeadas").get_public_url(name)
+                
+                file_data = {
+                    "nome": name,
+                    "url": url,
+                    "created_at": file.get("created_at", ""),
+                    "size": file.get("metadata", {}).get("size", 0)
+                }
+                print(f"Processando arquivo: {file_data}")
+                files_with_urls.append(file_data)
+                
+            except Exception as file_error:
+                print(f"Erro ao processar arquivo {file}: {str(file_error)}")
+                continue
+            
+        print(f"Total de arquivos processados: {len(files_with_urls)}")
+        return files_with_urls
+        
+    except Exception as e:
+        print(f"Erro ao listar arquivos: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return []
+
+
+@app.delete("/storage-files/")
+async def delete_all_storage_files():
+    """
+    Deleta todos os arquivos no bucket fichas_renomeadas do Supabase Storage.
+    """
+    try:
+        # Lista todos os arquivos
+        files = supabase.storage.from_("fichas_renomeadas").list()
+        file_names = [file["name"] for file in files]
+        
+        if not file_names:
+            return {"message": "Nenhum arquivo para deletar"}
+            
+        # Deleta todos os arquivos
+        success = deletar_arquivos_storage(file_names)
+        
+        if success:
+            return {"message": f"{len(file_names)} arquivos deletados com sucesso"}
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao deletar alguns arquivos")
+            
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

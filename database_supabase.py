@@ -455,3 +455,18 @@ def deletar_arquivos_storage(nomes_arquivos: list[str]) -> bool:
     except Exception as e:
         print(f"Erro ao deletar arquivos do Storage: {str(e)}")
         return False
+
+
+def list_storage_files():
+    """
+    Lista todos os arquivos do bucket fichas_renomeadas.
+    Retorna uma lista com os nomes dos arquivos.
+    """
+    try:
+        # Lista os arquivos no bucket
+        response = supabase.storage.from_("fichas_renomeadas").list()
+        print("Resposta do list_storage_files:", response)
+        return response
+    except Exception as e:
+        print(f"Erro em list_storage_files: {e}")
+        return []
