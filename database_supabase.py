@@ -446,11 +446,12 @@ def deletar_arquivos_storage(nomes_arquivos: list[str]) -> bool:
     try:
         for nome in nomes_arquivos:
             try:
+                # O método remove retorna None quando bem sucedido
                 supabase.storage.from_('fichas_renomeadas').remove([nome])
                 print(f"Arquivo {nome} deletado com sucesso do Storage")
             except Exception as e:
                 print(f"Erro ao deletar arquivo {nome}: {str(e)}")
-                continue
+                return False
         return True
     except Exception as e:
         print(f"Erro ao deletar arquivos do Storage: {str(e)}")

@@ -811,6 +811,21 @@ async def delete_all_storage_files():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.delete("/storage-files/{file_name}")
+async def delete_storage_file(file_name: str):
+    """
+    Deleta um arquivo específico do Storage do Supabase
+    """
+    try:
+        success = deletar_arquivos_storage([file_name])
+        if success:
+            return {"message": "Arquivo deletado com sucesso"}
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao deletar arquivo")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
 

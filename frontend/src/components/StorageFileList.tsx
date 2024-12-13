@@ -20,6 +20,7 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
 
   const fetchFiles = async () => {
     setIsLoading(true);
@@ -67,31 +68,40 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
         method: 'DELETE',
       });
       if (!response.ok) {
-        throw new Error('Erro ao deletar arquivos');
+        throw new Error('Erro ao limpar storage');
       }
-      await fetchFiles(); // Recarrega a lista
+      // Limpa a lista localmente
+      setFiles([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao deletar arquivos');
+      console.error('Erro ao limpar storage:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao limpar storage');
     } finally {
       setIsLoading(false);
     }
   };
 
   const deleteFile = async (fileName: string) => {
-    setIsLoading(true);
+    setDeletingFiles(prev => new Set(prev).add(fileName));
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/storage-files/${fileName}`, {
-        method: 'DELETE',
+      const encodedFileName = encodeURIComponent(fileName);
+      const response = await fetch(`${API_URL}/storage-files/${encodedFileName}`, {
+        method: 'DELETE'
       });
       if (!response.ok) {
         throw new Error('Erro ao deletar arquivo');
       }
-      await fetchFiles(); // Recarrega a lista
+      // Atualiza o estado local removendo o arquivo deletado
+      setFiles(prevFiles => prevFiles.filter(file => file.nome !== fileName));
     } catch (err) {
+      console.error('Erro ao deletar arquivo:', err);
       setError(err instanceof Error ? err.message : 'Erro ao deletar arquivo');
     } finally {
-      setIsLoading(false);
+      setDeletingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fileName);
+        return newSet;
+      });
     }
   };
 
@@ -151,9 +161,16 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
                 </a>
                 <button
                   onClick={() => deleteFile(file.nome)}
-                  className="text-[#C5A880] hover:text-[#B39770] transition-colors"
+                  disabled={deletingFiles.has(file.nome)}
+                  className={`text-[#C5A880] hover:text-[#B39770] transition-colors ${
+                    deletingFiles.has(file.nome) ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  <TrashIcon className="w-5 h-5" />
+                  {deletingFiles.has(file.nome) ? (
+                    <div className="w-5 h-5 border-2 border-[#C5A880] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <TrashIcon className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
