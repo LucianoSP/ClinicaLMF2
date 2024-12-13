@@ -137,8 +137,11 @@ export function FileUpload() {
           setUploadedFiles(prev => {
             const uniqueFiles = [...prev];
             newUploadedFiles.forEach(newFile => {
-              const exists = uniqueFiles.some(file => file.nome === newFile.nome);
-              if (!exists) {
+              // Atualiza o arquivo se já existir, ou adiciona novo
+              const existingIndex = uniqueFiles.findIndex(file => file.nome.startsWith(newFile.nome.split('-')[0]));
+              if (existingIndex >= 0) {
+                uniqueFiles[existingIndex] = newFile;
+              } else {
                 uniqueFiles.push(newFile);
               }
             });
@@ -146,12 +149,19 @@ export function FileUpload() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(uniqueFiles));
             return uniqueFiles;
           });
-          setSuccess('Arquivos enviados com sucesso!');
+          setSuccess('Arquivos processados e salvos com sucesso!');
         } else {
-          setSuccess('Arquivos processados com sucesso!');
+          setError('Nenhum arquivo foi processado com sucesso');
         }
-        setFiles([]);
+      } else {
+        // Mostrar mensagens de erro específicas para cada arquivo
+        const errors = results
+          .filter(r => r.status === 'error')
+          .map(r => `${r.filename}: ${r.message}`)
+          .join('\n');
+        setError(errors);
       }
+      setFiles([]);
     } catch (err) {
       setError('Erro ao fazer upload dos arquivos');
       console.error('Erro:', err);

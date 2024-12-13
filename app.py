@@ -32,6 +32,7 @@ import re
 from math import ceil
 from auditoria import realizar_auditoria
 import logging
+from datetime import timedelta
 
 api_key = os.environ["ANTHROPIC_API_KEY"]
 
@@ -70,42 +71,76 @@ async def startup_event():
 
 
 def formatar_data(data):
-    """Formata uma data para o padrão DD/MM/YYYY"""
+    """
+    Formata uma data para o padrão DD/MM/YYYY, tentando interpretar vários formatos possíveis.
+    Como a data é extraída por IA, tentamos ser flexíveis na interpretação.
+    """
     try:
         if isinstance(data, str):
-            # Se a data já está no formato DD/MM/YYYY, retorna ela mesma
-            try:
-                data_obj = datetime.strptime(data, "%d/%m/%Y")
-                return data
-            except ValueError:
-                pass
-
-            # Tenta diferentes formatos de entrada
+            # Remove espaços extras
+            data = data.strip()
+            
+            # Lista de possíveis formatos, do mais específico para o mais genérico
             formatos = [
-                "%Y-%m-%d",  # ISO format
-                "%d/%m/%Y",  # Brazilian format
-                "%Y/%m/%d",  # Alternative format
-                "%d-%m-%Y",  # Alternative format
+                "%d/%m/%Y",    # 31/12/2024
+                "%Y-%m-%d",    # 2024-12-31
+                "%d-%m-%Y",    # 31-12-2024
+                "%Y/%m/%d",    # 2024/12/31
+                "%d.%m.%Y",    # 31.12.2024
+                "%Y.%m.%d",    # 2024.12.31
+                "%d %m %Y",    # 31 12 2024
+                "%Y %m %d",    # 2024 12 31
             ]
 
+            # Se a data tem 8 dígitos seguidos, pode ser DDMMYYYY ou YYYYMMDD
+            if data.isdigit() and len(data) == 8:
+                # Tenta interpretar como DDMMYYYY
+                try:
+                    data_obj = datetime.strptime(data, "%d%m%Y")
+                    if data_obj.year >= 2000 and data_obj.year <= 2100:
+                        return data_obj.strftime("%d/%m/%Y")
+                except ValueError:
+                    pass
+                
+                # Tenta interpretar como YYYYMMDD
+                try:
+                    data_obj = datetime.strptime(data, "%Y%m%d")
+                    if data_obj.year >= 2000 and data_obj.year <= 2100:
+                        return data_obj.strftime("%d/%m/%Y")
+                except ValueError:
+                    pass
+
+            # Tenta todos os formatos conhecidos
             for formato in formatos:
                 try:
                     data_obj = datetime.strptime(data, formato)
-                    return data_obj.strftime("%d/%m/%Y")
+                    # Verifica se o ano está em um intervalo razoável
+                    if data_obj.year >= 2000 and data_obj.year <= 2100:
+                        return data_obj.strftime("%d/%m/%Y")
                 except ValueError:
                     continue
 
-            raise ValueError(f"Formato de data inválido: {data}")
+            # Se chegou aqui, tenta trocar dia/mês se a data parece inválida
+            partes = re.split(r'[/\-\. ]', data)
+            if len(partes) == 3:
+                # Se parece ser DD/MM/YYYY mas é inválida, tenta MM/DD/YYYY
+                try:
+                    data_obj = datetime.strptime(f"{partes[1]}/{partes[0]}/{partes[2]}", "%d/%m/%Y")
+                    if data_obj.year >= 2000 and data_obj.year <= 2100:
+                        return data_obj.strftime("%d/%m/%Y")
+                except ValueError:
+                    pass
+
+            raise ValueError(f"Não foi possível interpretar a data: {data}")
 
         elif isinstance(data, datetime):
             return data.strftime("%d/%m/%Y")
-
         else:
             raise ValueError(f"Tipo de data inválido: {type(data)}")
 
     except Exception as e:
         logger.error(f"Erro ao formatar data: {e}")
-        raise ValueError(f"Erro ao formatar data: {e}")
+        raise ValueError(str(e))
 
 
 class Registro(BaseModel):

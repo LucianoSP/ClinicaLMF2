@@ -104,31 +104,59 @@ def contar_protocolos() -> int:
         return 0
 
 
-def salvar_guia(info: Dict) -> bool:
+def salvar_guia(info: Dict) -> Optional[int]:
     """
-    Salva as informações do atendimento no Supabase
+    Salva as informações do atendimento no Supabase.
+    Se o código da ficha já existir, atualiza o registro.
     """
     try:
-        # Formata os dados no padrão esperado
+        print(f"Tentando salvar atendimento: {info}")
+        
+        # Formata os dados para o formato esperado pelo banco
         dados = {
-            "guia_id": str(info["guia_id"]),
-            "paciente_nome": str(info["paciente_nome"]),
             "data_execucao": info["data_execucao"],
-            "paciente_carteirinha": str(info["paciente_carteirinha"]),
-            "codigo_ficha": str(info["codigo_ficha"]),
-            "possui_assinatura": bool(info["possui_assinatura"]),
-            "arquivo_url": info.get("arquivo_url")  # Adiciona URL do arquivo se existir
+            "paciente_carteirinha": info["paciente_carteirinha"],
+            "paciente_nome": info["paciente_nome"],
+            "guia_id": info["guia_id"],
+            "possui_assinatura": info.get("possui_assinatura", False),
+            "codigo_ficha": info.get("codigo_ficha"),
         }
+        
+        # Adiciona arquivo_url se existir
+        if "arquivo_url" in info:
+            dados["arquivo_url"] = info["arquivo_url"]
 
-        # Insere no Supabase
-        print(f"Tentando salvar atendimento: {dados}")
+        # Verifica se já existe um registro com este código_ficha
+        codigo_ficha = info.get("codigo_ficha")
+        if codigo_ficha:
+            existing = supabase.table("atendimentos").select("id").eq("codigo_ficha", codigo_ficha).execute()
+            
+            if existing.data and len(existing.data) > 0:
+                # Atualiza o registro existente
+                print(f"Atualizando registro existente para codigo_ficha: {codigo_ficha}")
+                response = supabase.table("atendimentos").update(dados).eq("codigo_ficha", codigo_ficha).execute()
+                if response.data:
+                    print(f"Atendimento atualizado com sucesso: {response.data}")
+                    return response.data[0].get("id")
+                else:
+                    print("Erro: Resposta vazia do Supabase ao atualizar")
+                    return None
+            
+        # Se não existe, insere novo registro
+        print(f"Inserindo novo registro para codigo_ficha: {codigo_ficha}")
         response = supabase.table("atendimentos").insert(dados).execute()
-        return True
+        
+        if response.data:
+            print(f"Atendimento salvo com sucesso: {response.data}")
+            return response.data[0].get("id")
+        else:
+            print("Erro: Resposta vazia do Supabase")
+            return None
 
     except Exception as e:
         print(f"Erro ao salvar guia: {e}")
-        print(f"Dados: {info}")
-        return False
+        print(f"Dados: {dados}")
+        return None
 
 
 def listar_guias(
