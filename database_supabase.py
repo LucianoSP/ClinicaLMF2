@@ -352,7 +352,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
         raise e
 
 
-def upload_arquivo_storage(arquivo_path: str, novo_nome: str) -> str:
+def upload_arquivo_storage(arquivo_path: str, novo_nome: str) -> Optional[str]:
     """
     Faz upload de um arquivo para o Supabase Storage.
     
@@ -366,33 +366,40 @@ def upload_arquivo_storage(arquivo_path: str, novo_nome: str) -> str:
     try:
         print(f"Iniciando upload do arquivo {novo_nome}")
         
-        # Verifica se o arquivo existe
-        if not os.path.exists(arquivo_path):
-            print(f"ERRO: Arquivo não encontrado: {arquivo_path}")
-            return None
-            
         # Lê o arquivo
         with open(arquivo_path, "rb") as f:
-            file_bytes = f.read()
-            print(f"Arquivo lido com sucesso. Tamanho: {len(file_bytes)} bytes")
-            
-        # Upload do arquivo para o bucket 'fichas_renomeadas'
-        print(f"Iniciando upload para o bucket fichas_renomeadas...")
-        response = supabase.storage.from_("fichas_renomeadas").upload(
-            path=novo_nome,
-            file=file_bytes,
-            file_options={"content-type": "application/pdf"}
-        )
-        print(f"Response do upload: {response}")
+            arquivo = f.read()
+            print(f"Arquivo lido com sucesso. Tamanho: {len(arquivo)} bytes")
+
+        print("Iniciando upload para o bucket fichas_renomeadas...")
         
-        # Retorna a URL pública do arquivo
+        try:
+            # Tenta fazer o upload
+            response = supabase.storage.from_("fichas_renomeadas").upload(
+                path=novo_nome,
+                file=arquivo,
+                file_options={"content-type": "application/pdf"}
+            )
+            print(f"Response do upload: {response}")
+            
+        except Exception as upload_error:
+            # Se o arquivo já existe, tenta obter a URL dele
+            if "Duplicate" in str(upload_error):
+                print(f"Arquivo {novo_nome} já existe no Storage. Obtendo URL...")
+                url = supabase.storage.from_("fichas_renomeadas").get_public_url(novo_nome)
+                print(f"URL do arquivo existente: {url}")
+                return url
+            else:
+                raise upload_error
+
+        # Gera a URL pública
         url = supabase.storage.from_("fichas_renomeadas").get_public_url(novo_nome)
         print(f"URL pública gerada: {url}")
         print(f"Arquivo {novo_nome} enviado com sucesso para o Storage")
         return url
-        
+
     except Exception as e:
-        print(f"Erro ao fazer upload do arquivo para o Storage: {str(e)}")
+        print(f"Erro ao fazer upload do arquivo para o Storage: {e}")
         print(f"Tipo do erro: {type(e)}")
         print(f"Traceback completo: {traceback.format_exc()}")
         return None

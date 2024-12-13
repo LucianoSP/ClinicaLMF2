@@ -20,7 +20,7 @@ export function FileUpload() {
   const [success, setSuccess] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
 
-  // Carregar arquivos salvos ao montar o componente
+  // Carregar arquivos do localStorage ao iniciar
   useEffect(() => {
     const savedFiles = localStorage.getItem(STORAGE_KEY);
     if (savedFiles) {
@@ -28,7 +28,7 @@ export function FileUpload() {
     }
   }, []);
 
-  // Salvar arquivos no localStorage quando a lista mudar
+  // Salvar arquivos no localStorage sempre que mudar
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(uploadedFiles));
   }, [uploadedFiles]);
@@ -67,6 +67,7 @@ export function FileUpload() {
 
     try {
       const results = [];
+      // Processar um arquivo por vez
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const formData = new FormData();
@@ -88,13 +89,29 @@ export function FileUpload() {
           const result = await response.json();
           const fileResult = result[0];
 
-          setUploadProgress(prev => ({
-            ...prev,
-            [file.name]: fileResult.status === 'success' ? 100 : 0
-          }));
-
           if (fileResult.status === 'error') {
             setError(`Erro ao processar ${fileResult.filename}: ${fileResult.message}`);
+            setUploadProgress(prev => ({
+              ...prev,
+              [file.name]: 0
+            }));
+          } else {
+            setUploadProgress(prev => ({
+              ...prev,
+              [file.name]: 100
+            }));
+            
+            // Adicionar arquivo à lista assim que for processado
+            if (fileResult.uploaded_files && fileResult.uploaded_files.length > 0) {
+              const newFile = fileResult.uploaded_files[0];
+              setUploadedFiles(prev => {
+                const exists = prev.some(file => file.nome === newFile.nome);
+                if (!exists) {
+                  return [...prev, newFile];
+                }
+                return prev;
+              });
+            }
           }
 
           results.push(fileResult);
@@ -117,7 +134,18 @@ export function FileUpload() {
       if (allSuccess) {
         const newUploadedFiles = results.flatMap(r => r.uploaded_files || []);
         if (newUploadedFiles.length > 0) {
-          setUploadedFiles(prev => [...prev, ...newUploadedFiles]);
+          setUploadedFiles(prev => {
+            const uniqueFiles = [...prev];
+            newUploadedFiles.forEach(newFile => {
+              const exists = uniqueFiles.some(file => file.nome === newFile.nome);
+              if (!exists) {
+                uniqueFiles.push(newFile);
+              }
+            });
+            // Salvar no localStorage
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(uniqueFiles));
+            return uniqueFiles;
+          });
           setSuccess('Arquivos enviados com sucesso!');
         } else {
           setSuccess('Arquivos processados com sucesso!');

@@ -76,7 +76,7 @@ export function FileList({ files, onClear }: FileListProps) {
         className={`mt-4 px-4 py-2 rounded text-white text-sm font-medium ${
           isDeleting
             ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-red-500 hover:bg-red-600'
+            : 'bg-[#dc3545] hover:bg-[#c82333]'
         }`}
       >
         {isDeleting ? 'Apagando...' : 'Apagar Todos os Arquivos'}

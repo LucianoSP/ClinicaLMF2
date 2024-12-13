@@ -73,6 +73,13 @@ def formatar_data(data):
     """Formata uma data para o padrão DD/MM/YYYY"""
     try:
         if isinstance(data, str):
+            # Se a data já está no formato DD/MM/YYYY, retorna ela mesma
+            try:
+                data_obj = datetime.strptime(data, "%d/%m/%Y")
+                return data
+            except ValueError:
+                pass
+
             # Tenta diferentes formatos de entrada
             formatos = [
                 "%Y-%m-%d",  # ISO format
@@ -283,25 +290,39 @@ async def upload_pdf(
             saved_ids = []
             dados_guia = info["json"]
             for registro in dados_guia["registros"]:
-                # Adicionar codigo_ficha e arquivo_url ao registro
-                registro["codigo_ficha"] = dados_guia["codigo_ficha"]
-                if arquivo_url:
-                    registro["arquivo_url"] = arquivo_url
-                
-                # Salvar registro no banco
-                atendimento_id = salvar_guia(registro)
-                saved_ids.append(atendimento_id)
+                try:
+                    # Adicionar codigo_ficha e arquivo_url ao registro
+                    registro["codigo_ficha"] = dados_guia["codigo_ficha"]
+                    if arquivo_url:
+                        registro["arquivo_url"] = arquivo_url
+                    
+                    # Salvar registro no banco
+                    atendimento_id = salvar_guia(registro)
+                    if atendimento_id:
+                        saved_ids.append(atendimento_id)
+                except Exception as e:
+                    print(f"Erro ao salvar atendimento: {str(e)}")
+                    continue
 
-            results.append(
-                {
-                    "message": "Arquivo processado com sucesso",
-                    "atendimentos": dados_guia["registros"],
-                    "status": "success",
-                    "filename": file.filename,
-                    "saved_ids": saved_ids,
-                    "uploaded_files": uploaded_files  # Adiciona URLs dos arquivos à resposta
-                }
-            )
+            if saved_ids:
+                results.append(
+                    {
+                        "message": "Arquivo processado com sucesso",
+                        "atendimentos": dados_guia["registros"],
+                        "status": "success",
+                        "filename": file.filename,
+                        "saved_ids": saved_ids,
+                        "uploaded_files": uploaded_files  # Adiciona URLs dos arquivos à resposta
+                    }
+                )
+            else:
+                results.append(
+                    {
+                        "message": "Erro ao salvar atendimentos no banco de dados",
+                        "status": "error",
+                        "filename": file.filename
+                    }
+                )
 
         except Exception as e:
             results.append(
