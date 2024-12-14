@@ -26,20 +26,14 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Buscando arquivos do storage...');
       const response = await fetch(`${API_URL}/storage-files/`);
-      console.log('Status da resposta:', response.status);
-      
       if (!response.ok) {
         throw new Error('Erro ao buscar arquivos');
       }
       
       const data = await response.json();
-      console.log('Dados recebidos:', data);
-      
       if (Array.isArray(data)) {
         setFiles(data);
-        console.log('Total de arquivos:', data.length);
       } else {
         console.error('Resposta não é um array:', data);
         setFiles([]);
@@ -70,7 +64,6 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
       if (!response.ok) {
         throw new Error('Erro ao limpar storage');
       }
-      // Limpa a lista localmente
       setFiles([]);
     } catch (err) {
       console.error('Erro ao limpar storage:', err);
@@ -91,7 +84,6 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
       if (!response.ok) {
         throw new Error('Erro ao deletar arquivo');
       }
-      // Atualiza o estado local removendo o arquivo deletado
       setFiles(prevFiles => prevFiles.filter(file => file.nome !== fileName));
     } catch (err) {
       console.error('Erro ao deletar arquivo:', err);
@@ -105,7 +97,6 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
     }
   };
 
-  // Formata o tamanho do arquivo para exibição
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;

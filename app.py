@@ -20,11 +20,8 @@ from database_supabase import (
     listar_divergencias,
     atualizar_status_divergencia,
     atualizar_atendimento,
-    upload_arquivo_storage,
-    deletar_arquivos_storage,
-    list_storage_files,
-    supabase,  # Importando o cliente supabase
 )
+from storage_r2 import storage  # Nova importação do R2
 import json
 from datetime import timedelta
 import asyncio
@@ -66,13 +63,28 @@ if not os.path.exists(GUIAS_RENOMEADAS_DIR):
 @app.on_event("startup")
 async def startup_event():
     """Inicializa o banco de dados na inicialização"""
-    try:
-        logger.info("Conectando ao Supabase...")
-        # Apenas loga a conexão bem sucedida
-        logger.info("Conectado ao Supabase com sucesso")
-    except Exception as e:
-        logger.error(f"Erro ao conectar ao Supabase: {e}")
-        raise e
+    logger.info("Iniciando aplicação...")
+    
+    # Cria o banco SQLite se não existir
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS atendimentos (
+        codigo_ficha TEXT PRIMARY KEY,
+        guia_id TEXT,
+        paciente_nome TEXT,
+        data_execucao TEXT,
+        paciente_carteirinha TEXT,
+        possui_assinatura INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
+    conn.commit()
+    conn.close()
+    
+    logger.info("Banco de dados inicializado com sucesso")
 
 
 def formatar_data(data):
@@ -330,7 +342,7 @@ async def upload_pdf(
                 novo_nome = f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
 
                 # Faz upload do arquivo para o Storage
-                arquivo_url = upload_arquivo_storage(temp_pdf_path, novo_nome)
+                arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
                 
                 # Prepara o resultado
                 result = {
@@ -731,7 +743,7 @@ async def delete_files(files: list[str]):
     Deleta arquivos do Storage do Supabase
     """
     try:
-        success = deletar_arquivos_storage(files)
+        success = storage.delete_files(files)
         if success:
             return {"message": "Arquivos deletados com sucesso"}
         else:
@@ -743,86 +755,61 @@ async def delete_files(files: list[str]):
 @app.get("/storage-files/")
 async def list_storage_files_endpoint():
     """
-    Lista todos os arquivos no bucket fichas_renomeadas do Supabase Storage.
+    Lista todos os arquivos no storage.
     """
     try:
-        # Lista os arquivos no bucket usando a função auxiliar
-        files = list_storage_files()
-        print("Arquivos encontrados:", files)
-        
-        if not files:
-            return []
-            
-        # Para cada arquivo, gera a URL pública
-        files_with_urls = []
-        for file in files:
-            try:
-                name = file.get('name')
-                if not name:
-                    print(f"Arquivo sem nome: {file}")
-                    continue
-                    
-                url = supabase.storage.from_("fichas_renomeadas").get_public_url(name)
-                
-                file_data = {
-                    "nome": name,
-                    "url": url,
-                    "created_at": file.get("created_at", ""),
-                    "size": file.get("metadata", {}).get("size", 0)
-                }
-                print(f"Processando arquivo: {file_data}")
-                files_with_urls.append(file_data)
-                
-            except Exception as file_error:
-                print(f"Erro ao processar arquivo {file}: {str(file_error)}")
-                continue
-            
-        print(f"Total de arquivos processados: {len(files_with_urls)}")
-        return files_with_urls
-        
+        files = storage.list_files()
+        return files
     except Exception as e:
-        print(f"Erro ao listar arquivos: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
-        return []
+        logger.error(f"Erro ao listar arquivos do storage: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/storage-files/")
 async def delete_all_storage_files():
     """
-    Deleta todos os arquivos no bucket fichas_renomeadas do Supabase Storage.
+    Deleta todos os arquivos do storage.
     """
     try:
-        # Lista todos os arquivos
-        files = supabase.storage.from_("fichas_renomeadas").list()
-        file_names = [file["name"] for file in files]
-        
-        if not file_names:
+        # Primeiro lista todos os arquivos
+        files = storage.list_files()
+        if not files:
             return {"message": "Nenhum arquivo para deletar"}
             
-        # Deleta todos os arquivos
-        success = deletar_arquivos_storage(file_names)
+        # Pega os nomes dos arquivos
+        file_names = [f["nome"] for f in files]
         
-        if success:
-            return {"message": f"{len(file_names)} arquivos deletados com sucesso"}
-        else:
-            raise HTTPException(status_code=500, detail="Erro ao deletar alguns arquivos")
+        # Deleta todos os arquivos
+        success = storage.delete_files(file_names)
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail="Erro ao deletar alguns arquivos"
+            )
             
+        return {"message": f"{len(file_names)} arquivos deletados com sucesso"}
+        
     except Exception as e:
+        logger.error(f"Erro ao deletar todos os arquivos: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/storage-files/{file_name}")
 async def delete_storage_file(file_name: str):
     """
-    Deleta um arquivo específico do Storage do Supabase
+    Deleta um arquivo específico do storage
     """
     try:
-        success = deletar_arquivos_storage([file_name])
-        if success:
-            return {"message": "Arquivo deletado com sucesso"}
-        else:
-            raise HTTPException(status_code=500, detail="Erro ao deletar arquivo")
+        success = storage.delete_files([file_name])
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro ao deletar arquivo {file_name}"
+            )
+        return {"message": f"Arquivo {file_name} deletado com sucesso"}
+        
     except Exception as e:
+        logger.error(f"Erro ao deletar arquivo {file_name}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -111,7 +111,7 @@ def salvar_guia(info: Dict) -> Optional[int]:
     """
     try:
         print(f"Tentando salvar atendimento: {info}")
-        
+
         # Formata os dados para o formato esperado pelo banco
         dados = {
             "data_execucao": info["data_execucao"],
@@ -121,7 +121,7 @@ def salvar_guia(info: Dict) -> Optional[int]:
             "possui_assinatura": info.get("possui_assinatura", False),
             "codigo_ficha": info.get("codigo_ficha"),
         }
-        
+
         # Adiciona arquivo_url se existir
         if "arquivo_url" in info:
             dados["arquivo_url"] = info["arquivo_url"]
@@ -129,23 +129,35 @@ def salvar_guia(info: Dict) -> Optional[int]:
         # Verifica se já existe um registro com este código_ficha
         codigo_ficha = info.get("codigo_ficha")
         if codigo_ficha:
-            existing = supabase.table("atendimentos").select("id").eq("codigo_ficha", codigo_ficha).execute()
-            
+            existing = (
+                supabase.table("atendimentos")
+                .select("id")
+                .eq("codigo_ficha", codigo_ficha)
+                .execute()
+            )
+
             if existing.data and len(existing.data) > 0:
                 # Atualiza o registro existente
-                print(f"Atualizando registro existente para codigo_ficha: {codigo_ficha}")
-                response = supabase.table("atendimentos").update(dados).eq("codigo_ficha", codigo_ficha).execute()
+                print(
+                    f"Atualizando registro existente para codigo_ficha: {codigo_ficha}"
+                )
+                response = (
+                    supabase.table("atendimentos")
+                    .update(dados)
+                    .eq("codigo_ficha", codigo_ficha)
+                    .execute()
+                )
                 if response.data:
                     print(f"Atendimento atualizado com sucesso: {response.data}")
                     return response.data[0].get("id")
                 else:
                     print("Erro: Resposta vazia do Supabase ao atualizar")
                     return None
-            
+
         # Se não existe, insere novo registro
         print(f"Inserindo novo registro para codigo_ficha: {codigo_ficha}")
         response = supabase.table("atendimentos").insert(dados).execute()
-        
+
         if response.data:
             print(f"Atendimento salvo com sucesso: {response.data}")
             return response.data[0].get("id")
@@ -202,7 +214,7 @@ def listar_guias(
                 "guia_id": row["guia_id"],
                 "codigo_ficha": row["codigo_ficha"],
                 "possui_assinatura": bool(row["possui_assinatura"]),
-                "arquivo_url": row.get("arquivo_url", None)
+                "arquivo_url": row.get("arquivo_url", None),
             }
             atendimentos.append(atendimento)
 
@@ -231,7 +243,7 @@ def buscar_guia(guia_id: str) -> List[Dict]:
                     "guia_id": row["guia_id"],
                     "codigo_ficha": row["codigo_ficha"],
                     "possui_assinatura": bool(row["possui_assinatura"]),
-                    "arquivo_url": row.get("arquivo_url", None)
+                    "arquivo_url": row.get("arquivo_url", None),
                 }
             )
 
@@ -356,23 +368,38 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
             "paciente_carteirinha": str(dados["paciente_carteirinha"]),
             "codigo_ficha": str(dados["codigo_ficha"]),
             "possui_assinatura": bool(dados["possui_assinatura"]),
-            "arquivo_url": dados.get("arquivo_url", None)
+            "arquivo_url": dados.get("arquivo_url", None),
         }
 
         # Verifica se o registro existe
-        check_response = supabase.table("atendimentos").select("*").eq("codigo_ficha", codigo_ficha).execute()
+        check_response = (
+            supabase.table("atendimentos")
+            .select("*")
+            .eq("codigo_ficha", codigo_ficha)
+            .execute()
+        )
         if not check_response.data:
             return False
 
         # Se o código da ficha está sendo alterado, verifica se o novo código já existe
         if codigo_ficha != dados_atualizados["codigo_ficha"]:
-            check_new_code = supabase.table("atendimentos").select("*").eq("codigo_ficha", dados_atualizados["codigo_ficha"]).execute()
+            check_new_code = (
+                supabase.table("atendimentos")
+                .select("*")
+                .eq("codigo_ficha", dados_atualizados["codigo_ficha"])
+                .execute()
+            )
             if check_new_code.data:
                 raise ValueError("O novo código da ficha já existe")
 
         # Atualiza o registro no Supabase
-        response = supabase.table("atendimentos").update(dados_atualizados).eq("codigo_ficha", codigo_ficha).execute()
-        
+        response = (
+            supabase.table("atendimentos")
+            .update(dados_atualizados)
+            .eq("codigo_ficha", codigo_ficha)
+            .execute()
+        )
+
         return True
 
     except Exception as e:
@@ -383,38 +410,40 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
 def upload_arquivo_storage(arquivo_path: str, novo_nome: str) -> Optional[str]:
     """
     Faz upload de um arquivo para o Supabase Storage.
-    
+
     Args:
         arquivo_path (str): Caminho local do arquivo
         novo_nome (str): Nome do arquivo no Storage
-        
+
     Returns:
         str: URL pública do arquivo ou None se houver erro
     """
     try:
         print(f"Iniciando upload do arquivo {novo_nome}")
-        
+
         # Lê o arquivo
         with open(arquivo_path, "rb") as f:
             arquivo = f.read()
             print(f"Arquivo lido com sucesso. Tamanho: {len(arquivo)} bytes")
 
         print("Iniciando upload para o bucket fichas_renomeadas...")
-        
+
         try:
             # Tenta fazer o upload
             response = supabase.storage.from_("fichas_renomeadas").upload(
                 path=novo_nome,
                 file=arquivo,
-                file_options={"content-type": "application/pdf"}
+                file_options={"content-type": "application/pdf"},
             )
             print(f"Response do upload: {response}")
-            
+
         except Exception as upload_error:
             # Se o arquivo já existe, tenta obter a URL dele
             if "Duplicate" in str(upload_error):
                 print(f"Arquivo {novo_nome} já existe no Storage. Obtendo URL...")
-                url = supabase.storage.from_("fichas_renomeadas").get_public_url(novo_nome)
+                url = supabase.storage.from_("fichas_renomeadas").get_public_url(
+                    novo_nome
+                )
                 print(f"URL do arquivo existente: {url}")
                 return url
             else:
@@ -435,26 +464,52 @@ def upload_arquivo_storage(arquivo_path: str, novo_nome: str) -> Optional[str]:
 
 def deletar_arquivos_storage(nomes_arquivos: list[str]) -> bool:
     """
-    Deleta múltiplos arquivos do Supabase Storage.
-    
-    Args:
-        nomes_arquivos (list[str]): Lista com os nomes dos arquivos para deletar
-        
-    Returns:
-        bool: True se todos os arquivos foram deletados com sucesso
+    Deleta múltiplos arquivos do Supabase Storage de uma vez.
     """
     try:
-        for nome in nomes_arquivos:
+        bucket = "fichas_renomeadas"
+        
+        # Lista todos os arquivos no bucket
+        files = supabase.storage.from_(bucket).list()
+        if not files:
+            print("Nenhum arquivo encontrado no bucket")
+            return True
+            
+        # Pega todos os nomes de arquivos que existem
+        nomes_encontrados = [f["name"] for f in files if f["name"] in nomes_arquivos]
+        if not nomes_encontrados:
+            print("Nenhum dos arquivos especificados foi encontrado no bucket")
+            return True
+            
+        print(f"Tentando deletar {len(nomes_encontrados)} arquivos de uma vez")
+        
+        # Deleta os arquivos um por um, mas em uma única função
+        # O Supabase não suporta deleção em massa, então precisamos fazer isso
+        for nome in nomes_encontrados:
             try:
-                # O método remove retorna None quando bem sucedido
-                supabase.storage.from_('fichas_renomeadas').remove([nome])
-                print(f"Arquivo {nome} deletado com sucesso do Storage")
+                supabase.storage.from_(bucket).remove(nome)
+                print(f"Arquivo {nome} deletado com sucesso")
             except Exception as e:
-                print(f"Erro ao deletar arquivo {nome}: {str(e)}")
+                print(f"Erro ao deletar {nome}: {str(e)}")
                 return False
+        
+        # Verifica se todos os arquivos foram deletados
+        files_after = supabase.storage.from_(bucket).list()
+        remaining_files = [f["name"] for f in files_after]
+        
+        # Verifica se algum dos arquivos ainda existe
+        failed_deletions = [nome for nome in nomes_encontrados if nome in remaining_files]
+        
+        if failed_deletions:
+            print(f"Falha ao deletar os seguintes arquivos: {failed_deletions}")
+            return False
+            
+        print("Todos os arquivos foram deletados com sucesso!")
         return True
+
     except Exception as e:
         print(f"Erro ao deletar arquivos do Storage: {str(e)}")
+        print(f"Detalhes do erro: {traceback.format_exc()}")
         return False
 
 

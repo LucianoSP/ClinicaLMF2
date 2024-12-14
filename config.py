@@ -3,22 +3,23 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 
 # Carrega as variáveis de ambiente do arquivo .env
-# load_dotenv() - Nao precisa no replit
+load_dotenv()
 
 # Configurações do Supabase
-# SUPABASE_URL = os.getenv("SUPABASE_URL")
-# SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-
-
-# Cria o cliente do Supabase
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
+# Cria o cliente do Supabase apenas se as credenciais estiverem disponíveis
+supabase: Client = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Função auxiliar para testar a conexão
 def test_connection():
+    if not supabase:
+        print("Supabase não configurado")
+        return False
+        
     try:
         # Tenta fazer uma query simples
         response = supabase.table("protocolos_excel").select("*").limit(1).execute()
