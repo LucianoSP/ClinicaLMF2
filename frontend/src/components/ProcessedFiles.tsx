@@ -72,14 +72,8 @@ const ProcessedFiles = () => {
       }
 
       const url = `${baseUrl}?${params.toString()}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'omit',
-      });
-
+      const response = await fetch(url);
+      
       if (!response.ok) {
         throw new Error('Falha ao carregar arquivos processados');
       }
