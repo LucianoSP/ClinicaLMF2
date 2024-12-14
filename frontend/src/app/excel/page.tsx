@@ -40,7 +40,7 @@ export default function ExcelPage() {
       setError(null);
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/excel/`;
+      const baseUrl = `${API_URL}/excel`;
 
       // Construir os parâmetros
       const params = new URLSearchParams();

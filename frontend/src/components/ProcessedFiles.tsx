@@ -61,7 +61,7 @@ const ProcessedFiles = () => {
       setError(null);
       setSyncSuccess(false);
 
-      const baseUrl = `${API_URL}/atendimentos/`;
+      const baseUrl = `${API_URL}/atendimentos`;
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('per_page', perPage.toString());
@@ -215,8 +215,8 @@ const ProcessedFiles = () => {
 
       // Validate required fields
       if (!dataToSend.data_execucao || !dataToSend.paciente_carteirinha ||
-          !dataToSend.paciente_nome || !dataToSend.guia_id ||
-          !dataToSend.codigo_ficha) {
+        !dataToSend.paciente_nome || !dataToSend.guia_id ||
+        !dataToSend.codigo_ficha) {
         throw new Error('Todos os campos são obrigatórios');
       }
 
