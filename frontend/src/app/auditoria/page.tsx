@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import Pagination from '@/components/Pagination';
 import { FiCheck, FiX } from 'react-icons/fi';
 import { API_URL } from '@/config/api';
+import toast from '@/components/ui/toast';
 
 interface Atendimento {
   id: number;
@@ -51,6 +52,7 @@ export default function AuditoriaPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortField, setSortField] = useState<keyof Divergencia>('data_registro');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
 
   const formatarData = (date: Date | undefined) => {
     if (!date) return '';
@@ -73,52 +75,24 @@ export default function AuditoriaPage() {
   };
 
   const buscarDivergencias = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
+      const params = new URLSearchParams();
+      if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
+      if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
 
-      const baseUrl = `${API_URL}/auditoria/divergencias`;
-      const params = new URLSearchParams({
-        page: page.toString(),
-        sort_field: sortField,
-        sort_direction: sortDirection,
-      });
+      const response = await fetch(`${API_URL}/api/auditoria/divergencias?${params.toString()}`);
+      const data = await response.json();
 
-      const response = await fetch(`${baseUrl}?${params}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro ao buscar divergências: ${response.status}`);
+      if (response.ok) {
+        setDados(data.divergencias);
+        setTotalPages(Math.ceil(data.total / 10));
+      } else {
+        throw new Error(data.detail || 'Erro ao buscar divergências');
       }
-
-      const result = await response.json();
-      console.log('Divergências:', result);
-
-      if (!result || !result.success || !Array.isArray(result.divergencias)) {
-        throw new Error('Formato de resposta inválido');
-      }
-
-      // Processar as divergências para extrair o beneficiário
-      const divergenciasProcessadas = result.divergencias.map(div => ({
-        id: div.id,
-        guia_id: div.guia_id,
-        data_execucao: div.data_execucao,
-        codigo_ficha: div.codigo_ficha,
-        descricao_divergencia: div.descricao_divergencia,
-        beneficiario: div.beneficiario,
-        status: div.status,
-        data_registro: div.data_registro
-      }));
-
-      setDados(divergenciasProcessadas);
-      setTotalPages(Math.ceil(result.total / 10));
-    } catch (err) {
-      console.error('Erro ao buscar divergências:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } catch (error) {
+      console.error('Erro ao buscar divergências:', error);
+      setError(error instanceof Error ? error.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
     }
@@ -129,15 +103,15 @@ export default function AuditoriaPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (dataInicial) params.append('data_inicial', formatarData(dataInicial));
-      if (dataFinal) params.append('data_final', formatarData(dataFinal));
+      if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
+      if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
 
       console.log('Parâmetros da auditoria:', Object.fromEntries(params));
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/auditoria/iniciar/`;
+      const baseUrl = `${API_URL}/api/auditoria/iniciar/`;
 
-      const response = await fetch(`${baseUrl}?${params}`, {
+      const response = await fetch(`${baseUrl}?${params.toString()}`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -165,6 +139,45 @@ export default function AuditoriaPage() {
     }
   };
 
+  const gerarRelatorio = async () => {
+    setGerandoRelatorio(true);
+    try {
+      const params = new URLSearchParams();
+      if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
+      if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auditoria/relatorio?${params.toString()}`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relatorio-auditoria-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast({
+          title: "Sucesso",
+          description: "Relatório gerado com sucesso",
+        });
+      } else {
+        const data = await response.json();
+        throw new Error(data.detail || 'Falha ao gerar relatório');
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao gerar relatório",
+        variant: "destructive",
+      });
+    } finally {
+      setGerandoRelatorio(false);
+    }
+  };
+
   const handleSort = (field: keyof Divergencia) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -180,7 +193,7 @@ export default function AuditoriaPage() {
       setError(null);
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/auditoria/divergencia/`;
+      const baseUrl = `${API_URL}/api/auditoria/divergencia/`;
 
       const response = await fetch(`${baseUrl}${id}`, {
         method: 'PUT',
@@ -256,6 +269,13 @@ export default function AuditoriaPage() {
               className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
             >
               {executandoAuditoria ? "Executando..." : "Iniciar Auditoria"}
+            </Button>
+            <Button
+              onClick={gerarRelatorio}
+              disabled={gerandoRelatorio || !dataInicial || !dataFinal}
+              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+            >
+              {gerandoRelatorio ? "Gerando..." : "Gerar Relatório"}
             </Button>
           </div>
         </div>

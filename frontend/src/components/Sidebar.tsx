@@ -18,30 +18,20 @@ const navigation = [
     icon: HomeIcon
   },
   {
-    name: 'Upload',
-    href: '/upload',
-    icon: ArrowUpTrayIcon
-  },
-  {
-    name: 'Atendimentos',
-    href: '/atendimentos',
+    name: 'Fichas de Presença',
+    href: '/fichas-presenca',
     icon: DocumentTextIcon
   },
   {
-    name: 'Excel',
+    name: 'Execuções',
     href: '/excel',
     icon: TableCellsIcon
   },
   {
     name: 'Auditoria',
     href: '/auditoria',
-    icon: DocumentTextIcon
-  },
-  {
-    name: 'Auditoria V2',
-    href: '/auditoria-v2',
     icon: ChartBarIcon
-  },
+  }
 ];
 
 export function Sidebar() {

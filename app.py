@@ -20,6 +20,10 @@ from database_supabase import (
     listar_divergencias,
     atualizar_status_divergencia,
     atualizar_atendimento,
+    salvar_ficha_presenca,
+    buscar_ficha_presenca,
+    excluir_ficha_presenca,
+    listar_fichas_presenca,
 )
 from storage_r2 import storage  # Nova importação do R2
 import json
@@ -186,6 +190,19 @@ class AtendimentoUpdate(BaseModel):
     codigo_ficha: str
 
 
+class FichaPresenca(BaseModel):
+    data_atendimento: str
+    paciente_carteirinha: str
+    paciente_nome: str
+    numero_guia: str
+    codigo_ficha: str
+    possui_assinatura: bool = False
+    arquivo_digitalizado: Optional[str] = None
+
+class FichaPresencaUpdate(FichaPresenca):
+    pass
+
+
 async def extract_info_from_pdf(pdf_path: str):
     if not os.path.isfile(pdf_path):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
@@ -294,7 +311,7 @@ async def extract_info_from_pdf(pdf_path: str):
         }
 
 
-@app.post("/upload-pdf/")
+@app.post("/upload-pdf")
 async def upload_pdf(
     files: list[UploadFile] = File(description="Múltiplos arquivos PDF"),
 ):
@@ -375,9 +392,17 @@ async def upload_pdf(
                             registro["arquivo_url"] = arquivo_url
 
                         # Salvar registro no banco
-                        atendimento_id = salvar_guia(registro)
-                        if atendimento_id:
-                            saved_ids.append(atendimento_id)
+                        ficha_id = salvar_ficha_presenca({
+                            "data_atendimento": registro["data_execucao"],
+                            "paciente_carteirinha": registro["paciente_carteirinha"],
+                            "paciente_nome": registro["paciente_nome"],
+                            "numero_guia": registro["guia_id"],
+                            "codigo_ficha": dados_guia["codigo_ficha"],
+                            "possui_assinatura": registro["possui_assinatura"],
+                            "arquivo_digitalizado": arquivo_url
+                        })
+                        if ficha_id:
+                            saved_ids.append(ficha_id)
 
                     if saved_ids:
                         result["saved_ids"] = saved_ids
@@ -843,6 +868,79 @@ async def download_all_files():
     except Exception as e:
         logger.error(f"Erro ao baixar arquivos: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/fichas-presenca")
+async def listar_fichas(
+    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+    offset: int = Query(0, ge=0, description="Número de itens para pular"),
+    paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
+):
+    """Lista todas as fichas de presença com suporte a paginação e filtro"""
+    try:
+        result = listar_fichas_presenca(limit=limit, offset=offset, paciente_nome=paciente_nome)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao listar fichas: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao listar fichas de presença")
+
+
+@app.post("/fichas-presenca")
+async def criar_ficha(ficha: FichaPresenca):
+    """Cria uma nova ficha de presença"""
+    try:
+        result = salvar_ficha_presenca(ficha.dict())
+        if not result:
+            raise HTTPException(status_code=400, detail="Erro ao criar ficha de presença")
+        return {"id": result}
+    except Exception as e:
+        logger.error(f"Erro ao criar ficha: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao criar ficha de presença")
+
+
+@app.get("/fichas-presenca/{ficha_id}")
+async def buscar_ficha(ficha_id: str):
+    """Busca uma ficha de presença específica"""
+    try:
+        ficha = buscar_ficha_presenca(ficha_id, tipo_busca="id")
+        if not ficha:
+            raise HTTPException(status_code=404, detail="Ficha não encontrada")
+        return ficha
+    except Exception as e:
+        logger.error(f"Erro ao buscar ficha: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar ficha de presença")
+
+
+@app.put("/fichas-presenca/{ficha_id}")
+async def atualizar_ficha(ficha_id: str, ficha: FichaPresencaUpdate):
+    """Atualiza uma ficha de presença"""
+    try:
+        # Primeiro verifica se a ficha existe
+        existing = buscar_ficha_presenca(ficha_id, tipo_busca="id")
+        if not existing:
+            raise HTTPException(status_code=404, detail="Ficha não encontrada")
+            
+        # Atualiza a ficha
+        result = salvar_ficha_presenca({**ficha.dict(), "id": ficha_id})
+        if not result:
+            raise HTTPException(status_code=400, detail="Erro ao atualizar ficha de presença")
+        return {"id": result}
+    except Exception as e:
+        logger.error(f"Erro ao atualizar ficha: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar ficha de presença")
+
+
+@app.delete("/fichas-presenca/{ficha_id}")
+async def excluir_ficha(ficha_id: str):
+    """Exclui uma ficha de presença"""
+    try:
+        result = excluir_ficha_presenca(ficha_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Ficha não encontrada")
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Erro ao excluir ficha: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir ficha de presença")
 
 
 if __name__ == "__main__":

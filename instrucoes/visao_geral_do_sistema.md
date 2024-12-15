@@ -373,3 +373,14 @@ Campos Únicos (UK):
 Carteirinha do paciente
 Email do usuário
 Garante integridade dos dados
+
+## 13. Fluxo atual
+
+Frontend (Next.js):
+Desenvolvimento local
+Deploy no Vercel
+Arquivos como page.tsx ficam no seu repositório local
+
+Backend (FastAPI):
+Hospedado no Replit
+Você copia manualmente as alterações do Python local para o Replit

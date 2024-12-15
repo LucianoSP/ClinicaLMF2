@@ -268,21 +268,21 @@ def limpar_banco() -> None:
 
 
 def registrar_divergencia(
-    guia_id: str,
+    numero_guia: str,
     data_execucao: str,
     codigo_ficha: str,
+    tipo_divergencia: str,
     descricao: str,
-    beneficiario: str = None,
-) -> Optional[int]:
+) -> Optional[str]:
     """Registra uma nova divergência encontrada na auditoria"""
     try:
         dados = {
-            "guia_id": guia_id,
+            "numero_guia": numero_guia,
             "data_execucao": data_execucao,
             "codigo_ficha": codigo_ficha,
-            "descricao_divergencia": descricao,
-            "beneficiario": beneficiario,
-            "status": "Pendente",
+            "tipo_divergencia": tipo_divergencia,
+            "descricao": descricao,
+            "status": "pendente",  # Usando o novo enum status_divergencia
         }
 
         response = supabase.table("divergencias").insert(dados).execute()
@@ -293,12 +293,13 @@ def registrar_divergencia(
 
     except Exception as e:
         print(f"Erro ao registrar divergência: {e}")
+        traceback.print_exc()
         return None
 
 
 def listar_divergencias(
     limit: int = 100, offset: int = 0, status: Optional[str] = None
-) -> Optional[Dict]:
+) -> Dict:
     """Lista as divergências encontradas com suporte a paginação e filtro por status"""
     try:
         # Inicia a query
@@ -327,13 +328,15 @@ def listar_divergencias(
             resultados.append(
                 {
                     "id": div["id"],
-                    "guia_id": div["guia_id"],
+                    "numero_guia": div["numero_guia"],
                     "data_execucao": div["data_execucao"],
                     "codigo_ficha": div["codigo_ficha"],
-                    "descricao_divergencia": div["descricao_divergencia"],
-                    "beneficiario": div.get("paciente_nome", None),
+                    "tipo_divergencia": div["tipo_divergencia"],
+                    "descricao": div["descricao"],
                     "status": div["status"],
-                    "data_registro": div["created_at"],
+                    "data_resolucao": div.get("data_resolucao"),
+                    "resolvido_por": div.get("resolvido_por"),
+                    "created_at": div["created_at"],
                 }
             )
 
@@ -345,18 +348,25 @@ def listar_divergencias(
 
     except Exception as e:
         print(f"Erro ao listar divergências: {e}")
-        return None
+        traceback.print_exc()
+        return {"divergencias": [], "total": 0, "paginas": 1}
 
 
-def atualizar_status_divergencia(id: int, novo_status: str) -> bool:
+def atualizar_status_divergencia(id: str, novo_status: str, usuario_id: Optional[str] = None) -> bool:
     """Atualiza o status de uma divergência"""
     try:
-        supabase.table("divergencias").update({"status": novo_status}).eq(
-            "id", id
-        ).execute()
+        dados = {
+            "status": novo_status,
+            "data_resolucao": datetime.now().isoformat() if novo_status != "pendente" else None,
+            "resolvido_por": usuario_id if novo_status != "pendente" else None
+        }
+
+        supabase.table("divergencias").update(dados).eq("id", id).execute()
         return True
+
     except Exception as e:
         print(f"Erro ao atualizar status da divergência: {e}")
+        traceback.print_exc()
         return False
 
 
@@ -533,3 +543,227 @@ def list_storage_files():
     except Exception as e:
         print(f"Erro em list_storage_files: {e}")
         return []
+
+
+def salvar_ficha_presenca(info: Dict) -> Optional[str]:
+    """
+    Salva as informações da ficha de presença no Supabase.
+    Se o código da ficha já existir, atualiza o registro.
+    """
+    try:
+        print(f"Tentando salvar ficha de presença: {info}")
+
+        # Formata os dados para o formato esperado pelo banco
+        dados = {
+            "data_atendimento": info["data_atendimento"],
+            "paciente_carteirinha": info["paciente_carteirinha"],
+            "paciente_nome": info["paciente_nome"],
+            "numero_guia": info["numero_guia"],
+            "possui_assinatura": info.get("possui_assinatura", False),
+            "codigo_ficha": info["codigo_ficha"],
+            "arquivo_digitalizado": info.get("arquivo_digitalizado")
+        }
+
+        # Verifica se já existe um registro com este código_ficha
+        codigo_ficha = info["codigo_ficha"]
+        existing = (
+            supabase.table("fichas_presenca")
+            .select("id")
+            .eq("codigo_ficha", codigo_ficha)
+            .execute()
+        )
+
+        if existing.data and len(existing.data) > 0:
+            # Atualiza o registro existente
+            print(f"Atualizando registro existente para codigo_ficha: {codigo_ficha}")
+            response = (
+                supabase.table("fichas_presenca")
+                .update(dados)
+                .eq("codigo_ficha", codigo_ficha)
+                .execute()
+            )
+            if response.data:
+                print(f"Ficha atualizada com sucesso: {response.data}")
+                return response.data[0].get("id")
+            else:
+                print("Erro: Resposta vazia do Supabase ao atualizar")
+                return None
+
+        # Se não existe, insere novo registro
+        print(f"Inserindo nova ficha para codigo_ficha: {codigo_ficha}")
+        response = supabase.table("fichas_presenca").insert(dados).execute()
+
+        if response.data:
+            print(f"Ficha salva com sucesso: {response.data}")
+            return response.data[0].get("id")
+        else:
+            print("Erro: Resposta vazia do Supabase")
+            return None
+
+    except Exception as e:
+        print(f"Erro ao salvar ficha: {e}")
+        traceback.print_exc()
+        return None
+
+
+def listar_fichas_presenca(
+    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
+) -> Dict:
+    """Retorna todas as fichas de presença com suporte a paginação e filtro"""
+    try:
+        # Inicia a query
+        query = supabase.table("fichas_presenca").select("*")
+
+        # Adiciona filtro por nome se fornecido
+        if paciente_nome and isinstance(paciente_nome, str):
+            paciente_nome = paciente_nome.strip()
+            if len(paciente_nome) >= 2:
+                # Divide o termo de busca em palavras
+                palavras = paciente_nome.upper().split()
+
+                # Cria condição para cada palavra
+                for palavra in palavras:
+                    query = query.ilike("paciente_nome", f"%{palavra}%")
+
+        # Busca todos os registros para contar
+        count_response = query.execute()
+        total = len(count_response.data)
+
+        # Adiciona ordenação e paginação
+        query = query.order("data_atendimento", desc=True)
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
+        # Executa a query
+        response = query.execute()
+        rows = response.data
+
+        # Processa resultados
+        fichas = []
+        for row in rows:
+            ficha = {
+                "id": row["id"],
+                "data_atendimento": row["data_atendimento"],
+                "paciente_carteirinha": row["paciente_carteirinha"],
+                "paciente_nome": row["paciente_nome"],
+                "numero_guia": row["numero_guia"],
+                "codigo_ficha": row["codigo_ficha"],
+                "possui_assinatura": bool(row["possui_assinatura"]),
+                "arquivo_digitalizado": row.get("arquivo_digitalizado"),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"]
+            }
+            fichas.append(ficha)
+
+        return {
+            "fichas": fichas,
+            "total": total,
+            "paginas": (total + limit - 1) // limit if limit > 0 else 1
+        }
+
+    except Exception as e:
+        print(f"Erro ao listar fichas: {e}")
+        traceback.print_exc()
+        return {"fichas": [], "total": 0, "paginas": 1}
+
+
+def buscar_ficha_presenca(identificador: str, tipo_busca: str = "codigo") -> Optional[Dict]:
+    """
+    Busca uma ficha de presença específica.
+    
+    Args:
+        identificador: ID da ficha ou código da ficha
+        tipo_busca: 'id' para buscar por ID, 'codigo' para buscar por código da ficha
+        
+    Returns:
+        Dict com os dados da ficha ou None se não encontrada
+    """
+    try:
+        # Inicia a query
+        query = supabase.table("fichas_presenca").select("*")
+        
+        # Aplica o filtro adequado
+        if tipo_busca == "id":
+            query = query.eq("id", identificador)
+        else:  # codigo
+            query = query.eq("codigo_ficha", identificador)
+            
+        # Executa a query
+        response = query.execute()
+        
+        if not response.data or len(response.data) == 0:
+            print(f"Ficha não encontrada para {tipo_busca}={identificador}")
+            return None
+            
+        # Pega o primeiro resultado
+        row = response.data[0]
+        
+        # Formata o resultado
+        ficha = {
+            "id": row["id"],
+            "data_atendimento": row["data_atendimento"],
+            "paciente_carteirinha": row["paciente_carteirinha"],
+            "paciente_nome": row["paciente_nome"],
+            "numero_guia": row["numero_guia"],
+            "codigo_ficha": row["codigo_ficha"],
+            "possui_assinatura": bool(row["possui_assinatura"]),
+            "arquivo_digitalizado": row.get("arquivo_digitalizado"),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"]
+        }
+        
+        return ficha
+
+    except Exception as e:
+        print(f"Erro ao buscar ficha: {e}")
+        traceback.print_exc()
+        return None
+
+
+def excluir_ficha_presenca(id: str) -> bool:
+    """
+    Exclui uma ficha de presença e seu arquivo digitalizado associado.
+    
+    Args:
+        id: ID (UUID) da ficha a ser excluída
+        
+    Returns:
+        bool indicando sucesso da operação
+    """
+    try:
+        # Primeiro busca a ficha para obter o arquivo digitalizado
+        ficha = buscar_ficha_presenca(id, tipo_busca="id")
+        if not ficha:
+            print(f"Ficha não encontrada para exclusão: {id}")
+            return False
+            
+        # Se tem arquivo digitalizado, exclui do storage
+        arquivo_digitalizado = ficha.get("arquivo_digitalizado")
+        if arquivo_digitalizado:
+            try:
+                # Extrai o nome do arquivo da URL ou path
+                nome_arquivo = arquivo_digitalizado.split("/")[-1]
+                deletar_arquivos_storage([nome_arquivo])
+            except Exception as e:
+                print(f"Erro ao excluir arquivo digitalizado: {e}")
+                # Continua mesmo se falhar a exclusão do arquivo
+                
+        # Exclui o registro da ficha
+        response = (
+            supabase.table("fichas_presenca")
+            .delete()
+            .eq("id", id)
+            .execute()
+        )
+        
+        if response.data:
+            print(f"Ficha excluída com sucesso: {id}")
+            return True
+        else:
+            print("Erro: Resposta vazia do Supabase ao excluir")
+            return False
+
+    except Exception as e:
+        print(f"Erro ao excluir ficha: {e}")
+        traceback.print_exc()
+        return False

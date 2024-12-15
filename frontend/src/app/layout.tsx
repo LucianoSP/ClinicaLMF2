@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Sidebar } from '@/components/Sidebar'
 import { inter } from './fonts'
+import { Toaster } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
   title: 'Processador de PDFs - Clínica Larissa',
@@ -30,6 +31,7 @@ export default function RootLayout({
             </main>
           </div>
         </div>
+        <Toaster />
       </body>
     </html>
   )
