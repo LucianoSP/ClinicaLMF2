@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
-import { FiDownload } from 'react-icons/fi';
+import { FiDownload, FiUpload } from 'react-icons/fi';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { SortableTable, Column } from '@/components/SortableTable';
 import { useDebounce } from '@/hooks/useDebounce';
 import Pagination from '@/components/Pagination';
 import { API_URL } from '@/config/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface ExcelData {
   id: number;
@@ -21,6 +22,7 @@ interface ExcelData {
 }
 
 export default function ExcelPage() {
+  const { toast } = useToast();
   const [data, setData] = useState<ExcelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,10 +118,10 @@ export default function ExcelPage() {
     try {
       // Preparar os dados para exportação
       const exportData = data.map(item => ({
-        'Número da guia': item.guia_id,
-        'Beneficiário': item.paciente_nome,
+        'Guia': item.guia_id,
+        'Paciente': item.paciente_nome,
         'Data': item.data_execucao,
-        'Carteira': item.paciente_carteirinha,
+        'Número da carteirinha': item.paciente_carteirinha,
         'Id paciente': item.paciente_id,
         'Data importação': item.created_at,
       }));
@@ -168,14 +170,51 @@ export default function ExcelPage() {
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_URL}/upload/excel`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.message) {
+        toast({
+          title: "Sucesso!",
+          description: result.message,
+        });
+        fetchData(); // Recarrega os dados
+      } else {
+        throw new Error(result.detail || 'Erro ao fazer upload do arquivo');
+      }
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao fazer upload do arquivo Excel. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+
+    // Limpa o input de arquivo
+    event.target.value = '';
+  };
+
   const columns: Column[] = [
     {
       key: 'guia_id',
-      label: 'Número da guia',
+      label: 'Guia',
     },
     {
       key: 'paciente_nome',
-      label: 'Beneficiário',
+      label: 'Paciente',
     },
     {
       key: 'data_execucao',
@@ -183,7 +222,7 @@ export default function ExcelPage() {
     },
     {
       key: 'paciente_carteirinha',
-      label: 'Carteira',
+      label: 'Carteirinha',
     },
     {
       key: 'paciente_id',
@@ -214,10 +253,9 @@ export default function ExcelPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-[#6b342f]">Dados Importados do Excel</h1>
-
+    <div className="container mx-auto py-10">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold text-[#8B4513]">Dados Importados do Excel</h1>
         <div className="flex gap-2">
           <button
             onClick={handleClearData}
@@ -237,58 +275,60 @@ export default function ExcelPage() {
         </div>
       </div>
 
-      {/* Barra de busca e seletor de itens por página */}
-      <div className="bg-white p-4 rounded-lg shadow mb-4">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Buscar por nome do beneficiário..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6b342f] focus:border-transparent"
-            />
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+      <div className="bg-white rounded-lg">
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                placeholder="Buscar por nome do paciente..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="w-[300px] pl-8"
+              />
+              <MagnifyingGlassIcon className="absolute left-2 h-4 w-4 text-gray-500" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Itens por página:</span>
+              <select
+                value={perPage}
+                onChange={handlePerPageChange}
+                className="border rounded p-1"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label htmlFor="perPage" className="text-sm text-gray-600">
-              Itens por página:
-            </label>
-            <select
-              id="perPage"
-              value={perPage}
-              onChange={handlePerPageChange}
-              className="border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#6b342f] focus:border-transparent"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
+          <div className="rounded-md border">
+            <SortableTable
+              data={data}
+              columns={columns}
+            />
+          </div>
+
+          {data.length === 0 && !error && !loading && (
+            <div className="text-center py-8 text-gray-500">
+              Nenhum registro encontrado
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 p-4 rounded-md mt-4">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
+
+          <div className="mt-4 flex justify-center">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
           </div>
         </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <SortableTable
-          data={data}
-          columns={columns}
-        />
-      </div>
-
-      {/* Paginação */}
-      <div className="mt-4">
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
-      </div>
-
-      {/* Total de registros */}
-      <div className="mt-4 text-sm text-gray-600 text-right">
-        Total de registros: {totalRecords}
       </div>
     </div>
   );

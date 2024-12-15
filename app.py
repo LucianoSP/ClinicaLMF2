@@ -199,6 +199,7 @@ class FichaPresenca(BaseModel):
     possui_assinatura: bool = False
     arquivo_digitalizado: Optional[str] = None
 
+
 class FichaPresencaUpdate(FichaPresenca):
     pass
 
@@ -392,15 +393,19 @@ async def upload_pdf(
                             registro["arquivo_url"] = arquivo_url
 
                         # Salvar registro no banco
-                        ficha_id = salvar_ficha_presenca({
-                            "data_atendimento": registro["data_execucao"],
-                            "paciente_carteirinha": registro["paciente_carteirinha"],
-                            "paciente_nome": registro["paciente_nome"],
-                            "numero_guia": registro["guia_id"],
-                            "codigo_ficha": dados_guia["codigo_ficha"],
-                            "possui_assinatura": registro["possui_assinatura"],
-                            "arquivo_digitalizado": arquivo_url
-                        })
+                        ficha_id = salvar_ficha_presenca(
+                            {
+                                "data_atendimento": registro["data_execucao"],
+                                "paciente_carteirinha": registro[
+                                    "paciente_carteirinha"
+                                ],
+                                "paciente_nome": registro["paciente_nome"],
+                                "numero_guia": registro["guia_id"],
+                                "codigo_ficha": dados_guia["codigo_ficha"],
+                                "possui_assinatura": registro["possui_assinatura"],
+                                "arquivo_digitalizado": arquivo_url,
+                            }
+                        )
                         if ficha_id:
                             saved_ids.append(ficha_id)
 
@@ -477,9 +482,6 @@ async def upload_excel(file: UploadFile = File(...)):
                         "paciente_nome": str(row["nomePaciente"]).strip().upper(),
                         "data_execucao": data_execucao,
                         "paciente_carteirinha": str(row["Carteirinha"]).strip(),
-                        "paciente_id": str(
-                            row["idGuia"]
-                        ).strip(),  # Usando o mesmo ID da guia como ID do paciente por enquanto
                     }
                     registros.append(registro)
                 except Exception as e:
@@ -494,7 +496,8 @@ async def upload_excel(file: UploadFile = File(...)):
 
             if salvar_dados_excel(registros):
                 return {
-                    "message": f"Arquivo processado com sucesso. {len(registros)} registros importados."
+                    "success": True,
+                    "message": f"Arquivo processado com sucesso. {len(registros)} registros importados.",
                 }
             else:
                 raise HTTPException(
@@ -878,7 +881,9 @@ async def listar_fichas(
 ):
     """Lista todas as fichas de presença com suporte a paginação e filtro"""
     try:
-        result = listar_fichas_presenca(limit=limit, offset=offset, paciente_nome=paciente_nome)
+        result = listar_fichas_presenca(
+            limit=limit, offset=offset, paciente_nome=paciente_nome
+        )
         return result
     except Exception as e:
         logger.error(f"Erro ao listar fichas: {e}")
@@ -891,7 +896,9 @@ async def criar_ficha(ficha: FichaPresenca):
     try:
         result = salvar_ficha_presenca(ficha.dict())
         if not result:
-            raise HTTPException(status_code=400, detail="Erro ao criar ficha de presença")
+            raise HTTPException(
+                status_code=400, detail="Erro ao criar ficha de presença"
+            )
         return {"id": result}
     except Exception as e:
         logger.error(f"Erro ao criar ficha: {e}")
@@ -919,15 +926,19 @@ async def atualizar_ficha(ficha_id: str, ficha: FichaPresencaUpdate):
         existing = buscar_ficha_presenca(ficha_id, tipo_busca="id")
         if not existing:
             raise HTTPException(status_code=404, detail="Ficha não encontrada")
-            
+
         # Atualiza a ficha
         result = salvar_ficha_presenca({**ficha.dict(), "id": ficha_id})
         if not result:
-            raise HTTPException(status_code=400, detail="Erro ao atualizar ficha de presença")
+            raise HTTPException(
+                status_code=400, detail="Erro ao atualizar ficha de presença"
+            )
         return {"id": result}
     except Exception as e:
         logger.error(f"Erro ao atualizar ficha: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao atualizar ficha de presença")
+        raise HTTPException(
+            status_code=500, detail="Erro ao atualizar ficha de presença"
+        )
 
 
 @app.delete("/fichas-presenca/{ficha_id}")

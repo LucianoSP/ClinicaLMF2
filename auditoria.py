@@ -1,4 +1,4 @@
-from database import registrar_divergencia, listar_guias, listar_dados_excel
+from database_supabase import registrar_divergencia, listar_guias, listar_dados_excel
 from datetime import datetime
 from typing import Dict, List
 import logging
@@ -92,8 +92,9 @@ def realizar_auditoria(data_inicial: str = None, data_final: str = None):
             divergencias_encontradas += 1
             registrar_divergencia(
                 numero_guia=protocolo["idGuia"],
-                data_exec=protocolo["dataExec"],
+                data_execucao=protocolo["dataExec"],
                 codigo_ficha="N/A",
+                tipo_divergencia="sem_atendimento",
                 descricao=f'Protocolo sem atendimento correspondente. Paciente: {protocolo["nomePaciente"]}',
             )
             continue
@@ -105,8 +106,9 @@ def realizar_auditoria(data_inicial: str = None, data_final: str = None):
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=atendimento["numero_guia_principal"],
-                    data_exec=atendimento["data_execucao"],
+                    data_execucao=atendimento["data_execucao"],
                     codigo_ficha=atendimento["codigo_ficha"],
+                    tipo_divergencia="sem_assinatura",
                     descricao=f'Atendimento sem assinatura. Paciente: {atendimento["paciente_nome"]}',
                 )
 
@@ -115,8 +117,9 @@ def realizar_auditoria(data_inicial: str = None, data_final: str = None):
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=atendimento["numero_guia_principal"],
-                    data_exec=atendimento["data_execucao"],
+                    data_execucao=atendimento["data_execucao"],
                     codigo_ficha="AUSENTE",
+                    tipo_divergencia="sem_codigo_ficha",
                     descricao=f'Atendimento sem código de ficha. Paciente: {atendimento["paciente_nome"]}',
                 )
 
@@ -125,8 +128,9 @@ def realizar_auditoria(data_inicial: str = None, data_final: str = None):
             divergencias_encontradas += 1
             registrar_divergencia(
                 numero_guia=protocolo["idGuia"],
-                data_exec=protocolo["dataExec"],
+                data_execucao=protocolo["dataExec"],
                 codigo_ficha=atendimentos_correspondentes[0]["codigo_ficha"],
+                tipo_divergencia="multiplos_atendimentos",
                 descricao=f'Protocolo com múltiplos atendimentos ({len(atendimentos_correspondentes)}). Paciente: {protocolo["nomePaciente"]}',
             )
 

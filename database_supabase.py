@@ -3,27 +3,30 @@ from datetime import datetime
 from config import supabase
 import os
 import traceback
+import uuid
 
 
 def salvar_dados_excel(registros: List[Dict]) -> bool:
-    """Salva os dados do Excel no Supabase. Uma guia pode ter múltiplos atendimentos."""
+    """Salva os dados do Excel na tabela execucoes_unimed."""
     try:
         # Prepara os dados no formato correto
         dados_formatados = []
         for registro in registros:
             dados_formatados.append(
                 {
-                    "guia_id": str(registro["guia_id"]),
-                    "paciente_nome": str(registro["paciente_nome"]),
+                    "id": str(uuid.uuid4()),  # Gera UUID
+                    "numero_guia": str(registro["guia_id"]),
+                    "paciente_nome": str(registro["paciente_nome"]).upper(),
                     "data_execucao": registro["data_execucao"],
                     "paciente_carteirinha": str(registro["paciente_carteirinha"]),
-                    "paciente_id": str(registro["paciente_id"]),
+                    "quantidade_sessoes": 1  # Valor padrão
+                    # Removido usuario_executante pois será NULL por padrão
                 }
             )
 
-        # Insere os dados no Supabase (sem upsert, pois pode haver múltiplos registros por guia)
+        # Insere os dados no Supabase
         response = (
-            supabase.table("protocolos_excel")
+            supabase.table("execucoes_unimed")
             .insert(dados_formatados)
             .execute()
         )
@@ -41,14 +44,14 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
 def listar_dados_excel(
     limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
 ) -> Dict:
-    """Retorna os dados importados do Excel com suporte a paginação e filtro"""
+    """Retorna os dados da tabela execucoes_unimed com suporte a paginação e filtro"""
     try:
         # Inicia a query
-        query = supabase.table("protocolos_excel").select("*")
+        query = supabase.table("execucoes_unimed").select("*")
 
         # Adiciona filtro se paciente_nome for fornecido
         if paciente_nome:
-            query = query.ilike("paciente_nome", f"%{paciente_nome}%")
+            query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
 
         # Busca todos os registros para contar
         count_response = query.execute()
@@ -69,12 +72,12 @@ def listar_dados_excel(
             registros_formatados.append(
                 {
                     "id": reg["id"],
-                    "guia_id": reg["guia_id"],
+                    "guia_id": reg["numero_guia"],
                     "paciente_nome": reg["paciente_nome"],
                     "data_execucao": reg["data_execucao"],
                     "paciente_carteirinha": reg["paciente_carteirinha"],
-                    "paciente_id": reg["paciente_id"],
-                    "created_at": reg["created_at"],
+                    "quantidade_sessoes": reg["quantidade_sessoes"],
+                    "created_at": reg["created_at"]
                 }
             )
 
@@ -90,19 +93,19 @@ def listar_dados_excel(
 
 
 def limpar_protocolos_excel() -> bool:
-    """Limpa a tabela de protocolos do Excel"""
+    """Limpa a tabela de execucoes_unimed"""
     try:
-        supabase.table("protocolos_excel").delete().neq("id", 0).execute()
+        supabase.table("execucoes_unimed").delete().neq("id", 0).execute()
         return True
     except Exception as e:
-        print(f"Erro ao limpar protocolos do Excel no Supabase: {e}")
+        print(f"Erro ao limpar execuções no Supabase: {e}")
         return False
 
 
 def contar_protocolos() -> int:
-    """Retorna o número total de protocolos na tabela protocolos_excel"""
+    """Retorna o número total de protocolos na tabela execucoes_unimed"""
     try:
-        response = supabase.table("protocolos_excel").select("*").execute()
+        response = supabase.table("execucoes_unimed").select("*").execute()
         return len(response.data)
     except Exception as e:
         print(f"Erro ao contar protocolos no Supabase: {e}")
