@@ -8,7 +8,8 @@ import {
   DocumentTextIcon,
   ArrowUpTrayIcon,
   ChartBarIcon,
-  TableCellsIcon
+  TableCellsIcon,
+  CloudIcon
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -26,6 +27,11 @@ const navigation = [
     name: 'Execuções',
     href: '/excel',
     icon: TableCellsIcon
+  },
+  {
+    name: 'Storage',
+    href: '/storage',
+    icon: CloudIcon
   },
   {
     name: 'Auditoria',
