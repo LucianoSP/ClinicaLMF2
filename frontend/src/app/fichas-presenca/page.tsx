@@ -248,6 +248,24 @@ export default function FichasPresenca() {
           >
             Limpar Tabela
           </Button>
+          <div className="relative">
+            <input
+              type="file"
+              id="fileInput"
+              className="hidden"
+              onChange={handleFileUpload}
+              multiple
+              accept=".pdf"
+            />
+            <Button
+              variant="secondary"
+              className="bg-[#D2B48C] hover:bg-[#BC8F8F] text-white"
+              onClick={() => document.getElementById('fileInput')?.click()}
+            >
+              <FiUpload className="mr-2" />
+              Upload PDF
+            </Button>
+          </div>
           <Button
             variant="secondary"
             className="bg-[#D2B48C] hover:bg-[#BC8F8F] text-white"

@@ -264,6 +264,22 @@ export default function ExcelPage() {
           >
             Limpar Tabela
           </button>
+          <div className="relative">
+            <input
+              type="file"
+              id="excelFileInput"
+              className="hidden"
+              onChange={handleFileUpload}
+              accept=".xlsx,.xls"
+            />
+            <button
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
+              onClick={() => document.getElementById('excelFileInput')?.click()}
+            >
+              <FiUpload className="w-4 h-4" />
+              Upload Excel
+            </button>
+          </div>
           <button
             onClick={handleExportExcel}
             disabled={data.length === 0}
