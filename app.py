@@ -48,7 +48,7 @@ app.add_middleware(
     allow_credentials=True,  # Permitir cookies
     allow_methods=["*"],  # Permitir todos os métodos
     allow_headers=["*"],  # Permitir todos os headers
-    expose_headers=["*"]  # Expor todos os headers
+    expose_headers=["*"],  # Expor todos os headers
 )
 
 # Criar diretório para arquivos temporários se não existir
@@ -64,12 +64,13 @@ if not os.path.exists(GUIAS_RENOMEADAS_DIR):
 async def startup_event():
     """Inicializa o banco de dados na inicialização"""
     logger.info("Iniciando aplicação...")
-    
+
     # Cria o banco SQLite se não existir
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-    
-    cursor.execute("""
+
+    cursor.execute(
+        """
     CREATE TABLE IF NOT EXISTS atendimentos (
         codigo_ficha TEXT PRIMARY KEY,
         guia_id TEXT,
@@ -79,11 +80,12 @@ async def startup_event():
         possui_assinatura INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    """)
-    
+    """
+    )
+
     conn.commit()
     conn.close()
-    
+
     logger.info("Banco de dados inicializado com sucesso")
 
 
@@ -307,11 +309,13 @@ async def upload_pdf(
 
     for file in files:
         if not file.filename.endswith(".pdf"):
-            results.append({
-                "status": "error",
-                "filename": file.filename,
-                "message": "Apenas arquivos PDF são permitidos"
-            })
+            results.append(
+                {
+                    "status": "error",
+                    "filename": file.filename,
+                    "message": "Apenas arquivos PDF são permitidos",
+                }
+            )
             continue
 
         # Evita processar o mesmo arquivo mais de uma vez
@@ -326,7 +330,7 @@ async def upload_pdf(
                 with open(temp_pdf_path, "wb") as temp_file:
                     content = await file.read()
                     temp_file.write(content)
-                    
+
                 print(f"Iniciando upload do arquivo {file.filename}")
                 print(f"Arquivo lido com sucesso. Tamanho: {len(content)} bytes")
 
@@ -334,29 +338,32 @@ async def upload_pdf(
                 info = await extract_info_from_pdf(temp_pdf_path)
 
                 if info.get("status_validacao") == "falha":
-                    raise Exception(info.get("erro", "Erro desconhecido ao processar PDF"))
+                    raise Exception(
+                        info.get("erro", "Erro desconhecido ao processar PDF")
+                    )
 
                 # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente
-                data_formatada = info["json"]["registros"][0]["data_execucao"].replace("/", "-")
+                data_formatada = info["json"]["registros"][0]["data_execucao"].replace(
+                    "/", "-"
+                )
                 paciente_nome = info["json"]["registros"][0]["paciente_nome"]
                 novo_nome = f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
 
                 # Faz upload do arquivo para o Storage
                 arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
-                
+
                 # Prepara o resultado
                 result = {
                     "status": "success",
                     "filename": file.filename,
                     "saved_ids": [],
-                    "uploaded_files": []
+                    "uploaded_files": [],
                 }
 
                 if arquivo_url:
-                    result["uploaded_files"].append({
-                        "nome": novo_nome,
-                        "url": arquivo_url
-                    })
+                    result["uploaded_files"].append(
+                        {"nome": novo_nome, "url": arquivo_url}
+                    )
 
                 # Processa os registros do PDF
                 dados_guia = info["json"]
@@ -376,7 +383,9 @@ async def upload_pdf(
                         result["saved_ids"] = saved_ids
                     else:
                         result["status"] = "error"
-                        result["message"] = "Erro ao salvar atendimentos no banco de dados"
+                        result["message"] = (
+                            "Erro ao salvar atendimentos no banco de dados"
+                        )
 
                 results.append(result)
 
@@ -387,11 +396,9 @@ async def upload_pdf(
 
         except Exception as e:
             print(f"Erro ao processar {file.filename}: {str(e)}")
-            results.append({
-                "status": "error",
-                "filename": file.filename,
-                "message": str(e)
-            })
+            results.append(
+                {"status": "error", "filename": file.filename, "message": str(e)}
+            )
 
     return results
 
@@ -418,11 +425,10 @@ async def upload_excel(file: UploadFile = File(...)):
 
             # Verifica se as colunas necessárias existem
             colunas_necessarias = [
-                "Número da Guia",
-                "Nome do Beneficiário",
-                "Data de Execução",
+                "idGuia",
+                "nomePaciente",
+                "DataExec",
                 "Carteirinha",
-                "Código do Beneficiário",
             ]
             colunas_faltantes = [
                 col for col in colunas_necessarias if col not in df.columns
@@ -438,16 +444,17 @@ async def upload_excel(file: UploadFile = File(...)):
             for _, row in df.iterrows():
                 try:
                     # Formata a data
-                    data_execucao = formatar_data(row["Data de Execução"])
+                    data_execucao = formatar_data(row["DataExec"])
 
+                    # Mapeamento dos campos do Excel para os campos padronizados do banco
                     registro = {
-                        "idGuia": str(row["Número da Guia"]).strip(),
-                        "nomePaciente": str(row["Nome do Beneficiário"])
-                        .strip()
-                        .upper(),
-                        "dataExec": data_execucao,
-                        "carteirinha": str(row["Carteirinha"]).strip(),
-                        "idPaciente": str(row["Código do Beneficiário"]).strip(),
+                        "guia_id": str(row["idGuia"]).strip(),
+                        "paciente_nome": str(row["nomePaciente"]).strip().upper(),
+                        "data_execucao": data_execucao,
+                        "paciente_carteirinha": str(row["Carteirinha"]).strip(),
+                        "paciente_id": str(
+                            row["idGuia"]
+                        ).strip(),  # Usando o mesmo ID da guia como ID do paciente por enquanto
                     }
                     registros.append(registro)
                 except Exception as e:
@@ -775,20 +782,19 @@ async def delete_all_storage_files():
         files = storage.list_files()
         if not files:
             return {"message": "Nenhum arquivo para deletar"}
-            
+
         # Pega os nomes dos arquivos
         file_names = [f["nome"] for f in files]
-        
+
         # Deleta todos os arquivos
         success = storage.delete_files(file_names)
         if not success:
             raise HTTPException(
-                status_code=500,
-                detail="Erro ao deletar alguns arquivos"
+                status_code=500, detail="Erro ao deletar alguns arquivos"
             )
-            
+
         return {"message": f"{len(file_names)} arquivos deletados com sucesso"}
-        
+
     except Exception as e:
         logger.error(f"Erro ao deletar todos os arquivos: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -803,11 +809,10 @@ async def delete_storage_file(file_name: str):
         success = storage.delete_files([file_name])
         if not success:
             raise HTTPException(
-                status_code=500,
-                detail=f"Erro ao deletar arquivo {file_name}"
+                status_code=500, detail=f"Erro ao deletar arquivo {file_name}"
             )
         return {"message": f"Arquivo {file_name} deletado com sucesso"}
-        
+
     except Exception as e:
         logger.error(f"Erro ao deletar arquivo {file_name}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -821,18 +826,19 @@ async def download_all_files():
     try:
         # Gerar o arquivo ZIP
         zip_content = storage.download_all_files_as_zip()
-        
+
         if not zip_content:
             raise HTTPException(status_code=500, detail="Erro ao gerar arquivo ZIP")
-        
+
         # Retornar o arquivo ZIP como resposta
         from fastapi.responses import Response
+
         return Response(
             content=zip_content,
             media_type="application/zip",
             headers={
                 "Content-Disposition": f'attachment; filename="fichas_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
-            }
+            },
         )
     except Exception as e:
         logger.error(f"Erro ao baixar arquivos: {str(e)}")

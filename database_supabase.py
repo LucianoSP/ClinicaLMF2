@@ -6,7 +6,7 @@ import traceback
 
 
 def salvar_dados_excel(registros: List[Dict]) -> bool:
-    """Salva os dados do Excel no Supabase"""
+    """Salva os dados do Excel no Supabase. Uma guia pode ter múltiplos atendimentos."""
     try:
         # Prepara os dados no formato correto
         dados_formatados = []
@@ -15,17 +15,22 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                 {
                     "guia_id": str(registro["guia_id"]),
                     "paciente_nome": str(registro["paciente_nome"]),
-                    "data_execucao": registro[
-                        "data_execucao"
-                    ],  # Já formatada como DD/MM/YYYY
+                    "data_execucao": registro["data_execucao"],
                     "paciente_carteirinha": str(registro["paciente_carteirinha"]),
                     "paciente_id": str(registro["paciente_id"]),
                 }
             )
 
-        # Insere os dados no Supabase
-        response = supabase.table("protocolos_excel").insert(dados_formatados).execute()
-        print(f"Dados inseridos com sucesso! {len(dados_formatados)} registros.")
+        # Insere os dados no Supabase (sem upsert, pois pode haver múltiplos registros por guia)
+        response = (
+            supabase.table("protocolos_excel")
+            .insert(dados_formatados)
+            .execute()
+        )
+
+        print(
+            f"Dados inseridos com sucesso! {len(dados_formatados)} registros."
+        )
         return True
 
     except Exception as e:
@@ -468,21 +473,21 @@ def deletar_arquivos_storage(nomes_arquivos: list[str]) -> bool:
     """
     try:
         bucket = "fichas_renomeadas"
-        
+
         # Lista todos os arquivos no bucket
         files = supabase.storage.from_(bucket).list()
         if not files:
             print("Nenhum arquivo encontrado no bucket")
             return True
-            
+
         # Pega todos os nomes de arquivos que existem
         nomes_encontrados = [f["name"] for f in files if f["name"] in nomes_arquivos]
         if not nomes_encontrados:
             print("Nenhum dos arquivos especificados foi encontrado no bucket")
             return True
-            
+
         print(f"Tentando deletar {len(nomes_encontrados)} arquivos de uma vez")
-        
+
         # Deleta os arquivos um por um, mas em uma única função
         # O Supabase não suporta deleção em massa, então precisamos fazer isso
         for nome in nomes_encontrados:
@@ -492,18 +497,20 @@ def deletar_arquivos_storage(nomes_arquivos: list[str]) -> bool:
             except Exception as e:
                 print(f"Erro ao deletar {nome}: {str(e)}")
                 return False
-        
+
         # Verifica se todos os arquivos foram deletados
         files_after = supabase.storage.from_(bucket).list()
         remaining_files = [f["name"] for f in files_after]
-        
+
         # Verifica se algum dos arquivos ainda existe
-        failed_deletions = [nome for nome in nomes_encontrados if nome in remaining_files]
-        
+        failed_deletions = [
+            nome for nome in nomes_encontrados if nome in remaining_files
+        ]
+
         if failed_deletions:
             print(f"Falha ao deletar os seguintes arquivos: {failed_deletions}")
             return False
-            
+
         print("Todos os arquivos foram deletados com sucesso!")
         return True
 

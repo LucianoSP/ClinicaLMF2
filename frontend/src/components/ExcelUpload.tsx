@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { API_URL } from '@/config/api';
 
-interface ExcelUploadProps {}
+interface ExcelUploadProps { }
 
-export default function ExcelUpload({}: ExcelUploadProps) {
+export default function ExcelUpload({ }: ExcelUploadProps) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,7 +43,7 @@ export default function ExcelUpload({}: ExcelUploadProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${API_URL}/upload-excel`, {
+      const response = await fetch(`${API_URL}/upload/excel/`, {
         method: 'POST',
         body: formData
       });
