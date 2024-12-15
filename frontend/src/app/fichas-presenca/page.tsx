@@ -241,39 +241,28 @@ export default function FichasPresenca() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold text-[#8B4513]">Fichas de Presença</h1>
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            className="bg-[#D2B48C] hover:bg-[#BC8F8F] text-white"
-            onClick={handleClearTable}
+          <input
+            type="file"
+            id="fileInput"
+            className="hidden"
+            onChange={handleFileUpload}
+            accept=".pdf"
+          />
+          <button
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
+            onClick={() => document.getElementById('fileInput')?.click()}
           >
-            Limpar Tabela
-          </Button>
-          <div className="relative">
-            <input
-              type="file"
-              id="fileInput"
-              className="hidden"
-              onChange={handleFileUpload}
-              multiple
-              accept=".pdf"
-            />
-            <Button
-              variant="secondary"
-              className="bg-[#D2B48C] hover:bg-[#BC8F8F] text-white"
-              onClick={() => document.getElementById('fileInput')?.click()}
-            >
-              <FiUpload className="mr-2" />
-              Upload PDF
-            </Button>
-          </div>
-          <Button
-            variant="secondary"
-            className="bg-[#D2B48C] hover:bg-[#BC8F8F] text-white"
+            <FiUpload className="w-4 h-4" />
+            Upload PDF
+          </button>
+          <button
             onClick={handleExportExcel}
+            disabled={fichas.length === 0}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
-            <FiDownload className="mr-2" />
+            <FiDownload className="w-4 h-4" />
             Exportar Excel
-          </Button>
+          </button>
         </div>
       </div>
 
