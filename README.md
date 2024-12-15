@@ -16,7 +16,7 @@ Sistema web desenvolvido para gerenciamento e auditoria de guias médicas, permi
 
 ### Backend
 - **FastAPI**: Framework Python para criação de APIs
-- **SQLite**: Banco de dados para armazenamento local
+- **PosgreSQL Supabase**: Banco de dados para armazenamento local
 - **Pandas**: Processamento de dados e análise
 - **Anthropic**: Integração com IA para processamento de documentos
 

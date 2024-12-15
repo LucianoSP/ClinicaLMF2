@@ -74,6 +74,7 @@ As inconsistências a serem identificadas incluem:
 
 5.1. **Tabela `atendimentos`**
 
+
 - **Campos**:
   - `id`: Identificador único do atendimento.
   - `data_execucao`: Data em que o atendimento foi realizado.
