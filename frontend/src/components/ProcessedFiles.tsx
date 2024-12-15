@@ -316,18 +316,15 @@ const ProcessedFiles = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold text-[#6b342f]">Atendimentos</h1>
-
+        <h2 className="text-2xl font-bold">Arquivos Processados</h2>
         <div className="flex space-x-4">
           <button
             onClick={handleExportExcel}
             disabled={loading || atendimentos.length === 0}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
-            <FiDownload className="w-4 h-4" />
             Exportar Excel
           </button>
-
           <button
             onClick={handleSync}
             disabled={loading || syncing}
@@ -336,7 +333,6 @@ const ProcessedFiles = () => {
             <FiTrash2 className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
             Limpar Tabela
           </button>
-
           <button
             onClick={() => fetchProcessedFiles()}
             disabled={loading}

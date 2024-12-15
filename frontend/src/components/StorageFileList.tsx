@@ -21,6 +21,7 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   const fetchFiles = async () => {
     setIsLoading(true);
@@ -43,6 +44,42 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
       setError(err instanceof Error ? err.message : 'Erro ao buscar arquivos');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const downloadAllFiles = async () => {
+    try {
+      setDownloadingAll(true);
+      const response = await fetch(`${API_URL}/download-all-files`);
+      
+      if (!response.ok) {
+        throw new Error('Erro ao baixar arquivos');
+      }
+
+      // Obter o nome do arquivo do header Content-Disposition
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : 'fichas.zip';
+
+      // Criar um blob com o conteúdo do ZIP
+      const blob = await response.blob();
+      
+      // Criar um link temporário para download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpar
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Erro ao baixar arquivos:', error);
+      alert('Erro ao baixar arquivos. Por favor, tente novamente.');
+    } finally {
+      setDownloadingAll(false);
     }
   };
 
@@ -117,14 +154,24 @@ const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
     <div className="mt-8 bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-800">Arquivos no Storage</h2>
-        {files.length > 0 && (
+        <div className="flex gap-2">
+          <button
+            onClick={downloadAllFiles}
+            disabled={downloadingAll || isLoading || files.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-[#C5A880] text-white rounded hover:bg-[#b49d6b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <FiDownload className="w-4 h-4" />
+            {downloadingAll ? 'Baixando...' : 'Baixar Todos'}
+          </button>
           <button
             onClick={deleteAllFiles}
-            className="px-4 py-2 bg-[#b75950] hover:bg-[#a54d45] text-white rounded-md transition-colors"
+            disabled={isLoading || files.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
+            <TrashIcon className="w-4 h-4" />
             Limpar Storage
           </button>
-        )}
+        </div>
       </div>
 
       {error && <div className="text-red-500 mb-4">{error}</div>}

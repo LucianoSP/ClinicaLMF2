@@ -121,6 +121,52 @@ class StorageR2:
             logger.error(f"Erro ao listar arquivos: {str(e)}")
             return []
 
+    def download_all_files_as_zip(self) -> Optional[bytes]:
+        """
+        Baixa todos os arquivos do bucket e os compacta em um arquivo ZIP.
+
+        Returns:
+            Optional[bytes]: Conteúdo do arquivo ZIP em bytes ou None se houver erro
+        """
+        try:
+            import io
+            import zipfile
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            # Criar um buffer em memória para o ZIP
+            zip_buffer = io.BytesIO()
+            
+            # Listar todos os arquivos no bucket
+            files = self.list_files()
+            
+            # Criar o arquivo ZIP
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                def download_and_add_to_zip(file_info):
+                    try:
+                        # Baixar o arquivo do R2
+                        response = self.client.get_object(Bucket=self.bucket, Key=file_info['nome'])
+                        file_content = response['Body'].read()
+                        
+                        # Adicionar ao ZIP
+                        zip_file.writestr(file_info['nome'], file_content)
+                        return True
+                    except Exception as e:
+                        logger.error(f"Erro ao processar arquivo {file_info['nome']}: {str(e)}")
+                        return False
+
+                # Usar ThreadPoolExecutor para baixar arquivos em paralelo
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    futures = [executor.submit(download_and_add_to_zip, file) for file in files]
+                    for future in as_completed(futures):
+                        future.result()
+
+            # Retornar o conteúdo do ZIP
+            return zip_buffer.getvalue()
+
+        except Exception as e:
+            logger.error(f"Erro ao criar arquivo ZIP: {str(e)}")
+            return None
+
 
 # Cria uma instância global do StorageR2
 storage = StorageR2()

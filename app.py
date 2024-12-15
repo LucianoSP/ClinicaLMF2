@@ -813,6 +813,32 @@ async def delete_storage_file(file_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/download-all-files")
+async def download_all_files():
+    """
+    Endpoint para baixar todos os arquivos do storage em um único arquivo ZIP
+    """
+    try:
+        # Gerar o arquivo ZIP
+        zip_content = storage.download_all_files_as_zip()
+        
+        if not zip_content:
+            raise HTTPException(status_code=500, detail="Erro ao gerar arquivo ZIP")
+        
+        # Retornar o arquivo ZIP como resposta
+        from fastapi.responses import Response
+        return Response(
+            content=zip_content,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="fichas_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
+            }
+        )
+    except Exception as e:
+        logger.error(f"Erro ao baixar arquivos: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
 
