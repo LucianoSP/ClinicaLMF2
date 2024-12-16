@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import Pagination from '@/components/Pagination';
 import { FiCheck, FiX } from 'react-icons/fi';
 import { API_URL } from '@/config/api';
-import toast from '@/components/ui/toast';
+import { useToast } from '@/components/ui/toasts';
 
 interface Atendimento {
   id: number;
@@ -53,6 +53,8 @@ export default function AuditoriaPage() {
   const [sortField, setSortField] = useState<keyof Divergencia>('data_registro');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
+  const [limpandoDivergencias, setLimpandoDivergencias] = useState(false);
+  const { toast } = useToast();
 
   const formatarData = (date: Date | undefined) => {
     if (!date) return '';
@@ -81,7 +83,7 @@ export default function AuditoriaPage() {
       if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
       if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
 
-      const response = await fetch(`${API_URL}/api/auditoria/divergencias?${params.toString()}`);
+      const response = await fetch(`${API_URL}/auditoria/divergencias?${params.toString()}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -109,7 +111,7 @@ export default function AuditoriaPage() {
       console.log('Parâmetros da auditoria:', Object.fromEntries(params));
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/api/auditoria/iniciar/`;
+      const baseUrl = `${API_URL}/auditoria/iniciar/`;
 
       const response = await fetch(`${baseUrl}?${params.toString()}`, {
         method: 'POST',
@@ -146,7 +148,7 @@ export default function AuditoriaPage() {
       if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
       if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auditoria/relatorio?${params.toString()}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auditoria/relatorio?${params.toString()}`);
       
       if (response.ok) {
         const blob = await response.blob();
@@ -178,6 +180,51 @@ export default function AuditoriaPage() {
     }
   };
 
+  const limparDivergencias = async () => {
+    if (!confirm('Tem certeza que deseja limpar todas as divergências? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    setLimpandoDivergencias(true);
+    try {
+      const response = await fetch(`${API_URL}/auditoria/limpar-divergencias`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao limpar divergências');
+      }
+
+      const data = await response.json();
+      
+      // Atualiza os dados diretamente com o retorno da API
+      if (data.dados) {
+        setDados(data.dados.divergencias || []);
+        setTotalPages(Math.ceil((data.dados.total || 0) / 10));
+      } else {
+        // Se não houver dados, limpa a tabela
+        setDados([]);
+        setTotalPages(1);
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "As divergências foram limpas com sucesso.",
+        className: "bg-green-50 border-green-200 text-green-800",
+      });
+      
+    } catch (error) {
+      console.error('Erro ao limpar divergências:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao limpar as divergências.",
+        variant: "destructive",
+      });
+    } finally {
+      setLimpandoDivergencias(false);
+    }
+  };
+
   const handleSort = (field: keyof Divergencia) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -193,7 +240,7 @@ export default function AuditoriaPage() {
       setError(null);
 
       // Construir a URL base
-      const baseUrl = `${API_URL}/api/auditoria/divergencia/`;
+      const baseUrl = `${API_URL}/auditoria/divergencia/`;
 
       const response = await fetch(`${baseUrl}${id}`, {
         method: 'PUT',
@@ -247,35 +294,44 @@ export default function AuditoriaPage() {
       <h1 className="text-2xl font-semibold mb-6 text-[#6b342f]">Auditoria</h1>
 
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <div className="flex flex-col md:flex-row gap-6 mb-6">
-          <div className="flex flex-col gap-2">
-            <Label>Data Inicial</Label>
-            <DatePicker
-              date={dataInicial}
-              setDate={setDataInicial}
-            />
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex gap-8">
+            <div className="flex flex-col gap-2">
+              <Label>Data Inicial</Label>
+              <DatePicker
+                date={dataInicial}
+                setDate={setDataInicial}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Data Final</Label>
+              <DatePicker
+                date={dataFinal}
+                setDate={setDataFinal}
+              />
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label>Data Final</Label>
-            <DatePicker
-              date={dataFinal}
-              setDate={setDataFinal}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              onClick={iniciarAuditoria}
-              disabled={executandoAuditoria || !dataInicial || !dataFinal}
-              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+          <div className="flex items-end gap-2">
+            <Button 
+              onClick={limparDivergencias} 
+              disabled={limpandoDivergencias}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
             >
-              {executandoAuditoria ? "Executando..." : "Iniciar Auditoria"}
+              {limpandoDivergencias ? 'Limpando...' : 'Limpar Divergências'}
             </Button>
-            <Button
-              onClick={gerarRelatorio}
-              disabled={gerandoRelatorio || !dataInicial || !dataFinal}
-              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+            <Button 
+              onClick={iniciarAuditoria} 
+              disabled={executandoAuditoria}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
             >
-              {gerandoRelatorio ? "Gerando..." : "Gerar Relatório"}
+              {executandoAuditoria ? 'Executando...' : 'Iniciar Auditoria'}
+            </Button>
+            <Button 
+              onClick={gerarRelatorio} 
+              disabled={gerandoRelatorio}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+            >
+              {gerandoRelatorio ? 'Gerando...' : 'Gerar Relatório'}
             </Button>
           </div>
         </div>

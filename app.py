@@ -4,7 +4,6 @@ from pydantic import BaseModel, ValidationError
 import os
 import pandas as pd
 import tempfile
-import traceback
 import shutil
 from datetime import datetime
 from typing import List, Optional, Dict
@@ -25,6 +24,7 @@ from database_supabase import (
     excluir_ficha_presenca,
     listar_fichas_presenca,
 )
+from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2
 import json
 from datetime import timedelta
@@ -37,7 +37,8 @@ from math import ceil
 from auditoria import realizar_auditoria
 import logging
 import uvicorn
-import sqlite3
+import sqlite3  # Adicionando importação do sqlite3
+import traceback
 
 api_key = os.environ["ANTHROPIC_API_KEY"]
 
@@ -55,6 +56,12 @@ app.add_middleware(
     expose_headers=["*"],  # Expor todos os headers
 )
 
+# Debug: Verificar variáveis do Supabase
+from config import SUPABASE_URL, SUPABASE_KEY
+
+print("DEBUG - SUPABASE_URL:", SUPABASE_URL)
+print("DEBUG - SUPABASE_KEY:", SUPABASE_KEY[:10] + "..." if SUPABASE_KEY else None)
+
 # Criar diretório para arquivos temporários se não existir
 TEMP_DIR = "temp"
 GUIAS_RENOMEADAS_DIR = "guias_renomeadas"
@@ -66,31 +73,22 @@ if not os.path.exists(GUIAS_RENOMEADAS_DIR):
 
 @app.on_event("startup")
 async def startup_event():
-    """Inicializa o banco de dados na inicialização"""
-    logger.info("Iniciando aplicação...")
+    """Inicializa recursos necessários para a aplicação"""
+    try:
+        logger.info("Iniciando aplicação...")
 
-    # Cria o banco SQLite se não existir
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
+        # Cria diretórios necessários se não existirem
+        os.makedirs(TEMP_DIR, exist_ok=True)
+        os.makedirs(GUIAS_RENOMEADAS_DIR, exist_ok=True)
 
-    cursor.execute(
-        """
-    CREATE TABLE IF NOT EXISTS atendimentos (
-        codigo_ficha TEXT PRIMARY KEY,
-        guia_id TEXT,
-        paciente_nome TEXT,
-        data_execucao TEXT,
-        paciente_carteirinha TEXT,
-        possui_assinatura INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """
-    )
+        # Verifica conexão com Supabase
+        if not supabase:
+            logger.error("Erro: Cliente Supabase não inicializado")
+            raise Exception("Cliente Supabase não inicializado")
 
-    conn.commit()
-    conn.close()
-
-    logger.info("Banco de dados inicializado com sucesso")
+    except Exception as e:
+        logger.error(f"Erro na inicialização: {str(e)}")
+        raise e
 
 
 def formatar_data(data):
@@ -459,6 +457,7 @@ async def upload_excel(file: UploadFile = File(...)):
                 "nomePaciente",
                 "DataExec",
                 "Carteirinha",
+                "Id_Paciente"
             ]
             colunas_faltantes = [
                 col for col in colunas_necessarias if col not in df.columns
@@ -482,6 +481,7 @@ async def upload_excel(file: UploadFile = File(...)):
                         "paciente_nome": str(row["nomePaciente"]).strip().upper(),
                         "data_execucao": data_execucao,
                         "paciente_carteirinha": str(row["Carteirinha"]).strip(),
+                        "paciente_id": str(row["Id_Paciente"]).strip()
                     }
                     registros.append(registro)
                 except Exception as e:
@@ -608,21 +608,38 @@ async def clear_excel_data():
     """Limpa todos os dados da tabela de protocolos do Excel"""
     try:
         from database_supabase import limpar_protocolos_excel
+        import logging
 
+        # Configura o logger
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+
+        logger.info("Iniciando limpeza dos dados do Excel...")
         success = limpar_protocolos_excel()
+        
         if success:
+            logger.info("Dados do Excel limpos com sucesso")
             return {"success": True, "message": "Dados do Excel limpos com sucesso"}
         else:
-            raise HTTPException(status_code=500, detail="Erro ao limpar dados do Excel")
+            logger.error("Erro ao limpar dados do Excel: operação retornou False")
+            raise HTTPException(
+                status_code=500,
+                detail="Erro ao limpar dados do Excel: operação não foi concluída com sucesso"
+            )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Erro ao limpar dados do Excel: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao limpar dados do Excel: {str(e)}"
+        )
 
 
 @app.get("/auditoria/divergencias/")
 async def get_divergencias(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-    status: str = Query(None, description="Filtrar por status (Pendente/Resolvido)"),
+    status: str = Query(None, description="Filtro por status (Pendente/Resolvido)"),
 ):
     """Lista as divergências encontradas na auditoria"""
     try:
@@ -952,6 +969,78 @@ async def excluir_ficha(ficha_id: str):
     except Exception as e:
         logger.error(f"Erro ao excluir ficha: {e}")
         raise HTTPException(status_code=500, detail="Erro ao excluir ficha de presença")
+
+
+@app.get("/auditoria/divergencias")
+async def listar_divergencias_endpoint(
+    data_inicio: str = Query(None, description="Data inicial (YYYY-MM-DD)"),
+    data_fim: str = Query(None, description="Data final (YYYY-MM-DD)"),
+    limit: int = Query(100, description="Limite de registros"),
+    offset: int = Query(0, description="Offset para paginação"),
+    status: str = Query(None, description="Filtro por status"),
+):
+    """Lista as divergências encontradas com suporte a paginação e filtros"""
+    try:
+        logger.info(
+            f"Buscando divergências - data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
+        )
+
+        # Converte as datas para o formato correto se fornecidas
+        if data_inicio:
+            data_inicio = datetime.strptime(data_inicio, "%Y-%m-%d").strftime(
+                "%d/%m/%Y"
+            )
+        if data_fim:
+            data_fim = datetime.strptime(data_fim, "%Y-%m-%d").strftime("%d/%m/%Y")
+
+        resultado = listar_divergencias(limit=limit, offset=offset, status=status)
+
+        if resultado is None:
+            raise HTTPException(status_code=500, detail="Erro ao listar divergências")
+
+        return resultado
+
+    except Exception as e:
+        logger.error(f"Erro ao listar divergências: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/auditoria/limpar-divergencias")
+async def limpar_divergencias():
+    """Limpa todas as divergências da tabela e retorna a lista atualizada"""
+    try:
+        from database_supabase import limpar_divergencias_db, listar_divergencias
+        import logging
+
+        # Configura o logger
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+
+        logger.info("Iniciando limpeza das divergências...")
+        success = limpar_divergencias_db()
+        
+        if success:
+            logger.info("Divergências limpas com sucesso")
+            # Busca a lista atualizada de divergências
+            dados_atualizados = listar_divergencias(limit=100, offset=0)
+            return {
+                "success": True, 
+                "message": "Divergências limpas com sucesso",
+                "dados": dados_atualizados
+            }
+        else:
+            logger.error("Erro ao limpar divergências: operação retornou False")
+            raise HTTPException(
+                status_code=500,
+                detail="Erro ao limpar divergências: operação não foi concluída com sucesso"
+            )
+    except Exception as e:
+        logger.error(f"Erro ao limpar divergências: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao limpar divergências: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

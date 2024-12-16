@@ -19,6 +19,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                     "paciente_nome": str(registro["paciente_nome"]).upper(),
                     "data_execucao": registro["data_execucao"],
                     "paciente_carteirinha": str(registro["paciente_carteirinha"]),
+                    "paciente_id": str(registro["paciente_id"]),
                     "quantidade_sessoes": 1  # Valor padrão
                     # Removido usuario_executante pois será NULL por padrão
                 }
@@ -95,7 +96,10 @@ def listar_dados_excel(
 def limpar_protocolos_excel() -> bool:
     """Limpa a tabela de execucoes_unimed"""
     try:
-        supabase.table("execucoes_unimed").delete().neq("id", 0).execute()
+        # Deleta todos os registros usando uma condição que sempre é verdadeira
+        # Usamos gt.00000000-0000-0000-0000-000000000000 para pegar todos os UUIDs válidos
+        supabase.table("execucoes_unimed").delete().gt("id", "00000000-0000-0000-0000-000000000000").execute()
+        print("Tabela execucoes_unimed limpa com sucesso!")
         return True
     except Exception as e:
         print(f"Erro ao limpar execuções no Supabase: {e}")
@@ -769,4 +773,17 @@ def excluir_ficha_presenca(id: str) -> bool:
     except Exception as e:
         print(f"Erro ao excluir ficha: {e}")
         traceback.print_exc()
+        return False
+
+
+def limpar_divergencias_db() -> bool:
+    """Limpa a tabela de divergências"""
+    try:
+        # Deleta todos os registros usando uma condição que sempre é verdadeira
+        # Usamos gt.00000000-0000-0000-0000-000000000000 para pegar todos os UUIDs válidos
+        supabase.table("divergencias").delete().gt("id", "00000000-0000-0000-0000-000000000000").execute()
+        print("Tabela divergencias limpa com sucesso!")
+        return True
+    except Exception as e:
+        print(f"Erro ao limpar divergências no Supabase: {e}")
         return False
