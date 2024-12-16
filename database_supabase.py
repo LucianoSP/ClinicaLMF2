@@ -71,6 +71,7 @@ def listar_dados_excel(
                     "paciente_nome": reg["paciente_nome"],
                     "data_execucao": reg["data_execucao"],
                     "paciente_carteirinha": reg["paciente_carteirinha"],
+                    "paciente_id": reg["paciente_id"],
                     "quantidade_sessoes": reg["quantidade_sessoes"],
                     "created_at": reg["created_at"],
                 }
