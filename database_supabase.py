@@ -7,7 +7,7 @@ import uuid
 
 
 def salvar_dados_excel(registros: List[Dict]) -> bool:
-    """Salva os dados do Excel na tabela execucoes_unimed."""
+    """Salva os dados do Excel na tabela execucoes."""
     try:
         # Prepara os dados no formato correto
         dados_formatados = []
@@ -26,7 +26,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
             )
 
         # Insere os dados no Supabase
-        response = supabase.table("execucoes_unimed").insert(dados_formatados).execute()
+        response = supabase.table("execucoes").insert(dados_formatados).execute()
 
         print(f"Dados inseridos com sucesso! {len(dados_formatados)} registros.")
         return True
@@ -39,10 +39,10 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
 def listar_dados_excel(
     limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
 ) -> Dict:
-    """Retorna os dados da tabela execucoes_unimed com suporte a paginação e filtro"""
+    """Retorna os dados da tabela execucoes com suporte a paginação e filtro"""
     try:
         # Inicia a query
-        query = supabase.table("execucoes_unimed").select("*")
+        query = supabase.table("execucoes").select("*")
 
         # Adiciona filtro se paciente_nome for fornecido
         if paciente_nome:
@@ -88,14 +88,14 @@ def listar_dados_excel(
 
 
 def limpar_protocolos_excel() -> bool:
-    """Limpa a tabela de execucoes_unimed"""
+    """Limpa a tabela de execucoes"""
     try:
         # Deleta todos os registros usando uma condição que sempre é verdadeira
         # Usamos gt.00000000-0000-0000-0000-000000000000 para pegar todos os UUIDs válidos
-        supabase.table("execucoes_unimed").delete().gt(
+        supabase.table("execucoes").delete().gt(
             "id", "00000000-0000-0000-0000-000000000000"
         ).execute()
-        print("Tabela execucoes_unimed limpa com sucesso!")
+        print("Tabela execucoes limpa com sucesso!")
         return True
     except Exception as e:
         print(f"Erro ao limpar execuções no Supabase: {e}")
@@ -103,9 +103,9 @@ def limpar_protocolos_excel() -> bool:
 
 
 def contar_protocolos() -> int:
-    """Retorna o número total de protocolos na tabela execucoes_unimed"""
+    """Retorna o número total de protocolos na tabela execucoes"""
     try:
-        response = supabase.table("execucoes_unimed").select("*").execute()
+        response = supabase.table("execucoes").select("*").execute()
         return len(response.data)
     except Exception as e:
         print(f"Erro ao contar protocolos no Supabase: {e}")
