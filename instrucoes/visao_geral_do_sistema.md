@@ -56,14 +56,14 @@ CREATE TABLE execucoes_unimed (
     paciente_nome TEXT,
     data_execucao DATE,
     paciente_carteirinha TEXT,
-    paciente_id UUID,
+    paciente_id TEXT,
     quantidade_sessoes INTEGER,
     usuario_executante UUID
 );
 ```
 - Registra execuções feitas no sistema da Unimed
 - `paciente_carteirinha`: Número da carteira do plano de saúde do paciente
-- `paciente_id`: Identificador único do paciente no sistema
+- `paciente_id`: Identificador do paciente no sistema (texto)
 - Controla quantidade de sessões executadas
 - Rastreia usuário responsável pela execução
 
@@ -277,7 +277,7 @@ erDiagram
         string paciente_nome
         date data_execucao
         string paciente_carteirinha FK
-        uuid paciente_id
+        text paciente_id
         integer quantidade_sessoes
         uuid usuario_executante FK
         timestamp created_at

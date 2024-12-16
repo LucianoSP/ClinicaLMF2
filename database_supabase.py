@@ -14,27 +14,21 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
         for registro in registros:
             dados_formatados.append(
                 {
-                    "id": str(uuid.uuid4()),  # Gera UUID
+                    # Removido o campo "id" para deixar o Supabase gerar automaticamente
                     "numero_guia": str(registro["guia_id"]),
                     "paciente_nome": str(registro["paciente_nome"]).upper(),
                     "data_execucao": registro["data_execucao"],
                     "paciente_carteirinha": str(registro["paciente_carteirinha"]),
                     "paciente_id": str(registro["paciente_id"]),
-                    "quantidade_sessoes": 1  # Valor padrão
+                    "quantidade_sessoes": 1,  # Valor padrão
                     # Removido usuario_executante pois será NULL por padrão
                 }
             )
 
         # Insere os dados no Supabase
-        response = (
-            supabase.table("execucoes_unimed")
-            .insert(dados_formatados)
-            .execute()
-        )
+        response = supabase.table("execucoes_unimed").insert(dados_formatados).execute()
 
-        print(
-            f"Dados inseridos com sucesso! {len(dados_formatados)} registros."
-        )
+        print(f"Dados inseridos com sucesso! {len(dados_formatados)} registros.")
         return True
 
     except Exception as e:
@@ -78,7 +72,7 @@ def listar_dados_excel(
                     "data_execucao": reg["data_execucao"],
                     "paciente_carteirinha": reg["paciente_carteirinha"],
                     "quantidade_sessoes": reg["quantidade_sessoes"],
-                    "created_at": reg["created_at"]
+                    "created_at": reg["created_at"],
                 }
             )
 
@@ -98,7 +92,9 @@ def limpar_protocolos_excel() -> bool:
     try:
         # Deleta todos os registros usando uma condição que sempre é verdadeira
         # Usamos gt.00000000-0000-0000-0000-000000000000 para pegar todos os UUIDs válidos
-        supabase.table("execucoes_unimed").delete().gt("id", "00000000-0000-0000-0000-000000000000").execute()
+        supabase.table("execucoes_unimed").delete().gt(
+            "id", "00000000-0000-0000-0000-000000000000"
+        ).execute()
         print("Tabela execucoes_unimed limpa com sucesso!")
         return True
     except Exception as e:
@@ -359,13 +355,17 @@ def listar_divergencias(
         return {"divergencias": [], "total": 0, "paginas": 1}
 
 
-def atualizar_status_divergencia(id: str, novo_status: str, usuario_id: Optional[str] = None) -> bool:
+def atualizar_status_divergencia(
+    id: str, novo_status: str, usuario_id: Optional[str] = None
+) -> bool:
     """Atualiza o status de uma divergência"""
     try:
         dados = {
             "status": novo_status,
-            "data_resolucao": datetime.now().isoformat() if novo_status != "pendente" else None,
-            "resolvido_por": usuario_id if novo_status != "pendente" else None
+            "data_resolucao": (
+                datetime.now().isoformat() if novo_status != "pendente" else None
+            ),
+            "resolvido_por": usuario_id if novo_status != "pendente" else None,
         }
 
         supabase.table("divergencias").update(dados).eq("id", id).execute()
@@ -396,7 +396,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
         # Verifica se o registro existe
         check_response = (
             supabase.table("atendimentos")
-            .select("*")
+            .select("id")
             .eq("codigo_ficha", codigo_ficha)
             .execute()
         )
@@ -407,7 +407,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
         if codigo_ficha != dados_atualizados["codigo_ficha"]:
             check_new_code = (
                 supabase.table("atendimentos")
-                .select("*")
+                .select("id")
                 .eq("codigo_ficha", dados_atualizados["codigo_ficha"])
                 .execute()
             )
@@ -568,7 +568,7 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
             "numero_guia": info["numero_guia"],
             "possui_assinatura": info.get("possui_assinatura", False),
             "codigo_ficha": info["codigo_ficha"],
-            "arquivo_digitalizado": info.get("arquivo_digitalizado")
+            "arquivo_digitalizado": info.get("arquivo_digitalizado"),
         }
 
         # Verifica se já existe um registro com este código_ficha
@@ -658,14 +658,14 @@ def listar_fichas_presenca(
                 "possui_assinatura": bool(row["possui_assinatura"]),
                 "arquivo_digitalizado": row.get("arquivo_digitalizado"),
                 "created_at": row["created_at"],
-                "updated_at": row["updated_at"]
+                "updated_at": row["updated_at"],
             }
             fichas.append(ficha)
 
         return {
             "fichas": fichas,
             "total": total,
-            "paginas": (total + limit - 1) // limit if limit > 0 else 1
+            "paginas": (total + limit - 1) // limit if limit > 0 else 1,
         }
 
     except Exception as e:
@@ -674,37 +674,39 @@ def listar_fichas_presenca(
         return {"fichas": [], "total": 0, "paginas": 1}
 
 
-def buscar_ficha_presenca(identificador: str, tipo_busca: str = "codigo") -> Optional[Dict]:
+def buscar_ficha_presenca(
+    identificador: str, tipo_busca: str = "codigo"
+) -> Optional[Dict]:
     """
     Busca uma ficha de presença específica.
-    
+
     Args:
         identificador: ID da ficha ou código da ficha
         tipo_busca: 'id' para buscar por ID, 'codigo' para buscar por código da ficha
-        
+
     Returns:
         Dict com os dados da ficha ou None se não encontrada
     """
     try:
         # Inicia a query
         query = supabase.table("fichas_presenca").select("*")
-        
+
         # Aplica o filtro adequado
         if tipo_busca == "id":
             query = query.eq("id", identificador)
         else:  # codigo
             query = query.eq("codigo_ficha", identificador)
-            
+
         # Executa a query
         response = query.execute()
-        
+
         if not response.data or len(response.data) == 0:
             print(f"Ficha não encontrada para {tipo_busca}={identificador}")
             return None
-            
+
         # Pega o primeiro resultado
         row = response.data[0]
-        
+
         # Formata o resultado
         ficha = {
             "id": row["id"],
@@ -716,9 +718,9 @@ def buscar_ficha_presenca(identificador: str, tipo_busca: str = "codigo") -> Opt
             "possui_assinatura": bool(row["possui_assinatura"]),
             "arquivo_digitalizado": row.get("arquivo_digitalizado"),
             "created_at": row["created_at"],
-            "updated_at": row["updated_at"]
+            "updated_at": row["updated_at"],
         }
-        
+
         return ficha
 
     except Exception as e:
@@ -730,10 +732,10 @@ def buscar_ficha_presenca(identificador: str, tipo_busca: str = "codigo") -> Opt
 def excluir_ficha_presenca(id: str) -> bool:
     """
     Exclui uma ficha de presença e seu arquivo digitalizado associado.
-    
+
     Args:
         id: ID (UUID) da ficha a ser excluída
-        
+
     Returns:
         bool indicando sucesso da operação
     """
@@ -743,7 +745,7 @@ def excluir_ficha_presenca(id: str) -> bool:
         if not ficha:
             print(f"Ficha não encontrada para exclusão: {id}")
             return False
-            
+
         # Se tem arquivo digitalizado, exclui do storage
         arquivo_digitalizado = ficha.get("arquivo_digitalizado")
         if arquivo_digitalizado:
@@ -754,15 +756,10 @@ def excluir_ficha_presenca(id: str) -> bool:
             except Exception as e:
                 print(f"Erro ao excluir arquivo digitalizado: {e}")
                 # Continua mesmo se falhar a exclusão do arquivo
-                
+
         # Exclui o registro da ficha
-        response = (
-            supabase.table("fichas_presenca")
-            .delete()
-            .eq("id", id)
-            .execute()
-        )
-        
+        response = supabase.table("fichas_presenca").delete().eq("id", id).execute()
+
         if response.data:
             print(f"Ficha excluída com sucesso: {id}")
             return True
@@ -781,7 +778,9 @@ def limpar_divergencias_db() -> bool:
     try:
         # Deleta todos os registros usando uma condição que sempre é verdadeira
         # Usamos gt.00000000-0000-0000-0000-000000000000 para pegar todos os UUIDs válidos
-        supabase.table("divergencias").delete().gt("id", "00000000-0000-0000-0000-000000000000").execute()
+        supabase.table("divergencias").delete().gt(
+            "id", "00000000-0000-0000-0000-000000000000"
+        ).execute()
         print("Tabela divergencias limpa com sucesso!")
         return True
     except Exception as e:
