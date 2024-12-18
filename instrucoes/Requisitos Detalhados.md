@@ -4,9 +4,9 @@
 
 Você possui um aplicativo de atendimentos médicos com duas tabelas principais no banco de dados:
 
-- **Tabela de Atendimentos (`atendimentos`)**: Registra cada atendimento realizado, incluindo informações como data, número da carteira, nome do beneficiário, número da guia principal, código da guia e se possui assinatura.
+- **Tabela de Atendimentos (`fichas_presenca`)**: Registra cada atendimento realizado, incluindo informações como data, número da carteira, nome do beneficiário, número da guia principal, código da guia e se possui assinatura.
 
-- **Tabela de Protocolos Excel (`protocolos_excel`)**: Contém as guias geradas e executadas pelo plano de saúde, incluindo o ID da guia, nome do paciente, data de execução, carteirinha, ID do paciente e data de criação do registro.
+- **Tabela de Execuções (`execucoes`)**: Contém as guias geradas e executadas pelo plano de saúde, incluindo o ID da guia, nome do paciente, data de execução, carteirinha, ID do paciente e data de criação do registro.
 
 **2. Objetivo do Projeto**
 
