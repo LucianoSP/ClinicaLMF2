@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+//import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import Pagination from '@/components/Pagination';
@@ -68,14 +68,10 @@ export default function AuditoriaPage() {
   const formatarDataExibicao = (dataString: string | undefined) => {
     if (!dataString) return '-';
     try {
-      const data = new Date(dataString);
-      return data.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      // Pega só a parte antes do +
+      const dataLimpa = dataString.split('+')[0];
+      const data = new Date(dataLimpa.replace('T', ' '));
+      return format(data, 'dd/MM/yyyy HH:mm', { locale: ptBR });
     } catch (error) {
       console.error('Erro ao formatar data:', error);
       return dataString;
@@ -95,7 +91,12 @@ export default function AuditoriaPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setDados(data.divergencias);
+        const divergenciasFormatadas = data.divergencias.map(div => ({
+          ...div,
+          data_registro: format(new Date(div.data_registro.split('+')[0]), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+          data_execucao: format(new Date(div.data_execucao.split('+')[0]), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+        }));
+        setDados(divergenciasFormatadas);
         setTotalPages(Math.ceil(data.total / 10));
       } else {
         throw new Error(data.detail || 'Erro ao buscar divergências');
@@ -408,68 +409,68 @@ export default function AuditoriaPage() {
           ) : error ? (
             <div className="text-red-600 py-4">Erro: {error}</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[130px] cursor-pointer whitespace-nowrap px-6" onClick={() => handleSort('data_registro')}>
-                    Data Registro {sortField === 'data_registro' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer px-6" onClick={() => handleSort('guia_id')}>
-                    Número Guia {sortField === 'guia_id' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="cursor-pointer px-6" onClick={() => handleSort('data_execucao')}>
-                    Data Execução {sortField === 'data_execucao' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="px-6">Descrição</TableHead>
-                  <TableHead className="px-6">Paciente</TableHead>
-                  <TableHead className="cursor-pointer px-6" onClick={() => handleSort('status')}>
-                    Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </TableHead>
-                  <TableHead className="px-6">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dados.map((divergencia) => (
-                  <TableRow key={divergencia.id}>
-                    <TableCell className="px-6">{formatarDataExibicao(divergencia.data_registro)}</TableCell>
-                    <TableCell className="px-6">{divergencia.guia_id}</TableCell>
-                    <TableCell className="px-6">{formatarDataExibicao(divergencia.data_execucao)}</TableCell>
-                    <TableCell className="px-6">{divergencia.descricao_divergencia}</TableCell>
-                    <TableCell className="px-6">{divergencia.paciente_nome || '-'}</TableCell>
-                    <TableCell className="px-6">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${divergencia.status === 'Resolvido'
-                          ? 'bg-[#dcfce7] text-[#15803d]'
-                          : 'bg-[#fef9c3] text-[#854d0e]'
-                          }`}>
-                          {divergencia.status === 'Resolvido' ? (
-                            <>
-                              <FiCheck className="w-3 h-3" />
-                              {divergencia.status}
-                            </>
-                          ) : (
-                            <>
-                              <FiX className="w-3 h-3" />
-                              {divergencia.status}
-                            </>
-                          )}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6">
-                      {divergencia.status !== 'Resolvido' && (
-                        <Button
-                          onClick={() => marcarResolvido(divergencia.id)}
-                          className="text-xs bg-[#f0e6d3] hover:bg-[#e6dbc8] text-[#6b342f]"
-                        >
-                          Marcar como Resolvido
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <SortableTable
+              data={dados}
+              columns={[
+                {
+                  key: 'data_registro',
+                  label: 'Data Registro',
+                  render: (value) => formatarDataExibicao(value)
+                },
+                {
+                  key: 'guia_id',
+                  label: 'Número Guia'
+                },
+                {
+                  key: 'data_execucao',
+                  label: 'Data Execução',
+                  render: (value) => formatarDataExibicao(value)
+                },
+                {
+                  key: 'descricao_divergencia',
+                  label: 'Descrição'
+                },
+                {
+                  key: 'paciente_nome',
+                  label: 'Paciente',
+                  render: (value) => value || '-'
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (value) => (
+                    <div className="flex items-center gap-1.5">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'Resolvido'
+                        ? 'bg-[#dcfce7] text-[#15803d]'
+                        : 'bg-[#fef9c3] text-[#854d0e]'
+                        }`}>
+                        {value === 'Resolvido' ? (
+                          <>
+                            <FiCheck className="w-3 h-3" />
+                            {value}
+                          </>
+                        ) : (
+                          <>
+                            <FiX className="w-3 h-3" />
+                            {value}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  )
+                }
+              ]}
+              actions={(item) => (
+                item.status !== 'Resolvido' && (
+                  <Button
+                    onClick={() => marcarResolvido(item.id)}
+                    className="text-xs bg-[#f0e6d3] hover:bg-[#e6dbc8] text-[#6b342f]"
+                  >
+                    Marcar como Resolvido
+                  </Button>
+                )
+              )}
+            />
           )}
         </div>
       </div>
