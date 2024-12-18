@@ -23,7 +23,8 @@ export function SortableTable<T>({
   editingId,
   onSave,
   onCancelEdit,
-  onCellEdit
+  onCellEdit,
+  actions
 }: { 
   data: T[]; 
   columns: Column<T>[];
@@ -33,6 +34,7 @@ export function SortableTable<T>({
   onSave?: (item: T) => void;
   onCancelEdit?: () => void;
   onCellEdit?: (item: T, key: keyof T, value: any) => void;
+  actions?: (item: T) => React.ReactNode;
 }) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -99,7 +101,7 @@ export function SortableTable<T>({
                 </div>
               </th>
             ))}
-            {(onEdit || onDelete || onSave) && (
+            {(onEdit || onDelete || onSave || actions) && (
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">
                 Ações
               </th>
@@ -155,15 +157,9 @@ export function SortableTable<T>({
                               : 'bg-[#fef9c3] text-[#854d0e]'
                           }`}>
                             {item[column.key] === true || String(item[column.key]) === 'true' ? (
-                              <>
-                                <FiCheck className="w-3 h-3" />
-                                Sim
-                              </>
+                              <><FiCheck className="w-3 h-3" />Sim</>
                             ) : (
-                              <>
-                                <FiX className="w-3 h-3" />
-                                Não
-                              </>
+                              <><FiX className="w-3 h-3" />Não</>
                             )}
                           </span>
                         </div>
@@ -172,7 +168,7 @@ export function SortableTable<T>({
                   )}
                 </td>
               ))}
-              {(onEdit || onDelete || onSave) && (
+              {(onEdit || onDelete || onSave || actions) && (
                 <td className="px-4 py-2 text-xs text-gray-900">
                   <div className="flex gap-2">
                     {onEdit && editingId !== (item as any).codigo_ficha && (
@@ -263,6 +259,11 @@ export function SortableTable<T>({
                         </svg>
                       </button>
                     )}
+                    {actions && (
+                      <td className="px-4 py-2">
+                        {actions(item)}
+                      </td>
+                    )}
                   </div>
                 </td>
               )}
@@ -271,7 +272,7 @@ export function SortableTable<T>({
           {sortedData.length === 0 && (
             <tr>
               <td 
-                colSpan={columns.length + ((onEdit || onDelete || onSave) ? 1 : 0)} 
+                colSpan={columns.length + ((onEdit || onDelete || onSave || actions) ? 1 : 0)} 
                 className="px-4 py-2 text-center text-xs text-gray-500"
               >
                 Nenhum registro encontrado

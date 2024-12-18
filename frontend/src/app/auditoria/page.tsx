@@ -276,16 +276,24 @@ export default function AuditoriaPage() {
         d.id === id ? { ...d, status: 'Resolvido' } : d
       ));
 
-      // Atualiza o contador de divergências se necessário
-      if (resultadoAuditoria) {
-        setResultadoAuditoria({
-          ...resultadoAuditoria,
-          divergencias_encontradas: resultadoAuditoria.divergencias_encontradas - 1
-        });
-      }
+      // Mostra mensagem de sucesso
+      toast({
+        title: "Sucesso",
+        description: "Divergência marcada como resolvida",
+      });
+
+      // Busca os dados atualizados
+      await buscarDivergencias();
+
     } catch (error) {
       console.error('Erro ao marcar como resolvido:', error);
       setError(error instanceof Error ? error.message : 'Erro ao atualizar status da divergência');
+
+      toast({
+        title: "Erro",
+        description: "Erro ao marcar divergência como resolvida",
+        variant: "destructive",
+      });
     }
   };
 
