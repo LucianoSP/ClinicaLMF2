@@ -63,8 +63,8 @@ export default function StoragePage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/clear-storage`, {
-        method: 'POST',
+      const response = await fetch(`${API_URL}/storage-files/`, {
+        method: 'DELETE',
       });
 
       if (!response.ok) {
@@ -75,6 +75,9 @@ export default function StoragePage() {
         title: "Sucesso",
         description: "Storage limpo com sucesso",
       });
+
+      // Refresh the page to show the updated list
+      window.location.reload();
     } catch (error) {
       console.error('Error:', error);
       toast({
