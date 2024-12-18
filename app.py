@@ -23,6 +23,7 @@ from database_supabase import (
     buscar_ficha_presenca,
     excluir_ficha_presenca,
     listar_fichas_presenca,
+    limpar_fichas_presenca,
 )
 from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2
@@ -1038,6 +1039,24 @@ async def limpar_divergencias():
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500, detail=f"Erro ao limpar divergências: {str(e)}"
+        )
+
+
+@app.post("/fichas_presenca/limpar")
+async def clear_fichas_presenca():
+    """Limpa todos os registros da tabela fichas_presenca"""
+    try:
+        success = limpar_fichas_presenca()
+        if success:
+            return {"success": True, "message": "Registros limpos com sucesso"}
+        else:
+            raise HTTPException(
+                status_code=500, detail="Erro ao limpar registros"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao limpar registros: {str(e)}"
         )
 
 

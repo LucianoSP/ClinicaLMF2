@@ -36,6 +36,7 @@ export default function FichasPresenca() {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const [selectedFicha, setSelectedFicha] = useState<FichaPresenca | null>(null);
   const [editedFicha, setEditedFicha] = useState<Partial<FichaPresenca>>({});
   const { toast } = useToast();
@@ -187,6 +188,32 @@ export default function FichasPresenca() {
     }
   };
 
+  const handleClear = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas_presenca/limpar`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso",
+          description: "Todas as fichas foram excluídas com sucesso",
+        });
+        fetchFichas();
+        setShowClearDialog(false);
+      } else {
+        const data = await response.json();
+        throw new Error(data.detail || 'Falha ao limpar fichas');
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao limpar as fichas",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleClearTable = () => {
     setFichas([]);
   };
@@ -258,10 +285,17 @@ export default function FichasPresenca() {
           <button
             onClick={handleExportExcel}
             disabled={fichas.length === 0}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+            className="flex items-center space-x-1 px-3 py-2 bg-[#C5A880] text-white rounded-lg hover:bg-[#b49d6b] transition-colors disabled:opacity-50"
           >
             <FiDownload className="w-4 h-4" />
             Exportar Excel
+          </button>
+          <button
+            onClick={() => setShowClearDialog(true)}
+            className="flex items-center space-x-1 px-3 py-2 bg-[#C5A880] text-white rounded-lg hover:bg-[#b49d6b] transition-colors"
+          >
+            <FiTrash2 className="w-4 h-4" />
+            <span>Limpar Fichas</span>
           </button>
         </div>
       </div>
@@ -437,6 +471,33 @@ export default function FichasPresenca() {
             </Button>
             <Button onClick={handleSave}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear Dialog */}
+      <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>Limpar Fichas de Presença</DialogTitle>
+            <DialogDescription className="text-gray-700">
+              Tem certeza que deseja excluir todas as fichas de presença? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowClearDialog(false)}
+              className="bg-white hover:bg-gray-100"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleClear}
+              className="bg-[#C5A880] text-white hover:bg-[#b49d6b]"
+            >
+              Limpar
             </Button>
           </DialogFooter>
         </DialogContent>

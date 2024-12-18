@@ -787,3 +787,17 @@ def limpar_divergencias_db() -> bool:
     except Exception as e:
         print(f"Erro ao limpar divergências no Supabase: {e}")
         return False
+
+
+def limpar_fichas_presenca() -> bool:
+    """Limpa a tabela de fichas_presenca"""
+    try:
+        # Deleta todos os registros
+        supabase.table("fichas_presenca").delete().gt(
+            "id", "00000000-0000-0000-0000-000000000000"
+        ).execute()
+        print("Tabela fichas_presenca limpa com sucesso!")
+        return True
+    except Exception as e:
+        print(f"Erro ao limpar tabela fichas_presenca: {e}")
+        return False
