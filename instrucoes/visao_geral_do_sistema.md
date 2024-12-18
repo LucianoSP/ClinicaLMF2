@@ -39,7 +39,7 @@ CREATE TABLE fichas_presenca (
     paciente_carteirinha TEXT,
     paciente_nome TEXT,
     numero_guia TEXT,
-    codigo_ficha TEXT,
+    codigo_ficha TEXT UNIQUE,
     possui_assinatura BOOLEAN,
     arquivo_digitalizado TEXT
 );
@@ -47,10 +47,11 @@ CREATE TABLE fichas_presenca (
 - Armazena as fichas físicas digitalizadas
 - Registra informações da ficha de presença
 - Controla presença de assinaturas
+- `codigo_ficha`: Identificador único da ficha de presença
 
-#### `execucoes_unimed` (Execuções no Sistema Unimed)
+#### `execucoes` (Execuções no Sistema Unimed)
 ```sql
-CREATE TABLE execucoes_unimed (
+CREATE TABLE execucoes (
     id UUID PRIMARY KEY,
     numero_guia TEXT,
     paciente_nome TEXT,
@@ -58,12 +59,14 @@ CREATE TABLE execucoes_unimed (
     paciente_carteirinha TEXT,
     paciente_id TEXT,
     quantidade_sessoes INTEGER,
-    usuario_executante UUID
+    usuario_executante UUID,
+    codigo_ficha TEXT REFERENCES fichas_presenca(codigo_ficha)
 );
 ```
 - Registra execuções feitas no sistema da Unimed
 - `paciente_carteirinha`: Número da carteira do plano de saúde do paciente
 - `paciente_id`: Identificador do paciente no sistema (texto)
+- `codigo_ficha`: Chave estrangeira que relaciona a execução com uma ficha de presença
 - Controla quantidade de sessões executadas
 - Rastreia usuário responsável pela execução
 
@@ -84,6 +87,247 @@ CREATE TABLE divergencias (
 - Registra divergências identificadas
 - Controla status de resolução
 - Mantém histórico de resoluções
+
+#### `planos_saude` (Planos de Saúde)
+```sql
+CREATE TABLE planos_saude (
+    id UUID PRIMARY KEY,
+    nome TEXT NOT NULL,
+    codigo TEXT,
+    ativo BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+- Armazena informações sobre os planos de saúde
+- Controla status de ativação do plano
+- Rastreia datas de criação e atualização
+
+#### `carteirinhas` (Carteirinhas dos Pacientes)
+```sql
+CREATE TABLE carteirinhas (
+    id UUID PRIMARY KEY,
+    paciente_id UUID REFERENCES fichas_presenca(paciente_id),
+    plano_saude_id UUID REFERENCES planos_saude(id),
+    numero_carteirinha TEXT NOT NULL,
+    data_validade DATE,
+    ativo BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(paciente_id, plano_saude_id, numero_carteirinha)
+);
+```
+- Vincula pacientes a planos de saúde
+- Armazena números de carteirinha únicos por paciente/plano
+- Controla validade das carteirinhas
+- Permite múltiplas carteirinhas por paciente
+- Mantém histórico de datas de criação e atualização
+
+## 5. Diagrama do Banco de Dados
+
+```mermaid
+erDiagram
+    PACIENTES ||--o{ CARTEIRINHAS : "possui"
+    PLANOS_SAUDE ||--o{ CARTEIRINHAS : "emite"
+    CARTEIRINHAS ||--o{ FICHAS_PRESENCA : "utilizada em"
+    CARTEIRINHAS ||--o{ EXECUCOES : "utilizada em"
+    USUARIOS ||--o{ EXECUCOES : "registra"
+    USUARIOS ||--o{ DIVERGENCIAS : "resolve"
+    FICHAS_PRESENCA ||--o{ DIVERGENCIAS : "gera"
+    EXECUCOES ||--o{ DIVERGENCIAS : "gera"
+    PACIENTES ||--o{ AGENDAMENTOS : "possui"
+
+    PACIENTES {
+        uuid id PK
+        string nome
+        string cpf UK
+        integer mysql_id
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    PLANOS_SAUDE {
+        uuid id PK
+        string nome
+        string codigo
+        boolean ativo
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CARTEIRINHAS {
+        uuid id PK
+        uuid paciente_id FK
+        uuid plano_id FK
+        string numero UK
+        date data_inicio
+        date data_fim
+        boolean ativa
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    FICHAS_PRESENCA {
+        uuid id PK
+        date data_atendimento
+        uuid carteirinha_id FK
+        string numero_guia
+        string codigo_ficha
+        boolean possui_assinatura
+        string arquivo_digitalizado
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    EXECUCOES {
+        uuid id PK
+        string numero_guia
+        uuid carteirinha_id FK
+        date data_execucao
+        integer quantidade_sessoes
+        uuid usuario_executante FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    DIVERGENCIAS {
+        uuid id PK
+        string numero_guia
+        date data_execucao
+        string codigo_ficha
+        string tipo_divergencia
+        string descricao
+        enum status
+        timestamp data_identificacao
+        timestamp data_resolucao
+        uuid resolvido_por FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    USUARIOS {
+        uuid id PK
+        uuid auth_user_id FK
+        string nome
+        string email UK
+        boolean ativo
+        timestamp ultimo_acesso
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AGENDAMENTOS {
+        uuid id PK
+        integer mysql_id
+        uuid paciente_id FK
+        timestamp data_inicio
+        timestamp data_fim
+        integer pagamento_id
+        integer sala_id
+        integer qtd_sessoes
+        string status
+        decimal valor_sala
+        boolean fixo
+        integer especialidade_id
+        integer local_id
+        integer saldo_sessoes
+        string elegibilidade
+        boolean falta_profissional
+        integer agendamento_pai_id
+        string codigo_faturamento
+        timestamp data_registro
+        timestamp ultima_atualizacao
+        timestamp created_at
+        timestamp updated_at
+    }
+```
+
+### 5.1 Análise das Tabelas e Relações
+
+#### Tabela PACIENTES
+- **Objetivo**: Centralizar informações dos pacientes
+- **Campos Essenciais**: id, nome, cpf
+- **Campos para Integração**: mysql_id (para sincronização)
+- **Relações**: 
+  - Um paciente pode ter várias carteirinhas
+  - Um paciente pode ter vários agendamentos
+
+#### Tabela PLANOS_SAUDE
+- **Objetivo**: Cadastro de convênios aceitos
+- **Campos Essenciais**: id, nome, codigo, ativo
+- **Relações**: Um plano pode emitir várias carteirinhas
+
+#### Tabela CARTEIRINHAS
+- **Objetivo**: Vincular pacientes a planos de saúde
+- **Campos Essenciais**: id, paciente_id, plano_id, numero, data_inicio, data_fim, ativa
+- **Relações**: 
+  - Pertence a um paciente
+  - Pertence a um plano
+  - Usada em fichas e execuções
+
+#### Tabela FICHAS_PRESENCA
+- **Objetivo**: Registrar atendimentos físicos
+- **Campos Essenciais**: id, data_atendimento, carteirinha_id, numero_guia, possui_assinatura, arquivo_digitalizado
+- **Relações**: 
+  - Vinculada a uma carteirinha
+  - Pode gerar divergências
+
+#### Tabela EXECUCOES
+- **Objetivo**: Registrar execuções no sistema Unimed
+- **Campos Essenciais**: id, numero_guia, carteirinha_id, data_execucao, quantidade_sessoes, usuario_executante, codigo_ficha
+- **Relações**: 
+  - Vinculada a uma carteirinha
+  - Registrada por um usuário
+  - Pode gerar divergências
+
+#### Tabela DIVERGENCIAS
+- **Objetivo**: Controlar inconsistências entre fichas e execuções
+- **Campos Essenciais**: id, numero_guia, data_execucao, tipo_divergencia, status, resolvido_por
+- **Relações**: 
+  - Gerada por fichas ou execuções
+  - Resolvida por um usuário
+
+#### Tabela USUARIOS
+- **Objetivo**: Gerenciar usuários do sistema
+- **Campos Essenciais**: id, auth_user_id, nome, email, ativo
+- **Relações**: 
+  - Registra execuções
+  - Resolve divergências
+
+#### Tabela AGENDAMENTOS
+- **Objetivo**: Sincronizar agendamentos do sistema externo
+- **Campos Essenciais**: id, mysql_id, paciente_id, data_inicio, data_fim, status, qtd_sessoes
+- **Campos Opcionais**: (podem ser removidos se não utilizados)
+  - pagamento_id
+  - sala_id
+  - valor_sala
+  - especialidade_id
+  - local_id
+- **Relações**: 
+  - Pertence a um paciente
+  - Pode ser usado para validação cruzada com fichas/execuções
+
+### 5.2 Sugestões de Otimização
+
+1. **Campos de Auditoria**:
+   - Manter created_at e updated_at em todas as tabelas
+   - Adicionar campos de usuário responsável onde relevante
+
+2. **Campos de Integração**:
+   - Manter mysql_id apenas nas tabelas que precisam sincronizar (PACIENTES, AGENDAMENTOS)
+   - Remover campos legados não utilizados
+
+3. **Índices Adicionais**:
+   - Criar índices compostos para buscas frequentes
+   - Exemplo: (data_atendimento, numero_guia) em FICHAS_PRESENCA
+
+4. **Validações**:
+   - Adicionar constraints para garantir integridade
+   - Exemplo: data_fim >= data_inicio em CARTEIRINHAS
+
+5. **Campos Calculados**:
+   - Considerar views materializadas para relatórios frequentes
+   - Exemplo: total de divergências por tipo/status
 
 ## 4. Funcionalidades do Sistema
 
@@ -150,7 +394,7 @@ FROM divergencias d
 LEFT JOIN fichas_presenca f 
     ON d.numero_guia = f.numero_guia 
     AND d.data_execucao = f.data_atendimento
-LEFT JOIN execucoes_unimed e 
+LEFT JOIN execucoes e 
     ON d.numero_guia = e.numero_guia 
     AND d.data_execucao = e.data_execucao
 WHERE d.status = 'pendente';
@@ -164,7 +408,7 @@ SELECT
     COUNT(DISTINCT e.numero_guia) as total_guias,
     SUM(e.quantidade_sessoes) as total_sessoes,
     COUNT(DISTINCT d.id) as total_divergencias
-FROM execucoes_unimed e
+FROM execucoes e
 LEFT JOIN divergencias d 
     ON e.numero_guia = d.numero_guia 
     AND e.data_execucao = d.data_execucao
@@ -239,16 +483,15 @@ $$ LANGUAGE plpgsql;
 - Otimização de consultas
 - Cache distribuído
 
-
 ## 11. Schema de Dados
 erDiagram
     PACIENTES ||--o{ FICHAS_PRESENCA : "tem fichas"
-    PACIENTES ||--o{ EXECUCOES_UNIMED : "tem execucoes"
-    USUARIOS ||--o{ EXECUCOES_UNIMED : "registra"
+    PACIENTES ||--o{ EXECUCOES : "tem execucoes"
+    USUARIOS ||--o{ EXECUCOES : "registra"
     USUARIOS ||--o{ DIVERGENCIAS : "resolve"
 
     FICHAS_PRESENCA ||--o{ DIVERGENCIAS : "gera"
-    EXECUCOES_UNIMED ||--o{ DIVERGENCIAS : "gera"
+    EXECUCOES ||--o{ DIVERGENCIAS : "gera"
 
     PACIENTES {
         uuid id PK
@@ -271,7 +514,7 @@ erDiagram
         timestamp updated_at
     }
 
-    EXECUCOES_UNIMED {
+    EXECUCOES {
         uuid id PK
         string numero_guia
         string paciente_nome
@@ -298,6 +541,27 @@ erDiagram
         timestamp updated_at
     }
 
+    PLANOS_SAUDE {
+        uuid id PK
+        string nome
+        string codigo
+        boolean ativo
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CARTEIRINHAS {
+        uuid id PK
+        uuid paciente_id FK
+        uuid plano_saude_id FK
+        string numero_carteirinha
+        date data_validade
+        boolean ativo
+        timestamp created_at
+        timestamp updated_at
+        UNIQUE(paciente_id, plano_saude_id, numero_carteirinha)
+    }
+
     USUARIOS {
         uuid id PK
         uuid auth_user_id FK
@@ -305,6 +569,31 @@ erDiagram
         string email UK
         boolean ativo
         timestamp ultimo_acesso
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AGENDAMENTOS {
+        uuid id PK
+        integer mysql_id
+        uuid paciente_id FK
+        timestamp data_inicio
+        timestamp data_fim
+        integer pagamento_id
+        integer sala_id
+        integer qtd_sessoes
+        string status
+        decimal valor_sala
+        boolean fixo
+        integer especialidade_id
+        integer local_id
+        integer saldo_sessoes
+        string elegibilidade
+        boolean falta_profissional
+        integer agendamento_pai_id
+        string codigo_faturamento
+        timestamp data_registro
+        timestamp ultima_atualizacao
         timestamp created_at
         timestamp updated_at
     }
@@ -322,14 +611,14 @@ Relacionamento através da carteirinha do paciente
 Cardinalidade: 1:N (um para muitos)
 
 
-PACIENTES → EXECUCOES_UNIMED
+PACIENTES → EXECUCOES
 
 Um paciente pode ter várias execuções no sistema Unimed
 Relacionamento através da carteirinha do paciente
 Cardinalidade: 1:N (um para muitos)
 
 
-USUARIOS → EXECUCOES_UNIMED
+USUARIOS → EXECUCOES
 
 Um usuário pode registrar várias execuções
 Relacionamento através do id do usuário executante
@@ -343,13 +632,23 @@ Relacionamento através do id do resolvedor
 Cardinalidade: 1:N (um para muitos)
 
 
-FICHAS_PRESENCA/EXECUCOES_UNIMED → DIVERGENCIAS
+FICHAS_PRESENCA/EXECUCOES → DIVERGENCIAS
 
 Tanto fichas quanto execuções podem gerar divergências
 Relacionamento através do número da guia e data
 Cardinalidade: 1:N (um para muitos)
 
+PACIENTES → CARTEIRINHAS
 
+Um paciente pode ter várias carteirinhas
+Relacionamento através do id do paciente
+Cardinalidade: 1:N (um para muitos)
+
+CARTEIRINHAS → PLANOS_SAUDE
+
+Uma carteirinha está vinculada a um plano de saúde
+Relacionamento através do id do plano de saúde
+Cardinalidade: N:1 (muitos para um)
 
 Detalhes importantes:
 

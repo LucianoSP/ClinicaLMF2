@@ -21,7 +21,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                     "paciente_carteirinha": str(registro["paciente_carteirinha"]),
                     "paciente_id": str(registro["paciente_id"]),
                     "quantidade_sessoes": 1,  # Valor padrão
-                    # Removido usuario_executante pois será NULL por padrão
+                    "codigo_ficha": None,  # Novo campo adicionado
                 }
             )
 
