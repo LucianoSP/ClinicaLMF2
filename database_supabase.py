@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 from datetime import datetime
 from config import supabase
+from math import ceil
 import os
 import traceback
 import uuid
@@ -89,7 +90,7 @@ def listar_dados_excel(
 
 
 def limpar_protocolos_excel() -> bool:
-    """Limpa a tabela de execucoes"""
+    """Limpa a tabela de execucoes."""
     try:
         # Deleta todos os registros usando uma condição que sempre é verdadeira
         # Usamos gt.00000000-0000-0000-0000-000000000000 para pegar todos os UUIDs válidos
@@ -304,42 +305,57 @@ def registrar_divergencia(
 
 
 def listar_divergencias(
-    data_inicio: Optional[str] = None, data_fim: Optional[str] = None, status: Optional[str] = None
+    data_inicio: Optional[str] = None,
+    data_fim: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 10,
+    offset: int = 0,
 ) -> Dict:
     """
-    Lista as divergências encontradas na auditoria, com filtros opcionais por data e status
+    Lista as divergências encontradas na auditoria, com filtros opcionais por data e status,
+    e suporte a paginação
     """
     try:
-        query = supabase.table('divergencias').select('*')
-        
+        query = supabase.table("divergencias").select("*")
+
         if data_inicio:
-            query = query.gte('data_divergencia', data_inicio)
+            query = query.gte("created_at", data_inicio)
         if data_fim:
-            query = query.lte('data_divergencia', data_fim)
+            query = query.lte("created_at", data_fim)
         if status:
-            query = query.eq('status', status)
-            
-        query = query.order('data_divergencia', desc=True)
+            query = query.eq("status", status)
+
+        # Get total count first
+        count_response = query.execute()
+        total = len(count_response.data)
+
+        # Then get paginated results
+        query = query.order("created_at", desc=True)
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
         response = query.execute()
-        
+
         # Formata os resultados para o formato esperado pelo frontend
         divergencias = []
         for div in response.data:
-            divergencias.append({
-                "id": div["id"],
-                "guia_id": div["numero_guia"],
-                "data_execucao": div["data_execucao"],
-                "codigo_ficha": div["codigo_ficha"],
-                "descricao_divergencia": div["descricao"],
-                "paciente_nome": div["paciente_nome"],
-                "status": div["status"],
-                "data_registro": div["created_at"],
-            })
-        
+            divergencias.append(
+                {
+                    "id": div["id"],
+                    "guia_id": div["numero_guia"],
+                    "data_execucao": div["data_execucao"],
+                    "codigo_ficha": div["codigo_ficha"],
+                    "descricao_divergencia": div["descricao"],
+                    "paciente_nome": div["paciente_nome"],
+                    "status": div["status"],
+                    "data_registro": div["created_at"],
+                }
+            )
+
         return {
             "divergencias": divergencias,
-            "total": len(divergencias),
-            "paginas": 1
+            "total": total,
+            "paginas": ceil(total / limit) if limit > 0 else 1,
         }
     except Exception as e:
         print(f"Erro ao listar divergências: {str(e)}")
@@ -868,7 +884,13 @@ def obter_ultima_auditoria():
     Obtém a última execução de auditoria registrada no banco de dados.
     """
     try:
-        response = supabase.table('auditoria_execucoes').select('*').order('data_execucao', desc=True).limit(1).execute()
+        response = (
+            supabase.table("auditoria_execucoes")
+            .select("*")
+            .order("data_execucao", desc=True)
+            .limit(1)
+            .execute()
+        )
         if response.data and len(response.data) > 0:
             return response.data[0]
         return None

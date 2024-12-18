@@ -86,6 +86,8 @@ export default function AuditoriaPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('per_page', '10');
       if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
       if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
 

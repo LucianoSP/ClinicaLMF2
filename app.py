@@ -640,21 +640,27 @@ async def clear_excel_data():
         )
 
 
-@app.get("/auditoria/divergencias/")
+@app.get("/auditoria/divergencias")
 async def get_divergencias(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-    status: str = Query(None, description="Filtro por status (Pendente/Resolvido)"),
+    data_inicio: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
+    data_fim: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
+    status: Optional[str] = Query(None, description="Status da divergência"),
 ):
-    """Lista as divergências encontradas na auditoria"""
+    """Lista as divergências encontradas na auditoria com suporte a paginação e filtros"""
     try:
-        print(
-            f"Buscando divergências - página: {page}, por página: {per_page}, status: {status}"
+        logger.info(
+            f"Buscando divergências - página: {page}, por página: {per_page}, "
+            f"data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
         )
         resultado = listar_divergencias(
-            limit=per_page, offset=(page - 1) * per_page, status=status
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            status=status,
+            limit=per_page,
+            offset=(page - 1) * per_page,
         )
-        print(f"Resultado obtido: {resultado}")
         if resultado is None:
             raise HTTPException(status_code=500, detail="Erro ao buscar divergências")
         return {
@@ -664,17 +670,19 @@ async def get_divergencias(
             "paginas": resultado["paginas"],
         }
     except Exception as e:
-        print(f"Erro ao buscar divergências: {e}")
+        logger.error(f"Erro ao buscar divergências: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/auditoria/iniciar")
 async def iniciar_auditoria(
     data_inicio: Optional[str] = Query(None, description="Data inicial (DD/MM/YYYY)"),
-    data_fim: Optional[str] = Query(None, description="Data final (DD/MM/YYYY)")
+    data_fim: Optional[str] = Query(None, description="Data final (DD/MM/YYYY)"),
 ):
     try:
-        logger.info(f"Iniciando auditoria com data_inicial={data_inicio}, data_final={data_fim}")
+        logger.info(
+            f"Iniciando auditoria com data_inicial={data_inicio}, data_final={data_fim}"
+        )
         realizar_auditoria_fichas_execucoes(data_inicio, data_fim)
         ultima_auditoria = obter_ultima_auditoria()
         return {"message": "Auditoria realizada com sucesso", "data": ultima_auditoria}
@@ -994,10 +1002,12 @@ async def excluir_ficha(ficha_id: str):
 async def buscar_divergencias(
     data_inicio: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
-    status: Optional[str] = Query(None, description="Status da divergência")
+    status: Optional[str] = Query(None, description="Status da divergência"),
 ):
     try:
-        logger.info(f"Buscando divergências - data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}")
+        logger.info(
+            f"Buscando divergências - data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
+        )
         resultado = listar_divergencias(data_inicio, data_fim, status)
         return resultado
     except Exception as e:
