@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/useDebounce';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
+import { CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon, DocumentIcon } from '@heroicons/react/24/outline';
 
 interface FichaPresenca {
   id: string;
@@ -57,10 +58,7 @@ export default function FichasPresenca() {
       const data = await response.json();
 
       if (response.ok) {
-        setFichas(data.fichas.map((ficha: FichaPresenca) => ({
-          ...ficha,
-          data_atendimento: format(new Date(ficha.data_atendimento), 'dd/MM/yyyy', { locale: ptBR })
-        })));
+        setFichas(data.fichas);
         setTotalPages(data.paginas);
         setTotalRecords(data.total);
       } else {
@@ -72,6 +70,9 @@ export default function FichasPresenca() {
         description: "Falha ao carregar as fichas de presença",
         variant: "destructive",
       });
+      setFichas([]);
+      setTotalPages(1);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -221,7 +222,7 @@ export default function FichasPresenca() {
   const handleExportExcel = () => {
     // Create a new workbook
     const wb = XLSX.utils.book_new();
-    
+
     // Convert the data to the format we want to export
     const exportData = fichas.map(ficha => ({
       'Data': format(new Date(ficha.data_atendimento), 'dd/MM/yyyy'),
@@ -234,10 +235,10 @@ export default function FichasPresenca() {
 
     // Create worksheet
     const ws = XLSX.utils.json_to_sheet(exportData);
-    
+
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Fichas de Presença');
-    
+
     // Generate Excel file and trigger download
     XLSX.writeFile(wb, `fichas_presenca_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
   };
@@ -248,8 +249,8 @@ export default function FichasPresenca() {
 
   const columns: Column<FichaPresenca>[] = [
     { key: 'data_atendimento', label: 'Data' },
-    { key: 'paciente_nome', label: 'Paciente' },
     { key: 'paciente_carteirinha', label: 'Carteirinha' },
+    { key: 'paciente_nome', label: 'Paciente' },
     { key: 'numero_guia', label: 'Guia' },
     { key: 'codigo_ficha', label: 'Código Ficha' },
     { key: 'possui_assinatura', label: 'Assinatura', type: 'boolean' },
@@ -330,15 +331,6 @@ export default function FichasPresenca() {
           <SortableTable
             data={fichas}
             columns={columns}
-            onEdit={(ficha) => {
-              setSelectedFicha(ficha);
-              setEditedFicha(ficha);
-              setShowEditDialog(true);
-            }}
-            onDelete={(ficha) => {
-              setSelectedFicha(ficha);
-              setShowDeleteDialog(true);
-            }}
           />
 
           <div className="flex justify-between items-center mt-4">

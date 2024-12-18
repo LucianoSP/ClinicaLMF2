@@ -211,6 +211,41 @@ CREATE TABLE agendamentos (
 - Mantém informações sobre sessões e status
 - Permite controle de faltas e faturamento
 
+#### `auditoria_execucoes` (Metadados de Execuções de Auditoria)
+```sql
+CREATE TABLE auditoria_execucoes (
+    id uuid PRIMARY KEY,
+    data_execucao timestamp with time zone,
+    data_inicial date,
+    data_final date,
+    total_protocolos integer,
+    total_divergencias integer,
+    divergencias_por_tipo jsonb,
+    created_by uuid REFERENCES usuarios(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+```
+- Armazena metadados de cada execução de auditoria
+- Registra totais e tipos de divergências encontradas
+- Mantém histórico de quem executou a auditoria
+
+## 4. Interface do Usuário
+
+### 4.1 Página de Auditoria
+
+A página de auditoria apresenta um dashboard com cards informativos mostrando:
+- Total de protocolos analisados
+- Total de divergências encontradas
+- Data da última verificação
+- Período analisado (data inicial e final)
+
+Além disso, a página permite:
+- Filtrar divergências por período
+- Visualizar detalhes de cada divergência
+- Marcar divergências como resolvidas
+- Adicionar observações às resoluções
+
 ## 5. Diagrama do Banco de Dados
 
 ```mermaid
@@ -352,6 +387,19 @@ erDiagram
         timestamp created_at
         timestamp updated_at
     }
+
+    AUDITORIA_EXECUCOES {
+        uuid id PK
+        timestamp data_execucao
+        date data_inicial
+        date data_final
+        integer total_protocolos
+        integer total_divergencias
+        jsonb divergencias_por_tipo
+        uuid created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
 ```
 
 ### 5.1 Análise das Tabelas e Relações
@@ -438,6 +486,14 @@ erDiagram
 - **Campos Adicionais**: elegibilidade, falta_profissional, parent_id, agendamento_pai_id, codigo_faturamento
 - **Campos de Auditoria**: created_at, updated_at, data_registro, ultima_atualizacao
 - **Relações**: Pertence a um paciente
+
+#### Tabela AUDITORIA_EXECUCOES
+- **Objetivo**: Armazenar metadados de execuções de auditoria
+- **Campos Essenciais**: id, data_execucao, data_inicial, data_final, total_protocolos, total_divergencias
+- **Campos de Controle**: divergencias_por_tipo, created_by
+- **Campos de Auditoria**: created_at, updated_at
+- **Relações**: 
+  - Executada por um usuário
 
 ### Tipos de Guia
 

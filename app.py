@@ -24,6 +24,11 @@ from database_supabase import (
     excluir_ficha_presenca,
     listar_fichas_presenca,
     limpar_fichas_presenca,
+    obter_ultima_auditoria,
+    excluir_ficha_presenca,
+    listar_fichas_presenca,
+    limpar_fichas_presenca,
+    obter_ultima_auditoria,
 )
 from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2
@@ -665,20 +670,16 @@ async def get_divergencias(
 
 @app.post("/auditoria/iniciar")
 async def iniciar_auditoria(
-    data_inicial: str = Query(None, description="Data inicial (DD/MM/YYYY)", alias="data_inicio"),
-    data_final: str = Query(None, description="Data final (DD/MM/YYYY)", alias="data_fim"),
+    data_inicio: Optional[str] = Query(None, description="Data inicial (DD/MM/YYYY)"),
+    data_fim: Optional[str] = Query(None, description="Data final (DD/MM/YYYY)")
 ):
-    """Inicia o processo de auditoria"""
     try:
-        # Agora vamos usar a nova função de auditoria de fichas
-        resultado = realizar_auditoria_fichas_execucoes(data_inicial, data_final)
-        return {
-            "status": "success",
-            "message": "Auditoria realizada com sucesso",
-            "data": resultado,
-        }
+        logger.info(f"Iniciando auditoria com data_inicial={data_inicio}, data_final={data_fim}")
+        realizar_auditoria_fichas_execucoes(data_inicio, data_fim)
+        ultima_auditoria = obter_ultima_auditoria()
+        return {"message": "Auditoria realizada com sucesso", "data": ultima_auditoria}
     except Exception as e:
-        logging.error(f"Erro ao iniciar auditoria: {e}")
+        logger.error(f"Erro ao realizar auditoria: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -990,36 +991,29 @@ async def excluir_ficha(ficha_id: str):
 
 
 @app.get("/auditoria/divergencias")
-async def listar_divergencias_endpoint(
-    data_inicio: str = Query(None, description="Data inicial (YYYY-MM-DD)"),
-    data_fim: str = Query(None, description="Data final (YYYY-MM-DD)"),
-    limit: int = Query(100, description="Limite de registros"),
-    offset: int = Query(0, description="Offset para paginação"),
-    status: str = Query(None, description="Filtro por status"),
+async def buscar_divergencias(
+    data_inicio: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
+    data_fim: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
+    status: Optional[str] = Query(None, description="Status da divergência")
 ):
-    """Lista as divergências encontradas com suporte a paginação e filtros"""
     try:
-        logger.info(
-            f"Buscando divergências - data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
-        )
-
-        # Converte as datas para o formato correto se fornecidas
-        if data_inicio:
-            data_inicio = datetime.strptime(data_inicio, "%Y-%m-%d").strftime(
-                "%d/%m/%Y"
-            )
-        if data_fim:
-            data_fim = datetime.strptime(data_fim, "%Y-%m-%d").strftime("%d/%m/%Y")
-
-        resultado = listar_divergencias(limit=limit, offset=offset, status=status)
-
-        if resultado is None:
-            raise HTTPException(status_code=500, detail="Erro ao listar divergências")
-
+        logger.info(f"Buscando divergências - data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}")
+        resultado = listar_divergencias(data_inicio, data_fim, status)
         return resultado
-
     except Exception as e:
         logger.error(f"Erro ao listar divergências: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/auditoria/ultima")
+async def obter_ultima_auditoria_endpoint():
+    try:
+        ultima_auditoria = obter_ultima_auditoria()
+        if ultima_auditoria:
+            return {"message": "Última auditoria encontrada", "data": ultima_auditoria}
+        return {"message": "Nenhuma auditoria encontrada", "data": None}
+    except Exception as e:
+        logger.error(f"Erro ao obter última auditoria: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1068,13 +1062,10 @@ async def clear_fichas_presenca():
         if success:
             return {"success": True, "message": "Registros limpos com sucesso"}
         else:
-            raise HTTPException(
-                status_code=500, detail="Erro ao limpar registros"
-            )
+            raise HTTPException(status_code=500, detail="Erro ao limpar registros")
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao limpar registros: {str(e)}"
+            status_code=500, detail=f"Erro ao limpar registros: {str(e)}"
         )
 
 

@@ -1,4 +1,4 @@
-from database_supabase import registrar_divergencia, listar_guias, listar_dados_excel, listar_fichas_presenca, listar_execucoes
+from database_supabase import registrar_divergencia, listar_guias, listar_dados_excel, listar_fichas_presenca, listar_execucoes, registrar_execucao_auditoria
 from datetime import datetime
 from typing import Dict, List
 import logging
@@ -288,6 +288,37 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
                     descricao=f'Data da ficha ({ficha["data_atendimento"]}) diferente da execução ({execucao_correspondente["data_execucao"]})',
                     paciente_nome=ficha.get("paciente_nome", "Não informado")
                 )
+
+        # Contabiliza divergências por tipo
+        divergencias_por_tipo = {}
+        for ficha in fichas:
+            if not ficha.get("possui_assinatura", True):
+                divergencias_por_tipo["ficha_sem_assinatura"] = divergencias_por_tipo.get("ficha_sem_assinatura", 0) + 1
+
+            execucao_correspondente = next(
+                (e for e in execucoes if e["codigo_ficha"] == ficha["codigo_ficha"]),
+                None
+            )
+            if not execucao_correspondente:
+                divergencias_por_tipo["ficha_sem_execucao"] = divergencias_por_tipo.get("ficha_sem_execucao", 0) + 1
+
+        for execucao in execucoes:
+            if execucao.get("codigo_ficha"):
+                ficha_correspondente = next(
+                    (f for f in fichas if f["codigo_ficha"] == execucao["codigo_ficha"]),
+                    None
+                )
+                if not ficha_correspondente:
+                    divergencias_por_tipo["execucao_sem_ficha"] = divergencias_por_tipo.get("execucao_sem_ficha", 0) + 1
+
+        # Registra metadados da execução da auditoria
+        registrar_execucao_auditoria(
+            data_inicial=data_inicial,
+            data_final=data_final,
+            total_protocolos=total_fichas + total_execucoes,
+            total_divergencias=divergencias_encontradas,
+            divergencias_por_tipo=divergencias_por_tipo
+        )
 
         logging.info(f"Auditoria concluída. {divergencias_encontradas} divergências encontradas.")
         return {"status": "success", "divergencias_encontradas": divergencias_encontradas}

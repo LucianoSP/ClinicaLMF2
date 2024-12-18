@@ -37,7 +37,11 @@ interface Divergencia {
 
 interface AuditoriaResultado {
   total_protocolos: number;
-  divergencias_encontradas: number;
+  total_divergencias: number;
+  data_execucao: string;
+  data_inicial: string;
+  data_final: string;
+  divergencias_por_tipo?: Record<string, number>;
 }
 
 export default function AuditoriaPage() {
@@ -68,7 +72,9 @@ export default function AuditoriaPage() {
       return data.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric'
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       });
     } catch (error) {
       console.error('Erro ao formatar data:', error);
@@ -289,6 +295,25 @@ export default function AuditoriaPage() {
     buscarDivergencias();
   }, [page, sortField, sortDirection]);
 
+  useEffect(() => {
+    const buscarUltimaAuditoria = async () => {
+      try {
+        const response = await fetch(`${API_URL}/auditoria/ultima`);
+        console.log('Resposta da última auditoria:', response);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Dados da última auditoria:', data);
+          if (data.data) {
+            setResultadoAuditoria(data.data);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar última auditoria:', error);
+      }
+    };
+    buscarUltimaAuditoria();
+  }, []);
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-semibold mb-6 text-[#6b342f]">Auditoria</h1>
@@ -337,17 +362,26 @@ export default function AuditoriaPage() {
         </div>
 
         {resultadoAuditoria && (
-          <div className="bg-gray-50 p-4 rounded-md mb-4">
-            <h3 className="text-lg font-medium mb-2">Resultado da Auditoria</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Total de Protocolos</p>
-                <p className="text-2xl font-semibold">{resultadoAuditoria.total_protocolos}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Divergências Encontradas</p>
-                <p className="text-2xl font-semibold">{resultadoAuditoria.divergencias_encontradas}</p>
-              </div>
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-sm font-medium text-gray-500">Total de Protocolos</h3>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">{resultadoAuditoria.total_protocolos}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-sm font-medium text-gray-500">Divergências Encontradas</h3>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">{resultadoAuditoria.total_divergencias}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-sm font-medium text-gray-500">Última Verificação</h3>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">
+                {formatarDataExibicao(resultadoAuditoria.data_execucao)}
+              </p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-sm font-medium text-gray-500">Período Analisado</h3>
+              <p className="mt-1 text-lg font-medium text-gray-900">
+                {formatarDataExibicao(resultadoAuditoria.data_inicial)} - {formatarDataExibicao(resultadoAuditoria.data_final)}
+              </p>
             </div>
           </div>
         )}
