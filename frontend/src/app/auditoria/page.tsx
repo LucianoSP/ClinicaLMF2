@@ -30,7 +30,7 @@ interface Divergencia {
   data_execucao: string;
   codigo_ficha: string;
   descricao_divergencia: string;
-  beneficiario: string | null;
+  paciente_nome: string;  // alterado de beneficiario
   status: string;
   data_registro: string;
 }
@@ -149,7 +149,7 @@ export default function AuditoriaPage() {
       if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auditoria/relatorio?${params.toString()}`);
-      
+
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -196,7 +196,7 @@ export default function AuditoriaPage() {
       }
 
       const data = await response.json();
-      
+
       // Atualiza os dados diretamente com o retorno da API
       if (data.dados) {
         setDados(data.dados.divergencias || []);
@@ -212,7 +212,7 @@ export default function AuditoriaPage() {
         description: "As divergências foram limpas com sucesso.",
         className: "bg-green-50 border-green-200 text-green-800",
       });
-      
+
     } catch (error) {
       console.error('Erro ao limpar divergências:', error);
       toast({
@@ -312,22 +312,22 @@ export default function AuditoriaPage() {
             </div>
           </div>
           <div className="flex items-end gap-2">
-            <Button 
-              onClick={limparDivergencias} 
+            <Button
+              onClick={limparDivergencias}
               disabled={limpandoDivergencias}
               className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
             >
               {limpandoDivergencias ? 'Limpando...' : 'Limpar Divergências'}
             </Button>
-            <Button 
-              onClick={iniciarAuditoria} 
+            <Button
+              onClick={iniciarAuditoria}
               disabled={executandoAuditoria}
               className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
             >
               {executandoAuditoria ? 'Executando...' : 'Iniciar Auditoria'}
             </Button>
-            <Button 
-              onClick={gerarRelatorio} 
+            <Button
+              onClick={gerarRelatorio}
               disabled={gerandoRelatorio}
               className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
             >
@@ -385,7 +385,7 @@ export default function AuditoriaPage() {
                     Data Execução {sortField === 'data_execucao' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
                   <TableHead className="px-6">Descrição</TableHead>
-                  <TableHead className="px-6">Beneficiário</TableHead>
+                  <TableHead className="px-6">Paciente</TableHead>
                   <TableHead className="cursor-pointer px-6" onClick={() => handleSort('status')}>
                     Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </TableHead>
@@ -399,12 +399,12 @@ export default function AuditoriaPage() {
                     <TableCell className="px-6">{divergencia.guia_id}</TableCell>
                     <TableCell className="px-6">{formatarDataExibicao(divergencia.data_execucao)}</TableCell>
                     <TableCell className="px-6">{divergencia.descricao_divergencia}</TableCell>
-                    <TableCell className="px-6">{divergencia.beneficiario || '-'}</TableCell>
+                    <TableCell className="px-6">{divergencia.paciente_nome || '-'}</TableCell>
                     <TableCell className="px-6">
                       <div className="flex items-center gap-1.5">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${divergencia.status === 'Resolvido'
-                            ? 'bg-[#dcfce7] text-[#15803d]'
-                            : 'bg-[#fef9c3] text-[#854d0e]'
+                          ? 'bg-[#dcfce7] text-[#15803d]'
+                          : 'bg-[#fef9c3] text-[#854d0e]'
                           }`}>
                           {divergencia.status === 'Resolvido' ? (
                             <>

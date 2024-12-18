@@ -277,6 +277,7 @@ def registrar_divergencia(
     codigo_ficha: str,
     tipo_divergencia: str,
     descricao: str,
+    paciente_nome: str = None,  # Novo parâmetro
 ) -> Optional[str]:
     """Registra uma nova divergência encontrada na auditoria"""
     try:
@@ -286,6 +287,7 @@ def registrar_divergencia(
             "codigo_ficha": codigo_ficha,
             "tipo_divergencia": tipo_divergencia,
             "descricao": descricao,
+            "paciente_nome": paciente_nome,  # Novo campo
             "status": "pendente",  # Usando o novo enum status_divergencia
         }
 
@@ -326,21 +328,23 @@ def listar_divergencias(
         response = query.execute()
         divergencias = response.data
 
-        # Formata os resultados
+        # Formata os resultados para o formato esperado pelo frontend
         resultados = []
         for div in divergencias:
             resultados.append(
                 {
                     "id": div["id"],
-                    "numero_guia": div["numero_guia"],
+                    "guia_id": div["numero_guia"],  # Renomeado para guia_id
                     "data_execucao": div["data_execucao"],
                     "codigo_ficha": div["codigo_ficha"],
-                    "tipo_divergencia": div["tipo_divergencia"],
-                    "descricao": div["descricao"],
+                    "descricao_divergencia": div[
+                        "descricao"
+                    ],  # Renomeado para descricao_divergencia
+                    "paciente_nome": div["paciente_nome"],  # Campo paciente_nome
                     "status": div["status"],
-                    "data_resolucao": div.get("data_resolucao"),
-                    "resolvido_por": div.get("resolvido_por"),
-                    "created_at": div["created_at"],
+                    "data_registro": div[
+                        "created_at"
+                    ],  # Usando created_at como data_registro
                 }
             )
 
@@ -617,25 +621,17 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
 def listar_fichas_presenca(
     limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
 ) -> Dict:
-    """Retorna todas as fichas de presença com suporte a paginação e filtro"""
+    """
+    Retorna todas as fichas de presença com suporte a paginação e filtro.
+    Se limit for 0, retorna todos os registros.
+    """
     try:
         # Inicia a query
         query = supabase.table("fichas_presenca").select("*")
 
-        # Adiciona filtro por nome se fornecido
-        if paciente_nome and isinstance(paciente_nome, str):
-            paciente_nome = paciente_nome.strip()
-            if len(paciente_nome) >= 2:
-                # Divide o termo de busca em palavras
-                palavras = paciente_nome.upper().split()
-
-                # Cria condição para cada palavra
-                for palavra in palavras:
-                    query = query.ilike("paciente_nome", f"%{palavra}%")
-
-        # Busca todos os registros para contar
-        count_response = query.execute()
-        total = len(count_response.data)
+        # Adiciona filtro se paciente_nome for fornecido
+        if paciente_nome:
+            query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
 
         # Adiciona ordenação e paginação
         query = query.order("data_atendimento", desc=True)
@@ -644,35 +640,33 @@ def listar_fichas_presenca(
 
         # Executa a query
         response = query.execute()
-        rows = response.data
+        fichas = response.data
 
-        # Processa resultados
-        fichas = []
-        for row in rows:
-            ficha = {
-                "id": row["id"],
-                "data_atendimento": row["data_atendimento"],
-                "paciente_carteirinha": row["paciente_carteirinha"],
-                "paciente_nome": row["paciente_nome"],
-                "numero_guia": row["numero_guia"],
-                "codigo_ficha": row["codigo_ficha"],
-                "possui_assinatura": bool(row["possui_assinatura"]),
-                "arquivo_digitalizado": row.get("arquivo_digitalizado"),
-                "created_at": row["created_at"],
-                "updated_at": row["updated_at"],
-            }
-            fichas.append(ficha)
+        # Formata as datas se necessário
+        for ficha in fichas:
+            if ficha.get("data_atendimento"):
+                try:
+                    data = datetime.strptime(ficha["data_atendimento"], "%Y-%m-%d")
+                    ficha["data_atendimento"] = data.strftime("%d/%m/%Y")
+                except ValueError:
+                    pass  # Mantém o formato original se não conseguir converter
 
+        # Se limit = 0, retorna todas as fichas
+        if limit == 0:
+            return fichas
+
+        # Se limit > 0, retorna com paginação
+        total = len(supabase.table("fichas_presenca").select("id").execute().data)
         return {
             "fichas": fichas,
             "total": total,
-            "paginas": (total + limit - 1) // limit if limit > 0 else 1,
+            "total_pages": (total + limit - 1) // limit,
         }
 
     except Exception as e:
-        print(f"Erro ao listar fichas: {e}")
+        print(f"Erro ao listar fichas de presença: {e}")
         traceback.print_exc()
-        return {"fichas": [], "total": 0, "paginas": 1}
+        return [] if limit == 0 else {"fichas": [], "total": 0, "total_pages": 1}
 
 
 def buscar_ficha_presenca(
@@ -801,3 +795,54 @@ def limpar_fichas_presenca() -> bool:
     except Exception as e:
         print(f"Erro ao limpar tabela fichas_presenca: {e}")
         return False
+
+
+def listar_execucoes(
+    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
+) -> Dict:
+    """
+    Retorna todas as execuções com suporte a paginação e filtro.
+    Se limit for 0, retorna todos os registros.
+    """
+    try:
+        # Inicia a query
+        query = supabase.table("execucoes").select("*")
+
+        # Adiciona filtro se paciente_nome for fornecido
+        if paciente_nome:
+            query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
+
+        # Adiciona ordenação e paginação
+        query = query.order("data_execucao", desc=True)
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
+        # Executa a query
+        response = query.execute()
+        execucoes = response.data
+
+        # Formata as datas se necessário
+        for execucao in execucoes:
+            if execucao.get("data_execucao"):
+                try:
+                    data = datetime.strptime(execucao["data_execucao"], "%Y-%m-%d")
+                    execucao["data_execucao"] = data.strftime("%d/%m/%Y")
+                except ValueError:
+                    pass  # Mantém o formato original se não conseguir converter
+
+        # Se limit > 0, retorna com paginação
+        if limit > 0:
+            total = len(supabase.table("execucoes").select("id").execute().data)
+            return {
+                "execucoes": execucoes,
+                "total": total,
+                "total_pages": (total + limit - 1) // limit,
+            }
+
+        # Se limit = 0, retorna todas as execuções
+        return execucoes
+
+    except Exception as e:
+        print(f"Erro ao listar execuções: {e}")
+        traceback.print_exc()
+        return [] if limit == 0 else {"execucoes": [], "total": 0, "total_pages": 1}

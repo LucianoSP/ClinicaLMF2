@@ -125,7 +125,6 @@ CREATE TABLE fichas_presenca (
 ```sql
 CREATE TABLE execucoes (
     id uuid PRIMARY KEY,
-    guia_id uuid,
     numero_guia text,
     paciente_nome text,
     data_execucao date,
@@ -139,7 +138,7 @@ CREATE TABLE execucoes (
 );
 ```
 - Registra execuções feitas no sistema
-- Vincula com guias e fichas de presença
+- Relaciona com guias através do numero_guia
 - Controla quantidade de sessões executadas
 
 #### `divergencias` (Inconsistências Encontradas)
@@ -289,7 +288,6 @@ erDiagram
 
     EXECUCOES {
         uuid id PK
-        uuid guia_id FK
         string numero_guia
         string paciente_nome
         date data_execucao
@@ -393,12 +391,12 @@ erDiagram
 
 #### Tabela EXECUCOES
 - **Objetivo**: Registrar execuções no sistema
-- **Campos Essenciais**: id, guia_id, numero_guia, data_execucao, quantidade_sessoes
+- **Campos Essenciais**: id, numero_guia, data_execucao, quantidade_sessoes
 - **Campos de Identificação**: paciente_nome, paciente_carteirinha, paciente_id
 - **Campos de Controle**: usuario_executante, codigo_ficha
 - **Campos de Auditoria**: created_at, updated_at
 - **Relações**: 
-  - Vinculada a uma guia
+  - Relacionada com guia através do numero_guia
   - Registrada por um usuário
   - Pode referenciar uma ficha de presença
 
@@ -439,4 +437,18 @@ erDiagram
 - **Campos de Controle**: valor_sala, fixo, especialidade_id, local_id, saldo_sessoes
 - **Campos Adicionais**: elegibilidade, falta_profissional, parent_id, agendamento_pai_id, codigo_faturamento
 - **Campos de Auditoria**: created_at, updated_at, data_registro, ultima_atualizacao
-- **Relações**: Pertence a um paciente{{ ... }}
+- **Relações**: Pertence a um paciente
+
+### Tipos de Guia
+
+As guias podem ser dos seguintes tipos:
+- `sp_sadt`: Guia de Serviço Profissional / Serviço Auxiliar de Diagnóstico e Terapia (SP/SADT), usada para procedimentos e terapias
+- `consulta`: Guia de consulta, usada para avaliações e consultas
+
+### Status das Guias
+
+As guias podem ter os seguintes status:
+- `pendente`: Guia criada mas ainda não iniciada
+- `em_andamento`: Guia com execuções em andamento
+- `concluida`: Guia com todas as execuções finalizadas
+- `cancelada`: Guia cancelada sem execuções ou com execuções interrompidas

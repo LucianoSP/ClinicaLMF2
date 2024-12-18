@@ -35,7 +35,7 @@ import anthropic
 from pathlib import Path
 import re
 from math import ceil
-from auditoria import realizar_auditoria
+from auditoria import realizar_auditoria, realizar_auditoria_fichas_execucoes
 import logging
 import uvicorn
 import sqlite3  # Adicionando importação do sqlite3
@@ -665,18 +665,36 @@ async def get_divergencias(
 
 @app.post("/auditoria/iniciar")
 async def iniciar_auditoria(
-    data_inicial: str = Query(None, description="Data inicial (DD/MM/YYYY)"),
-    data_final: str = Query(None, description="Data final (DD/MM/YYYY)"),
+    data_inicial: str = Query(None, description="Data inicial (DD/MM/YYYY)", alias="data_inicio"),
+    data_final: str = Query(None, description="Data final (DD/MM/YYYY)", alias="data_fim"),
 ):
     """Inicia o processo de auditoria"""
     try:
-        resultado = realizar_auditoria(data_inicial, data_final)
+        # Agora vamos usar a nova função de auditoria de fichas
+        resultado = realizar_auditoria_fichas_execucoes(data_inicial, data_final)
         return {
             "status": "success",
             "message": "Auditoria realizada com sucesso",
             "data": resultado,
         }
     except Exception as e:
+        logging.error(f"Erro ao iniciar auditoria: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/auditoria/fichas")
+async def iniciar_auditoria_fichas(
+    data_inicial: str = Query(None, description="Data inicial (DD/MM/YYYY)"),
+    data_final: str = Query(None, description="Data final (DD/MM/YYYY)"),
+):
+    """
+    Inicia o processo de auditoria cruzando fichas de presença com execuções
+    """
+    try:
+        resultado = realizar_auditoria_fichas_execucoes(data_inicial, data_final)
+        return resultado
+    except Exception as e:
+        logging.error(f"Erro ao iniciar auditoria: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
