@@ -31,6 +31,34 @@ O sistema foi desenvolvido para automatizar e controlar o processo de auditoria 
 
 ### 3.1 Tabelas Principais
 
+#### `guias` (Guias Médicas)
+```sql
+CREATE TABLE guias (
+    id UUID PRIMARY KEY,
+    numero_guia TEXT UNIQUE,
+    data_emissao DATE,
+    data_validade DATE,
+    tipo tipo_guia,
+    status status_guia,
+    paciente_carteirinha TEXT,
+    paciente_nome TEXT,
+    quantidade_autorizada INTEGER,
+    quantidade_executada INTEGER,
+    procedimento_codigo TEXT,
+    procedimento_nome TEXT,
+    profissional_solicitante TEXT,
+    profissional_executante TEXT,
+    observacoes TEXT,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ
+);
+```
+- Armazena informações completas das guias médicas
+- `tipo`: Pode ser 'sp_sadt' ou 'consulta'
+- `status`: Controla o estado da guia ('pendente', 'em_andamento', 'concluida', 'cancelada')
+- Rastreia quantidades autorizadas e executadas
+- Mantém informações sobre procedimentos e profissionais
+
 #### `fichas_presenca` (Fichas Digitalizadas)
 ```sql
 CREATE TABLE fichas_presenca (
@@ -60,13 +88,15 @@ CREATE TABLE execucoes (
     paciente_id TEXT,
     quantidade_sessoes INTEGER,
     usuario_executante UUID,
-    codigo_ficha TEXT REFERENCES fichas_presenca(codigo_ficha)
+    codigo_ficha TEXT REFERENCES fichas_presenca(codigo_ficha),
+    guia_id UUID REFERENCES guias(id)
 );
 ```
 - Registra execuções feitas no sistema da Unimed
 - `paciente_carteirinha`: Número da carteira do plano de saúde do paciente
 - `paciente_id`: Identificador do paciente no sistema (texto)
 - `codigo_ficha`: Chave estrangeira que relaciona a execução com uma ficha de presença
+- `guia_id`: Chave estrangeira que relaciona a execução com uma guia médica
 - Controla quantidade de sessões executadas
 - Rastreia usuário responsável pela execução
 
@@ -135,6 +165,8 @@ erDiagram
     USUARIOS ||--o{ DIVERGENCIAS : "resolve"
     FICHAS_PRESENCA ||--o{ DIVERGENCIAS : "gera"
     EXECUCOES ||--o{ DIVERGENCIAS : "gera"
+    GUIAS ||--o{ EXECUCOES : "tem execucoes"
+    FICHAS_PRESENCA ||--o{ EXECUCOES : "tem execucoes"
     PACIENTES ||--o{ AGENDAMENTOS : "possui"
 
     PACIENTES {
@@ -240,6 +272,26 @@ erDiagram
         timestamp created_at
         timestamp updated_at
     }
+
+    GUIAS {
+        uuid id PK
+        string numero_guia UK
+        date data_emissao
+        date data_validade
+        enum tipo
+        enum status
+        string paciente_carteirinha
+        string paciente_nome
+        integer quantidade_autorizada
+        integer quantidade_executada
+        string procedimento_codigo
+        string procedimento_nome
+        string profissional_solicitante
+        string profissional_executante
+        string observacoes
+        timestamp created_at
+        timestamp updated_at
+    }
 ```
 
 ### 5.1 Análise das Tabelas e Relações
@@ -306,6 +358,12 @@ erDiagram
 - **Relações**: 
   - Pertence a um paciente
   - Pode ser usado para validação cruzada com fichas/execuções
+
+#### Tabela GUIAS
+- **Objetivo**: Armazenar informações das guias médicas
+- **Campos Essenciais**: id, numero_guia, data_emissao, data_validade, tipo, status, paciente_carteirinha, paciente_nome
+- **Relações**: 
+  - Tem várias execuções
 
 ### 5.2 Sugestões de Otimização
 
@@ -492,6 +550,8 @@ erDiagram
 
     FICHAS_PRESENCA ||--o{ DIVERGENCIAS : "gera"
     EXECUCOES ||--o{ DIVERGENCIAS : "gera"
+    GUIAS ||--o{ EXECUCOES : "tem execucoes"
+    FICHAS_PRESENCA ||--o{ EXECUCOES : "tem execucoes"
 
     PACIENTES {
         uuid id PK
@@ -504,8 +564,7 @@ erDiagram
     FICHAS_PRESENCA {
         uuid id PK
         date data_atendimento
-        string paciente_carteirinha FK
-        string paciente_nome
+        uuid carteirinha_id FK
         string numero_guia
         string codigo_ficha
         boolean possui_assinatura
@@ -517,10 +576,8 @@ erDiagram
     EXECUCOES {
         uuid id PK
         string numero_guia
-        string paciente_nome
+        uuid carteirinha_id FK
         date data_execucao
-        string paciente_carteirinha FK
-        text paciente_id
         integer quantidade_sessoes
         uuid usuario_executante FK
         timestamp created_at
@@ -598,6 +655,26 @@ erDiagram
         timestamp updated_at
     }
 
+    GUIAS {
+        uuid id PK
+        string numero_guia UK
+        date data_emissao
+        date data_validade
+        enum tipo
+        enum status
+        string paciente_carteirinha
+        string paciente_nome
+        integer quantidade_autorizada
+        integer quantidade_executada
+        string procedimento_codigo
+        string procedimento_nome
+        string profissional_solicitante
+        string profissional_executante
+        string observacoes
+        timestamp created_at
+        timestamp updated_at
+    }
+
     ![alt text](image-2.png)
 
 ## 12. Explicação dos relacionamentos
@@ -636,6 +713,18 @@ FICHAS_PRESENCA/EXECUCOES → DIVERGENCIAS
 
 Tanto fichas quanto execuções podem gerar divergências
 Relacionamento através do número da guia e data
+Cardinalidade: 1:N (um para muitos)
+
+GUIAS → EXECUCOES
+
+Uma guia pode ter várias execuções
+Relacionamento através do número da guia
+Cardinalidade: 1:N (um para muitos)
+
+FICHAS_PRESENCA → EXECUCOES
+
+Uma ficha de presença pode ter várias execuções
+Relacionamento através do código da ficha
 Cardinalidade: 1:N (um para muitos)
 
 PACIENTES → CARTEIRINHAS
