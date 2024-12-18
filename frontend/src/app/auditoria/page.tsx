@@ -368,21 +368,21 @@ export default function AuditoriaPage() {
           <div className="grid grid-cols-4 gap-4 mb-6">
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-sm font-medium text-gray-500">Total de Protocolos</h3>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">{resultadoAuditoria.total_protocolos}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#b49d6b]">{resultadoAuditoria.total_protocolos}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-sm font-medium text-gray-500">Divergências Encontradas</h3>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">{resultadoAuditoria.total_divergencias}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#b49d6b]">{resultadoAuditoria.total_divergencias}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-sm font-medium text-gray-500">Última Verificação</h3>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">
+              <p className="mt-1 text-2xl font-semibold text-[#b49d6b]">
                 {formatarDataExibicao(resultadoAuditoria.data_execucao)}
               </p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-sm font-medium text-gray-500">Período Analisado</h3>
-              <p className="mt-1 text-lg font-medium text-gray-900">
+              <p className="mt-1 text-lg font-medium text-[#b49d6b]">
                 {formatarDataExibicao(resultadoAuditoria.data_inicial)} - {formatarDataExibicao(resultadoAuditoria.data_final)}
               </p>
             </div>
