@@ -395,12 +395,11 @@ def atualizar_status_divergencia(
 ) -> bool:
     """Atualiza o status de uma divergência"""
     try:
-<<<<<<< HEAD
+
         print(f"Tentando atualizar divergência {id} para status: {novo_status}")
-=======
+
         # Converte o ID para inteiro
         id_numerico = int(id)
->>>>>>> 4f9847531c776fff22bf6f614b02e4352fa80ebb
 
         dados = {
             "status": novo_status,
@@ -964,10 +963,7 @@ def listar_pacientes(
             return {"items": [], "total": 0}
 
         # Formata a resposta
-        return {
-            "items": response.data,
-            "total": len(response.data)
-        }
+        return {"items": response.data, "total": len(response.data)}
 
     except Exception as e:
         print(f"Erro ao listar pacientes: {e}")
@@ -981,19 +977,18 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
     """
     try:
         # Executa a query
-        response = supabase.table("guias") \
-            .select("*") \
-            .eq("paciente_id", paciente_id) \
-            .order("created_at", desc=True) \
+        response = (
+            supabase.table("guias")
+            .select("*")
+            .eq("paciente_id", paciente_id)
+            .order("created_at", desc=True)
             .execute()
+        )
 
         if not response.data:
             return {"items": [], "total": 0}
 
-        return {
-            "items": response.data,
-            "total": len(response.data)
-        }
+        return {"items": response.data, "total": len(response.data)}
 
     except Exception as e:
         print(f"Erro ao listar guias do paciente: {e}")

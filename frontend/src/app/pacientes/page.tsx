@@ -58,7 +58,8 @@ export default function PatientsPage() {
   const [patientGuides, setPatientGuides] = useState<Guide[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showTable, setShowTable] = useState(false)
 
   // Carregar pacientes
   const loadPatients = useCallback(async () => {
@@ -74,6 +75,7 @@ export default function PatientsPage() {
       const data = await response.json()
       setPatients(data.items || [])
       setFilteredPatients(data.items || [])
+      setShowTable(true)
     } catch (error) {
       console.error('Erro ao carregar pacientes:', error)
     } finally {
@@ -94,10 +96,27 @@ export default function PatientsPage() {
     }
   }, [])
 
-  // Efeito para carregar pacientes ao montar o componente e quando a busca mudar
-  useEffect(() => {
+  // Função de busca
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term)
+    if (!term.trim()) {
+      setShowTable(false)
+      setPatients([])
+      setFilteredPatients([])
+      return
+    }
+
     loadPatients()
   }, [loadPatients])
+
+  // Efeito para atualizar a busca quando o termo muda
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      handleSearch(searchTerm)
+    }, 300) // Debounce de 300ms
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, handleSearch])
 
   // Efeito para carregar guias quando um paciente é selecionado
   useEffect(() => {
@@ -107,28 +126,6 @@ export default function PatientsPage() {
       setPatientGuides([])
     }
   }, [selectedPatient, loadPatientGuides])
-
-  // Função de busca
-  const handleSearch = useCallback((term: string) => {
-    setSearchTerm(term)
-    if (!term.trim()) {
-      setFilteredPatients(patients)
-      return
-    }
-
-    const searchTermLower = term.toLowerCase()
-    const filtered = patients.filter(
-      (patient) =>
-        patient.nome.toLowerCase().includes(searchTermLower) ||
-        patient.carteirinha.toLowerCase().includes(searchTermLower)
-    )
-    setFilteredPatients(filtered)
-  }, [patients])
-
-  // Efeito para atualizar a busca quando o termo muda
-  useEffect(() => {
-    handleSearch(searchTerm)
-  }, [searchTerm, handleSearch])
 
   const handleEditPatient = (patient: Patient) => {
     setSelectedPatient(patient)
@@ -153,10 +150,14 @@ export default function PatientsPage() {
                 <Input
                   placeholder="Buscar por nome ou carteirinha..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                   className="max-w-sm"
                 />
-                <Button variant="outline" size="icon">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => handleSearch(searchTerm)}
+                >
                   <SearchIcon className="h-4 w-4" />
                 </Button>
               </div>
@@ -169,63 +170,63 @@ export default function PatientsPage() {
               </Button>
             </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Carteirinha</TableHead>
-                    <TableHead>Data de Cadastro</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
+            {showTable && (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8f732b]"></div>
-                        </div>
-                      </TableCell>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Carteirinha</TableHead>
+                      <TableHead>Data de Cadastro</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
-                  ) : filteredPatients.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center">
-                        {searchTerm
-                          ? 'Nenhum paciente encontrado para esta busca'
-                          : 'Nenhum paciente cadastrado'}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredPatients.map((patient) => (
-                      <TableRow 
-                        key={patient.id}
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => setSelectedPatient(patient)}
-                      >
-                        <TableCell>{patient.nome}</TableCell>
-                        <TableCell>{patient.carteirinha}</TableCell>
-                        <TableCell>
-                          {new Date(patient.created_at).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleEditPatient(patient)
-                            }}
-                          >
-                            Editar
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8">
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8f732b]"></div>
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    ) : filteredPatients.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                          Nenhum paciente encontrado para esta busca
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredPatients.map((patient) => (
+                        <TableRow 
+                          key={patient.id}
+                          className="cursor-pointer hover:bg-gray-50"
+                          onClick={() => setSelectedPatient(patient)}
+                        >
+                          <TableCell>{patient.nome}</TableCell>
+                          <TableCell>{patient.carteirinha}</TableCell>
+                          <TableCell>
+                            {new Date(patient.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEditPatient(patient)
+                              }}
+                            >
+                              Editar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 

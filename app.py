@@ -1081,7 +1081,11 @@ async def listar_pacientes(
 ):
     """Lista todos os pacientes com suporte a paginação e filtro"""
     try:
-        result = listar_pacientes(limit=limit, offset=offset, paciente_nome=paciente_nome)
+        from database_supabase import listar_pacientes
+
+        result = listar_pacientes(
+            limit=limit, offset=offset, paciente_nome=paciente_nome
+        )
         return result
     except Exception as e:
         logger.error(f"Erro ao listar pacientes: {e}")
@@ -1092,6 +1096,8 @@ async def listar_pacientes(
 async def listar_guias_paciente(paciente_id: str):
     """Busca as guias de um paciente específico"""
     try:
+        from database_supabase import listar_guias_paciente
+
         guias = listar_guias_paciente(paciente_id)
         if not guias:
             raise HTTPException(status_code=404, detail="Paciente não encontrado")
