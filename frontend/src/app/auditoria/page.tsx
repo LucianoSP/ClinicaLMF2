@@ -25,7 +25,7 @@ interface Atendimento {
 }
 
 interface Divergencia {
-  id: number;
+  id: string;  // Changed from number to string to handle UUIDs
   guia_id: string;
   data_execucao: string;
   codigo_ficha: string;
@@ -78,6 +78,11 @@ export default function AuditoriaPage() {
     }
   };
 
+  useEffect(() => {
+    console.log('Buscando divergências...');
+    buscarDivergencias();
+  }, [page]); // Busca quando a página mudar
+
   const buscarDivergencias = async () => {
     setLoading(true);
     try {
@@ -90,20 +95,25 @@ export default function AuditoriaPage() {
       const response = await fetch(`${API_URL}/auditoria/divergencias?${params.toString()}`);
       const data = await response.json();
 
-      if (response.ok) {
-        const divergenciasFormatadas = data.divergencias.map(div => ({
+      if (response.ok && data.divergencias) {
+        const divergenciasFormatadas = data.divergencias.map((div: any) => ({
           ...div,
-          data_registro: format(new Date(div.data_registro.split('+')[0]), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
-          data_execucao: format(new Date(div.data_execucao.split('+')[0]), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+          // Dates are already formatted by the backend
+          data_registro: div.data_registro || '-',
+          data_execucao: div.data_execucao || '-'
         }));
         setDados(divergenciasFormatadas);
-        setTotalPages(Math.ceil(data.total / 10));
+        setTotalPages(Math.ceil((data.total || 0) / 10));
+        setError(null);
       } else {
+        console.error('Resposta inválida:', data);
         throw new Error(data.detail || 'Erro ao buscar divergências');
       }
     } catch (error) {
       console.error('Erro ao buscar divergências:', error);
-      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      setError(error instanceof Error ? error.message : 'Erro ao carregar divergências');
+      // Mantém os dados anteriores em caso de erro
+      // setDados([]);
     } finally {
       setLoading(false);
     }
@@ -243,21 +253,17 @@ export default function AuditoriaPage() {
     }
   };
 
-  const marcarResolvido = async (id: number) => {
+  const marcarResolvido = async (id: string) => {
     try {
       console.log('Marcando divergência como resolvida:', id);
       setError(null);
 
-      // Construir a URL base
-      const baseUrl = `${API_URL}/auditoria/divergencia/`;
-
-      const response = await fetch(`${baseUrl}${id}`, {
+      const response = await fetch(`${API_URL}/auditoria/divergencia/${id}`, {
         method: 'PUT',
         headers: {
-          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'Resolvido' })
+        body: JSON.stringify({ status: 'resolvido' }),
       });
 
       console.log('Status da resposta:', response.status);
@@ -273,7 +279,7 @@ export default function AuditoriaPage() {
 
       // Atualiza a lista localmente
       setDados(dados.map(d =>
-        d.id === id ? { ...d, status: 'Resolvido' } : d
+        d.id === id ? { ...d, status: 'resolvido' } : d
       ));
 
       // Mostra mensagem de sucesso

@@ -105,14 +105,18 @@
 ## 3. Priorização
 
 ### Alta Prioridade
-1. Verificação de Guias (quantidade_autorizada vs executada)
-2. Validação de Carteirinhas (data_validade)
-3. Integração com Agendamentos (saldo_sessoes)
-4. Filtros Avançados na Interface
+1. Verificação de Execuções vs Fichas
+   - [ ] Validar quantidade de sessões executadas vs fichas de presença
+   - [ ] Verificar correspondência de datas
+   - [ ] Conferir assinaturas nas fichas
+   - [ ] Validar códigos das fichas
 
 ### Média Prioridade
-1. Estatísticas Detalhadas
-2. Gestão de Divergências
+1. Filtros Avançados na Interface
+   - [ ] Por tipo de divergência
+   - [ ] Por período
+   - [ ] Por status
+2. Estatísticas Detalhadas
 3. Validações de Dados
 4. Documentação Técnica
 
@@ -124,8 +128,7 @@
 
 ## 4. Próximos Passos
 
-1. Implementar verificações de guias e carteirinhas
-2. Desenvolver filtros avançados na interface
-3. Integrar com sistema de agendamentos
-4. Implementar validações de dados
-5. Documentar alterações realizadas
+1. Implementar verificação de quantidade de sessões vs fichas
+2. Desenvolver filtros por tipo de divergência
+3. Implementar validações de dados
+4. Documentar alterações realizadas

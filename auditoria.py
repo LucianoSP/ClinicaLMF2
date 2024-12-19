@@ -1,4 +1,11 @@
-from database_supabase import registrar_divergencia, listar_guias, listar_dados_excel, listar_fichas_presenca, listar_execucoes, registrar_execucao_auditoria
+from database_supabase import (
+    registrar_divergencia,
+    listar_guias,
+    listar_dados_excel,
+    listar_fichas_presenca,
+    listar_execucoes,
+    registrar_execucao_auditoria,
+)
 from datetime import datetime
 from typing import Dict, List
 import logging
@@ -160,7 +167,9 @@ def realizar_auditoria(data_inicial: str = None, data_final: str = None):
     }
 
 
-def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: str = None):
+def realizar_auditoria_fichas_execucoes(
+    data_inicial: str = None, data_final: str = None
+):
     """
     Realiza a auditoria cruzando dados entre as tabelas de fichas_presenca e execucoes,
     registrando divergências encontradas.
@@ -199,7 +208,9 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
             # Filtra por data se especificado
             if data_inicial and data_final:
                 try:
-                    data_ficha = datetime.strptime(ficha["data_atendimento"], "%d/%m/%Y")
+                    data_ficha = datetime.strptime(
+                        ficha["data_atendimento"], "%d/%m/%Y"
+                    )
                     data_ini = datetime.strptime(data_inicial, "%d/%m/%Y")
                     data_fim = datetime.strptime(data_final, "%d/%m/%Y")
 
@@ -212,7 +223,7 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
             # Busca execução correspondente
             execucao_correspondente = next(
                 (e for e in execucoes if e["codigo_ficha"] == ficha["codigo_ficha"]),
-                None
+                None,
             )
 
             if not execucao_correspondente:
@@ -222,8 +233,8 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
                     data_execucao=ficha.get("data_atendimento", ""),
                     codigo_ficha=ficha.get("codigo_ficha", "-"),
                     tipo_divergencia="ficha_sem_execucao",
-                    descricao='Ficha de presença sem execução correspondente',
-                    paciente_nome=ficha.get("paciente_nome", "Não informado")
+                    descricao="Ficha de presença sem execução correspondente",
+                    paciente_nome=ficha.get("paciente_nome", "Não informado"),
                 )
 
         # 2. Verifica execuções sem ficha correspondente
@@ -243,8 +254,12 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
 
             if execucao.get("codigo_ficha"):  # Só verifica se tiver código de ficha
                 ficha_correspondente = next(
-                    (f for f in fichas if f["codigo_ficha"] == execucao["codigo_ficha"]),
-                    None
+                    (
+                        f
+                        for f in fichas
+                        if f["codigo_ficha"] == execucao["codigo_ficha"]
+                    ),
+                    None,
                 )
 
                 if not ficha_correspondente:
@@ -254,31 +269,37 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
                         data_execucao=execucao.get("data_execucao", ""),
                         codigo_ficha=execucao.get("codigo_ficha", "-"),
                         tipo_divergencia="execucao_sem_ficha",
-                        descricao='Execução sem ficha de presença correspondente',
-                        paciente_nome=execucao.get("paciente_nome", "Não informado")
+                        descricao="Execução sem ficha de presença correspondente",
+                        paciente_nome=execucao.get("paciente_nome", "Não informado"),
                     )
 
         # 3. Verifica fichas sem assinatura
         for ficha in fichas:
-            if not ficha.get("possui_assinatura", True):  # True como padrão para evitar falsos positivos
+            if not ficha.get(
+                "possui_assinatura", True
+            ):  # True como padrão para evitar falsos positivos
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=ficha.get("numero_guia", "-"),
                     data_execucao=ficha.get("data_atendimento", ""),
                     codigo_ficha=ficha.get("codigo_ficha", "-"),
                     tipo_divergencia="ficha_sem_assinatura",
-                    descricao='Ficha de presença sem assinatura do paciente',
-                    paciente_nome=ficha.get("paciente_nome", "Não informado")
+                    descricao="Ficha de presença sem assinatura do paciente",
+                    paciente_nome=ficha.get("paciente_nome", "Não informado"),
                 )
 
         # 4. Verifica divergências de data
         for ficha in fichas:
             execucao_correspondente = next(
                 (e for e in execucoes if e["codigo_ficha"] == ficha["codigo_ficha"]),
-                None
+                None,
             )
 
-            if execucao_correspondente and ficha["data_atendimento"] != execucao_correspondente["data_execucao"]:
+            if (
+                execucao_correspondente
+                and ficha["data_atendimento"]
+                != execucao_correspondente["data_execucao"]
+            ):
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=ficha.get("numero_guia", "-"),
@@ -286,30 +307,62 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
                     codigo_ficha=ficha.get("codigo_ficha", "-"),
                     tipo_divergencia="data_divergente",
                     descricao=f'Data da ficha ({ficha["data_atendimento"]}) diferente da execução ({execucao_correspondente["data_execucao"]})',
-                    paciente_nome=ficha.get("paciente_nome", "Não informado")
+                    paciente_nome=ficha.get("paciente_nome", "Não informado"),
+                )
+
+        # 5. Verifica quantidade de sessões executadas vs fichas
+        for ficha in fichas:
+            # Agrupa execuções por número da guia
+            execucoes_da_guia = [
+                e for e in execucoes if e["numero_guia"] == ficha["numero_guia"]
+            ]
+            qtd_execucoes = len(execucoes_da_guia)
+
+            # Agrupa fichas por número da guia
+            fichas_da_guia = [
+                f for f in fichas if f["numero_guia"] == ficha["numero_guia"]
+            ]
+            qtd_fichas = len(fichas_da_guia)
+
+            if qtd_execucoes != qtd_fichas:
+                divergencias_encontradas += 1
+                registrar_divergencia(
+                    numero_guia=ficha.get("numero_guia", "-"),
+                    data_execucao=ficha.get("data_atendimento", ""),
+                    codigo_ficha=ficha.get("codigo_ficha", "-"),
+                    tipo_divergencia="quantidade_sessoes_divergente",
+                    descricao=f"Quantidade de sessões executadas ({qtd_execucoes}) diferente das fichas de presença ({qtd_fichas})",
+                    paciente_nome=ficha.get("paciente_nome", "Não informado"),
                 )
 
         # Contabiliza divergências por tipo
         divergencias_por_tipo = {}
         for ficha in fichas:
             if not ficha.get("possui_assinatura", True):
-                divergencias_por_tipo["ficha_sem_assinatura"] = divergencias_por_tipo.get("ficha_sem_assinatura", 0) + 1
+                divergencias_por_tipo["ficha_sem_assinatura"] = (
+                    divergencias_por_tipo.get("ficha_sem_assinatura", 0) + 1
+                )
 
             execucao_correspondente = next(
                 (e for e in execucoes if e["codigo_ficha"] == ficha["codigo_ficha"]),
-                None
+                None,
             )
             if not execucao_correspondente:
-                divergencias_por_tipo["ficha_sem_execucao"] = divergencias_por_tipo.get("ficha_sem_execucao", 0) + 1
-
-        for execucao in execucoes:
-            if execucao.get("codigo_ficha"):
-                ficha_correspondente = next(
-                    (f for f in fichas if f["codigo_ficha"] == execucao["codigo_ficha"]),
-                    None
+                divergencias_por_tipo["ficha_sem_execucao"] = (
+                    divergencias_por_tipo.get("ficha_sem_execucao", 0) + 1
                 )
-                if not ficha_correspondente:
-                    divergencias_por_tipo["execucao_sem_ficha"] = divergencias_por_tipo.get("execucao_sem_ficha", 0) + 1
+
+            # Adiciona contagem para divergência de quantidade de sessões
+            execucoes_da_guia = [
+                e for e in execucoes if e["numero_guia"] == ficha["numero_guia"]
+            ]
+            fichas_da_guia = [
+                f for f in fichas if f["numero_guia"] == ficha["numero_guia"]
+            ]
+            if len(execucoes_da_guia) != len(fichas_da_guia):
+                divergencias_por_tipo["quantidade_sessoes_divergente"] = (
+                    divergencias_por_tipo.get("quantidade_sessoes_divergente", 0) + 1
+                )
 
         # Registra metadados da execução da auditoria
         registrar_execucao_auditoria(
@@ -317,11 +370,16 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
             data_final=data_final,
             total_protocolos=total_fichas + total_execucoes,
             total_divergencias=divergencias_encontradas,
-            divergencias_por_tipo=divergencias_por_tipo
+            divergencias_por_tipo=divergencias_por_tipo,
         )
 
-        logging.info(f"Auditoria concluída. {divergencias_encontradas} divergências encontradas.")
-        return {"status": "success", "divergencias_encontradas": divergencias_encontradas}
+        logging.info(
+            f"Auditoria concluída. {divergencias_encontradas} divergências encontradas."
+        )
+        return {
+            "status": "success",
+            "divergencias_encontradas": divergencias_encontradas,
+        }
 
     except Exception as e:
         logging.error(f"Erro durante a auditoria: {e}")
