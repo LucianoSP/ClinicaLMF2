@@ -709,7 +709,7 @@ async def iniciar_auditoria_fichas(
 
 @app.put("/auditoria/divergencia/{divergencia_id}")
 async def atualizar_divergencia(
-    divergencia_id: int, status: str = Body(..., embed=True)
+    divergencia_id: str, status: str = Body(..., embed=True)
 ):
     try:
         logger.info(f"Atualizando divergência {divergencia_id} para status: {status}")

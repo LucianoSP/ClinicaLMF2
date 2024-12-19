@@ -333,7 +333,7 @@ def listar_divergencias(
                 "total": 0,
                 "paginas": 1,
             }
-            
+
         total = len(count_response.data)
 
         # Then get paginated results
@@ -351,14 +351,24 @@ def listar_divergencias(
                     {
                         "id": str(div.get("id", "")),  # Convert ID to string
                         "guia_id": str(div.get("numero_guia", "")),
-                        "data_execucao": (datetime.strptime(str(div.get("data_execucao", "")), "%Y-%m-%d").strftime("%d/%m/%Y") 
-                                        if div.get("data_execucao") else ""),
+                        "data_execucao": (
+                            datetime.strptime(
+                                str(div.get("data_execucao", "")), "%Y-%m-%d"
+                            ).strftime("%d/%m/%Y")
+                            if div.get("data_execucao")
+                            else ""
+                        ),
                         "codigo_ficha": str(div.get("codigo_ficha", "")),
                         "descricao_divergencia": str(div.get("descricao", "")),
                         "paciente_nome": str(div.get("paciente_nome", "")),
                         "status": str(div.get("status", "pendente")),
-                        "data_registro": (datetime.fromisoformat(str(div.get("created_at", "")).replace("Z", "+00:00")).strftime("%d/%m/%Y %H:%M") 
-                                        if div.get("created_at") else ""),
+                        "data_registro": (
+                            datetime.fromisoformat(
+                                str(div.get("created_at", "")).replace("Z", "+00:00")
+                            ).strftime("%d/%m/%Y %H:%M")
+                            if div.get("created_at")
+                            else ""
+                        ),
                     }
                 )
             except Exception as e:
@@ -385,9 +395,8 @@ def atualizar_status_divergencia(
 ) -> bool:
     """Atualiza o status de uma divergência"""
     try:
-        # Converte o ID para inteiro
-        id_numerico = int(id)
-        
+        print(f"Tentando atualizar divergência {id} para status: {novo_status}")
+
         dados = {
             "status": novo_status,
             "data_resolucao": (
@@ -395,8 +404,10 @@ def atualizar_status_divergencia(
             ),
             "resolvido_por": usuario_id if novo_status != "pendente" else None,
         }
+        print(f"Dados para atualização: {dados}")
 
-        supabase.table("divergencias").update(dados).eq("id", id_numerico).execute()
+        response = supabase.table("divergencias").update(dados).eq("id", id).execute()
+        print(f"Resposta do Supabase: {response.data}")
         return True
 
     except Exception as e:

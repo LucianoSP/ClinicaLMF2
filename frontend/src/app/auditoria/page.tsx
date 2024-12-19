@@ -58,6 +58,7 @@ export default function AuditoriaPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
   const [limpandoDivergencias, setLimpandoDivergencias] = useState(false);
+  const [statusFiltro, setStatusFiltro] = useState<'todos' | 'pendente' | 'resolvida'>('todos');
   const { toast } = useToast();
 
   const formatarData = (date: Date | undefined) => {
@@ -81,7 +82,7 @@ export default function AuditoriaPage() {
   useEffect(() => {
     console.log('Buscando divergências...');
     buscarDivergencias();
-  }, [page]); // Busca quando a página mudar
+  }, [page, statusFiltro]); // Adiciona statusFiltro como dependência
 
   const buscarDivergencias = async () => {
     setLoading(true);
@@ -89,6 +90,9 @@ export default function AuditoriaPage() {
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('per_page', '10');
+      if (statusFiltro !== 'todos') {
+        params.append('status', statusFiltro);
+      }
       if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
       if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
 
@@ -263,7 +267,7 @@ export default function AuditoriaPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'resolvido' }),
+        body: JSON.stringify({ status: 'resolvida' }),
       });
 
       console.log('Status da resposta:', response.status);
@@ -279,7 +283,7 @@ export default function AuditoriaPage() {
 
       // Atualiza a lista localmente
       setDados(dados.map(d =>
-        d.id === id ? { ...d, status: 'resolvido' } : d
+        d.id === id ? { ...d, status: 'resolvida' } : d
       ));
 
       // Mostra mensagem de sucesso
@@ -381,40 +385,89 @@ export default function AuditoriaPage() {
         {resultadoAuditoria && (
           <div className="grid grid-cols-4 gap-4 mb-6">
             <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total de Protocolos</h3>
-              <p className="mt-1 text-2xl font-semibold text-[#b49d6b]">{resultadoAuditoria.total_protocolos}</p>
+              <h3 className="text-lg font-semibold mb-2">Total de Protocolos</h3>
+              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.total_protocolos}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Divergências Encontradas</h3>
-              <p className="mt-1 text-2xl font-semibold text-[#b49d6b]">{resultadoAuditoria.total_divergencias}</p>
+              <h3 className="text-lg font-semibold mb-2">Divergências Encontradas</h3>
+              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.total_divergencias}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Última Verificação</h3>
-              <p className="mt-1 text-2xl font-semibold text-[#b49d6b]">
-                {formatarDataExibicao(resultadoAuditoria.data_execucao)}
-              </p>
+              <h3 className="text-lg font-semibold mb-2">Data Inicial</h3>
+              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.data_inicial}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Período Analisado</h3>
-              <p className="mt-1 text-lg font-medium text-[#b49d6b]">
-                {formatarDataExibicao(resultadoAuditoria.data_inicial)} - {formatarDataExibicao(resultadoAuditoria.data_final)}
-              </p>
+              <h3 className="text-lg font-semibold mb-2">Data Final</h3>
+              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.data_final}</p>
             </div>
           </div>
         )}
 
-        {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Erro</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-[#8B4513]">Divergências Encontradas</h2>
+          <div className="flex gap-2">
+            <Button
+              onClick={gerarRelatorio}
+              disabled={gerandoRelatorio || loading}
+              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f]"
+            >
+              {gerandoRelatorio ? 'Gerando...' : 'Gerar Relatório'}
+            </Button>
+            <Button
+              onClick={limparDivergencias}
+              disabled={limpandoDivergencias || loading}
+              className="bg-[#8B4513] text-white hover:bg-[#7a3d10]"
+            >
+              {limpandoDivergencias ? 'Limpando...' : 'Limpar Divergências'}
+            </Button>
           </div>
-        )}
+        </div>
+
+        {/* Filtros de Status */}
+        <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow mb-4">
+          <span className="font-medium text-gray-700">Filtrar por status:</span>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="status"
+                checked={statusFiltro === 'todos'}
+                onChange={() => {
+                  setStatusFiltro('todos');
+                  setPage(1);
+                }}
+                className="text-[#8B4513] focus:ring-[#8B4513]"
+              />
+              <span>Todos</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="status"
+                checked={statusFiltro === 'pendente'}
+                onChange={() => {
+                  setStatusFiltro('pendente');
+                  setPage(1);
+                }}
+                className="text-[#8B4513] focus:ring-[#8B4513]"
+              />
+              <span>Pendentes</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="status"
+                checked={statusFiltro === 'resolvida'}
+                onChange={() => {
+                  setStatusFiltro('resolvida');
+                  setPage(1);
+                }}
+                className="text-[#8B4513] focus:ring-[#8B4513]"
+              />
+              <span>Resolvidas</span>
+            </label>
+          </div>
+        </div>
 
         <div className="mt-6">
           <h2 className="text-lg font-medium mb-4 text-[#6b342f]">Divergências Encontradas</h2>
@@ -454,11 +507,11 @@ export default function AuditoriaPage() {
                   label: 'Status',
                   render: (value) => (
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'Resolvido'
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'Resolvida'
                         ? 'bg-[#dcfce7] text-[#15803d]'
                         : 'bg-[#fef9c3] text-[#854d0e]'
                         }`}>
-                        {value === 'Resolvido' ? (
+                        {value === 'Resolvida' ? (
                           <>
                             <FiCheck className="w-3 h-3" />
                             {value}
@@ -475,12 +528,12 @@ export default function AuditoriaPage() {
                 }
               ]}
               actions={(item) => (
-                item.status !== 'Resolvido' && (
+                item.status !== 'Resolvida' && (
                   <Button
                     onClick={() => marcarResolvido(item.id)}
                     className="text-xs bg-[#f0e6d3] hover:bg-[#e6dbc8] text-[#6b342f]"
                   >
-                    Marcar como Resolvido
+                    Marcar como Resolvida
                   </Button>
                 )
               )}
