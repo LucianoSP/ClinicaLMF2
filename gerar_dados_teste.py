@@ -72,14 +72,14 @@ def gerar_divergencias(protocolos, quantidade_por_protocolo):
             )
 
 
-def gerar_atendimentos(protocolos):
-    """Gera atendimentos para alguns dos protocolos"""
+def gerar_execucaos(protocolos):
+    """Gera execucaos para alguns dos protocolos"""
     codigos_ficha = [f"FICHA{i:03d}" for i in range(1, 100)]
 
     for protocolo in protocolos:
-        # 70% de chance de gerar um atendimento para cada protocolo
+        # 70% de chance de gerar um execucao para cada protocolo
         if random.random() < 0.7:
-            info_atendimento = {
+            info_execucao = {
                 "data_execucao": protocolo["dataExec"],
                 "paciente_carteirinha": protocolo["carteirinha"],
                 "paciente_nome": protocolo["paciente_nome"],
@@ -88,9 +88,9 @@ def gerar_atendimentos(protocolos):
                 "possui_assinatura": random.choice([True, False]),
             }
             try:
-                salvar_guia(info_atendimento)
+                salvar_guia(info_execucao)
             except Exception as e:
-                print(f"Erro ao salvar atendimento: {e}")
+                print(f"Erro ao salvar execucao: {e}")
 
 
 def main():
@@ -102,9 +102,9 @@ def main():
     if salvar_dados_excel(protocolos):
         print(f"✓ {len(protocolos)} protocolos gerados com sucesso!")
 
-    print("\nGerando atendimentos...")
-    gerar_atendimentos(protocolos)
-    print("✓ Atendimentos gerados com sucesso!")
+    print("\nGerando execucaos...")
+    gerar_execucaos(protocolos)
+    print("✓ execucaos gerados com sucesso!")
 
     print("\nGerando divergências...")
     gerar_divergencias(protocolos, 2)  # Até 2 divergências por protocolo

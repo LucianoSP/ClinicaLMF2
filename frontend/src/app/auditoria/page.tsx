@@ -1,22 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { FiCheck, FiX } from 'react-icons/fi';
 import { SortableTable, Column } from '@/components/SortableTable';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 //import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import Pagination from '@/components/Pagination';
-import { FiCheck, FiX } from 'react-icons/fi';
 import { API_URL } from '@/config/api';
 import { useToast } from '@/components/ui/toasts';
 
-interface Atendimento {
+interface execucao {
   id: number;
   numero_carteira: string;
   paciente_nome: string;
@@ -340,44 +340,28 @@ export default function AuditoriaPage() {
       <h1 className="text-2xl font-semibold mb-6 text-[#6b342f]">Auditoria</h1>
 
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex gap-8">
-            <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex gap-4 items-center">
+            <div className="space-y-4">
               <Label>Data Inicial</Label>
-              <DatePicker
-                date={dataInicial}
-                setDate={setDataInicial}
-              />
+              <div className="mt-2">
+                <DatePicker date={dataInicial} setDate={setDataInicial} />
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="space-y-4">
               <Label>Data Final</Label>
-              <DatePicker
-                date={dataFinal}
-                setDate={setDataFinal}
-              />
+              <div className="mt-2">
+                <DatePicker date={dataFinal} setDate={setDataFinal} />
+              </div>
             </div>
           </div>
-          <div className="flex items-end gap-2">
-            <Button
-              onClick={limparDivergencias}
-              disabled={limpandoDivergencias}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
-            >
-              {limpandoDivergencias ? 'Limpando...' : 'Limpar Divergências'}
-            </Button>
+          <div>
             <Button
               onClick={iniciarAuditoria}
-              disabled={executandoAuditoria}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+              disabled={executandoAuditoria || loading}
+              className="bg-[#C5A880] text-white hover:bg-[#b49d6b]"
             >
               {executandoAuditoria ? 'Executando...' : 'Iniciar Auditoria'}
-            </Button>
-            <Button
-              onClick={gerarRelatorio}
-              disabled={gerandoRelatorio}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
-            >
-              {gerandoRelatorio ? 'Gerando...' : 'Gerar Relatório'}
             </Button>
           </div>
         </div>
@@ -394,18 +378,57 @@ export default function AuditoriaPage() {
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-lg font-semibold mb-2">Data Inicial</h3>
-              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.data_inicial}</p>
+              <p className="text-2xl text-[#8B4513]">{formatarData(dataInicial)}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
               <h3 className="text-lg font-semibold mb-2">Data Final</h3>
-              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.data_final}</p>
+              <p className="text-2xl text-[#8B4513]">{formatarData(dataFinal)}</p>
             </div>
           </div>
         )}
 
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-[#8B4513]">Divergências Encontradas</h2>
-          <div className="flex gap-2">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Filtrar por status:</span>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="todos"
+                    checked={statusFiltro === 'todos'}
+                    onChange={(e) => setStatusFiltro(e.target.value as 'todos' | 'pendente' | 'resolvida')}
+                    className="text-[#b49d6b]"
+                  />
+                  <span className="text-sm">Todos</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="pendente"
+                    checked={statusFiltro === 'pendente'}
+                    onChange={(e) => setStatusFiltro(e.target.value as 'todos' | 'pendente' | 'resolvida')}
+                    className="text-[#b49d6b]"
+                  />
+                  <span className="text-sm">Pendentes</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="resolvida"
+                    checked={statusFiltro === 'resolvida'}
+                    onChange={(e) => setStatusFiltro(e.target.value as 'todos' | 'pendente' | 'resolvida')}
+                    className="text-[#b49d6b]"
+                  />
+                  <span className="text-sm">Resolvidas</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-end gap-2">
             <Button
               onClick={gerarRelatorio}
               disabled={gerandoRelatorio || loading}
@@ -423,54 +446,7 @@ export default function AuditoriaPage() {
           </div>
         </div>
 
-        {/* Filtros de Status */}
-        <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow mb-4">
-          <span className="font-medium text-gray-700">Filtrar por status:</span>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="status"
-                checked={statusFiltro === 'todos'}
-                onChange={() => {
-                  setStatusFiltro('todos');
-                  setPage(1);
-                }}
-                className="text-[#8B4513] focus:ring-[#8B4513]"
-              />
-              <span>Todos</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="status"
-                checked={statusFiltro === 'pendente'}
-                onChange={() => {
-                  setStatusFiltro('pendente');
-                  setPage(1);
-                }}
-                className="text-[#8B4513] focus:ring-[#8B4513]"
-              />
-              <span>Pendentes</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="status"
-                checked={statusFiltro === 'resolvida'}
-                onChange={() => {
-                  setStatusFiltro('resolvida');
-                  setPage(1);
-                }}
-                className="text-[#8B4513] focus:ring-[#8B4513]"
-              />
-              <span>Resolvidas</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <h2 className="text-lg font-medium mb-4 text-[#6b342f]">Divergências Encontradas</h2>
+        <div className="bg-white rounded-lg shadow">
           {loading ? (
             <div className="text-center py-4">Carregando...</div>
           ) : error ? (
@@ -507,22 +483,32 @@ export default function AuditoriaPage() {
                   label: 'Status',
                   render: (value) => (
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'Resolvida'
-                        ? 'bg-[#dcfce7] text-[#15803d]'
-                        : 'bg-[#fef9c3] text-[#854d0e]'
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'resolvida'
+                          ? 'bg-[#dcfce7] text-[#15803d]'
+                          : 'bg-[#fef9c3] text-[#854d0e]'
                         }`}>
-                        {value === 'Resolvida' ? (
-                          <>
-                            <FiCheck className="w-3 h-3" />
-                            {value}
-                          </>
+                        {value === 'resolvida' ? (
+                          <><FiCheck className="w-3 h-3" />Resolvida</>
                         ) : (
-                          <>
-                            <FiX className="w-3 h-3" />
-                            {value}
-                          </>
+                          <><FiX className="w-3 h-3" />Pendente</>
                         )}
                       </span>
+                      {value === 'resolvida' ? (
+                        <Button
+                          disabled
+                          className="text-xs bg-[#dcfce7] text-[#15803d] flex items-center gap-1"
+                        >
+                          <FiCheck className="w-3 h-3" />
+                          Resolvido
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => marcarResolvido(item.id)}
+                          className="text-xs bg-[#f0e6d3] hover:bg-[#e6dbc8] text-[#6b342f]"
+                        >
+                          Marcar como Resolvida
+                        </Button>
+                      )}
                     </div>
                   )
                 }

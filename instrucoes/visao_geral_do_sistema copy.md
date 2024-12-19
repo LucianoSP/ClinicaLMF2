@@ -1,20 +1,20 @@
-# Sistema de Auditoria de Atendimentos
+# Sistema de Auditoria de execucaos
 
 ## 1. Visão Geral do Sistema
 
-O sistema foi desenvolvido para automatizar e controlar o processo de auditoria de atendimentos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O objetivo principal é garantir que todos os atendimentos realizados estejam corretamente documentados e faturados.
+O sistema foi desenvolvido para automatizar e controlar o processo de auditoria de execucaos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O objetivo principal é garantir que todos os execucaos realizados estejam corretamente documentados e faturados.
 
 ## 2. Fluxo do Processo
 
-### 2.1 Atendimento Inicial
-1. Paciente comparece ao atendimento
+### 2.1 execucao Inicial
+1. Paciente comparece ao execucao
 2. Assina a ficha de presença física
 3. A recepção digitaliza a ficha assinada
 4. O arquivo digitalizado é armazenado no sistema
 
 ### 2.2 Faturamento
 1. Faturista acessa o sistema da Unimed
-2. Registra a execução do atendimento manualmente
+2. Registra a execução do execucao manualmente
 3. Sistema interno registra a execução realizada
 4. Sistema verifica automaticamente por divergências
 
@@ -63,7 +63,7 @@ CREATE TABLE guias (
 ```sql
 CREATE TABLE fichas_presenca (
     id UUID PRIMARY KEY,
-    data_atendimento DATE,
+    data_execucao DATE,
     paciente_carteirinha TEXT,
     paciente_nome TEXT,
     numero_guia TEXT,
@@ -201,7 +201,7 @@ erDiagram
 
     FICHAS_PRESENCA {
         uuid id PK
-        date data_atendimento
+        date data_execucao
         uuid carteirinha_id FK
         string numero_guia
         string codigo_ficha
@@ -318,8 +318,8 @@ erDiagram
   - Usada em fichas e execuções
 
 #### Tabela FICHAS_PRESENCA
-- **Objetivo**: Registrar atendimentos físicos
-- **Campos Essenciais**: id, data_atendimento, carteirinha_id, numero_guia, possui_assinatura, arquivo_digitalizado
+- **Objetivo**: Registrar execucaos físicos
+- **Campos Essenciais**: id, data_execucao, carteirinha_id, numero_guia, possui_assinatura, arquivo_digitalizado
 - **Relações**: 
   - Vinculada a uma carteirinha
   - Pode gerar divergências
@@ -377,7 +377,7 @@ erDiagram
 
 3. **Índices Adicionais**:
    - Criar índices compostos para buscas frequentes
-   - Exemplo: (data_atendimento, numero_guia) em FICHAS_PRESENCA
+   - Exemplo: (data_execucao, numero_guia) em FICHAS_PRESENCA
 
 4. **Validações**:
    - Adicionar constraints para garantir integridade
@@ -451,7 +451,7 @@ SELECT
 FROM divergencias d
 LEFT JOIN fichas_presenca f 
     ON d.numero_guia = f.numero_guia 
-    AND d.data_execucao = f.data_atendimento
+    AND d.data_execucao = f.data_execucao
 LEFT JOIN execucoes e 
     ON d.numero_guia = e.numero_guia 
     AND d.data_execucao = e.data_execucao
@@ -485,7 +485,7 @@ BEGIN
     SELECT COUNT(*) INTO qtd_fichas
     FROM fichas_presenca
     WHERE numero_guia = NEW.numero_guia
-    AND data_atendimento = NEW.data_execucao;
+    AND data_execucao = NEW.data_execucao;
 
     IF qtd_fichas != NEW.quantidade_sessoes THEN
         INSERT INTO divergencias (...);
@@ -563,7 +563,7 @@ erDiagram
 
     FICHAS_PRESENCA {
         uuid id PK
-        date data_atendimento
+        date data_execucao
         uuid carteirinha_id FK
         string numero_guia
         string codigo_ficha
@@ -878,7 +878,7 @@ Tabelas Atuais no Supabase
       "possui_assinatura boolean",
       "arquivo_digitalizado text",
       "id uuid",
-      "data_atendimento date",
+      "data_execucao date",
       "paciente_carteirinha text"
     ]
   },

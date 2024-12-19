@@ -2,7 +2,7 @@
 SELECT 
     f.codigo_ficha,
     f.paciente_nome,
-    f.data_atendimento,
+    f.data_execucao,
     f.numero_guia
 FROM fichas_presenca f
 WHERE f.possui_assinatura = false;
@@ -16,49 +16,49 @@ SELECT
 FROM execucoes e
 LEFT JOIN fichas_presenca f ON 
     e.codigo_ficha = f.codigo_ficha AND 
-    e.data_execucao = f.data_atendimento
+    e.data_execucao = f.data_execucao
 WHERE f.id IS NULL;
 
 -- Query 3: Verificar fichas sem execuções
 SELECT 
     f.codigo_ficha,
     f.paciente_nome,
-    f.data_atendimento,
+    f.data_execucao,
     f.numero_guia
 FROM fichas_presenca f
 LEFT JOIN execucoes e ON 
     f.codigo_ficha = e.codigo_ficha AND 
-    f.data_atendimento = e.data_execucao
+    f.data_execucao = e.data_execucao
 WHERE e.id IS NULL;
 
 -- Query 4: Verificar datas divergentes
 SELECT 
     f.codigo_ficha,
     f.paciente_nome,
-    f.data_atendimento as data_ficha,
+    f.data_execucao as data_ficha,
     e.data_execucao as data_execucao,
     f.numero_guia
 FROM fichas_presenca f
 JOIN execucoes e ON f.codigo_ficha = e.codigo_ficha
-WHERE f.data_atendimento != e.data_execucao;
+WHERE f.data_execucao != e.data_execucao;
 
 -- Query 5: Verificar múltiplas execuções para mesma ficha
 SELECT 
     f.codigo_ficha,
     f.paciente_nome,
-    f.data_atendimento,
+    f.data_execucao,
     f.numero_guia,
     COUNT(e.id) as quantidade_execucoes
 FROM fichas_presenca f
 JOIN execucoes e ON f.codigo_ficha = e.codigo_ficha
-GROUP BY f.codigo_ficha, f.paciente_nome, f.data_atendimento, f.numero_guia
+GROUP BY f.codigo_ficha, f.paciente_nome, f.data_execucao, f.numero_guia
 HAVING COUNT(e.id) > 1;
 
 -- Query 6: Verificar dados incompletos
 SELECT 
     f.codigo_ficha,
     f.paciente_nome,
-    f.data_atendimento,
+    f.data_execucao,
     f.numero_guia
 FROM fichas_presenca f
 WHERE 

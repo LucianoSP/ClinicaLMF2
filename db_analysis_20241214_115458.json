@@ -930,10 +930,10 @@
             ],
             "foreign_keys": []
         },
-        "mbm_aba_atendimento": {
+        "mbm_aba_execucao": {
             "columns": [
                 {
-                    "Field": "atendimento_id",
+                    "Field": "execucao_id",
                     "Type": "int",
                     "Null": "NO",
                     "Key": "PRI",
@@ -941,7 +941,7 @@
                     "Extra": "auto_increment"
                 },
                 {
-                    "Field": "atendimento_data",
+                    "Field": "execucao_data",
                     "Type": "datetime",
                     "Null": "YES",
                     "Key": "",
@@ -949,7 +949,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "atendimento_user_id",
+                    "Field": "execucao_user_id",
                     "Type": "int",
                     "Null": "NO",
                     "Key": "",
@@ -957,7 +957,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "atendimento_qtd_sessoes",
+                    "Field": "execucao_qtd_sessoes",
                     "Type": "int",
                     "Null": "NO",
                     "Key": "",
@@ -965,7 +965,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "atendimento_paciente_id",
+                    "Field": "execucao_paciente_id",
                     "Type": "int",
                     "Null": "NO",
                     "Key": "MUL",
@@ -973,7 +973,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "atendimento_insert_user_id",
+                    "Field": "execucao_insert_user_id",
                     "Type": "int",
                     "Null": "NO",
                     "Key": "",
@@ -989,7 +989,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "atendimento_hr_inicial",
+                    "Field": "execucao_hr_inicial",
                     "Type": "time",
                     "Null": "YES",
                     "Key": "",
@@ -997,7 +997,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "atendimento_hr_final",
+                    "Field": "execucao_hr_final",
                     "Type": "time",
                     "Null": "YES",
                     "Key": "",
@@ -1005,7 +1005,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "atendimento_nova_data",
+                    "Field": "execucao_nova_data",
                     "Type": "date",
                     "Null": "YES",
                     "Key": "",
@@ -1536,7 +1536,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "validate_atendimento_id",
+                    "Field": "validate_execucao_id",
                     "Type": "int",
                     "Null": "YES",
                     "Key": "",
@@ -4290,7 +4290,7 @@
                     "Extra": "auto_increment"
                 },
                 {
-                    "Field": "ipasgo_profissional_atendimento",
+                    "Field": "ipasgo_profissional_execucao",
                     "Type": "int",
                     "Null": "YES",
                     "Key": "",
@@ -5043,7 +5043,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "ws_lista_periodo_atendimento",
+                    "Field": "ws_lista_periodo_execucao",
                     "Type": "enum('Manhã','Tarde','Ambos')",
                     "Null": "YES",
                     "Key": "",
@@ -5208,7 +5208,7 @@
                     "Extra": ""
                 },
                 {
-                    "Field": "periodo_atendimento",
+                    "Field": "periodo_execucao",
                     "Type": "enum('Manhã','Tarde','Ambos')",
                     "Null": "YES",
                     "Key": "",

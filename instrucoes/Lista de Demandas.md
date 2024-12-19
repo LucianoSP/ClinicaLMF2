@@ -26,7 +26,7 @@
 #### **Casos Específicos**
 12. Para guias únicas com várias sessões na mesma data:
     - Garantir que as fichas apresentem repetições de data/guia conforme necessário.
-13. Em fichas geradas para múltiplos atendimentos de um mesmo paciente:
+13. Em fichas geradas para múltiplos execucaos de um mesmo paciente:
     - Criar fichas distintas para cada guia, mesmo que na mesma data.
 
 #### **Validação**

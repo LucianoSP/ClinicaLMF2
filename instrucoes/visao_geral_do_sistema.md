@@ -1,20 +1,20 @@
-# Sistema de Auditoria de Atendimentos
+# Sistema de Auditoria de execucaos
 
 ## 1. Visão Geral do Sistema
 
-O sistema foi desenvolvido para automatizar e controlar o processo de auditoria de atendimentos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O objetivo principal é garantir que todos os atendimentos realizados estejam corretamente documentados e faturados.
+O sistema foi desenvolvido para automatizar e controlar o processo de auditoria de execucaos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O objetivo principal é garantir que todos os execucaos realizados estejam corretamente documentados e faturados.
 
 ## 2. Fluxo do Processo
 
-### 2.1 Atendimento Inicial
-1. Paciente comparece ao atendimento
+### 2.1 execucao Inicial
+1. Paciente comparece ao execucao
 2. Assina a ficha de presença física
 3. A recepção digitaliza a ficha assinada
 4. O arquivo digitalizado é armazenado no sistema
 
 ### 2.2 Faturamento
 1. Faturista acessa o sistema da Unimed
-2. Registra a execução do atendimento manualmente
+2. Registra a execução do execucao manualmente
 3. Sistema interno registra a execução realizada
 4. Sistema verifica automaticamente por divergências
 
@@ -105,7 +105,7 @@ CREATE TABLE guias (
 ```sql
 CREATE TABLE fichas_presenca (
     id uuid PRIMARY KEY,
-    data_atendimento date,
+    data_execucao date,
     paciente_nome text,
     paciente_carteirinha text,
     numero_guia text,
@@ -119,7 +119,7 @@ CREATE TABLE fichas_presenca (
 ```
 - Armazena as fichas físicas digitalizadas
 - Controla presença de assinaturas
-- Permite observações sobre o atendimento
+- Permite observações sobre o execucao
 
 #### `execucoes` (Execuções no Sistema)
 ```sql
@@ -309,7 +309,7 @@ erDiagram
 
     FICHAS_PRESENCA {
         uuid id PK
-        date data_atendimento
+        date data_execucao
         string paciente_nome
         string paciente_carteirinha
         string numero_guia
@@ -429,8 +429,8 @@ erDiagram
   - Usada em guias
 
 #### Tabela FICHAS_PRESENCA
-- **Objetivo**: Registrar atendimentos físicos
-- **Campos Essenciais**: id, data_atendimento, paciente_nome, paciente_carteirinha, numero_guia, codigo_ficha
+- **Objetivo**: Registrar execucaos físicos
+- **Campos Essenciais**: id, data_execucao, paciente_nome, paciente_carteirinha, numero_guia, codigo_ficha
 - **Campos de Controle**: possui_assinatura, arquivo_digitalizado, observacoes
 - **Campos de Auditoria**: created_at, updated_at
 - **Relações**: 

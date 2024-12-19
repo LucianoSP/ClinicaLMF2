@@ -17,8 +17,8 @@ CREATE TABLE protocolos_excel (
         UNIQUE (data_execucao, paciente_carteirinha)
 );
 
--- Criar tabela atendimentos
-CREATE TABLE atendimentos (
+-- Criar tabela execucaos
+CREATE TABLE execucaos (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     data_execucao TIMESTAMP NOT NULL,
     paciente_carteirinha TEXT NOT NULL,
@@ -29,8 +29,8 @@ CREATE TABLE atendimentos (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
     -- Índices para melhor performance
-    CONSTRAINT idx_atendimentos_codigo_ficha UNIQUE (codigo_ficha),
-    CONSTRAINT idx_atendimentos_guia_id_data 
+    CONSTRAINT idx_execucaos_codigo_ficha UNIQUE (codigo_ficha),
+    CONSTRAINT idx_execucaos_guia_id_data 
         UNIQUE (guia_id, data_execucao)
 );
 
@@ -67,16 +67,16 @@ ALTER TABLE divergencias
 
 -- Adicionar restrições de chave estrangeira
 ALTER TABLE divergencias
-    ADD CONSTRAINT fk_divergencias_atendimentos
+    ADD CONSTRAINT fk_divergencias_execucaos
     FOREIGN KEY (codigo_ficha)
-    REFERENCES atendimentos(codigo_ficha)
+    REFERENCES execucaos(codigo_ficha)
     ON DELETE CASCADE;
 
 -- Criar índices adicionais para busca
 CREATE INDEX idx_protocolos_paciente_nome 
     ON protocolos_excel (paciente_nome);
-CREATE INDEX idx_atendimentos_paciente_nome 
-    ON atendimentos (paciente_nome);
+CREATE INDEX idx_execucaos_paciente_nome 
+    ON execucaos (paciente_nome);
 CREATE INDEX idx_divergencias_status 
     ON divergencias (status);
 
@@ -100,11 +100,11 @@ BEGIN
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at();
 
-    -- Para atendimentos
-    ALTER TABLE atendimentos 
+    -- Para execucaos
+    ALTER TABLE execucaos 
         ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE;
-    CREATE TRIGGER update_atendimentos_updated_at
-        BEFORE UPDATE ON atendimentos
+    CREATE TRIGGER update_execucaos_updated_at
+        BEFORE UPDATE ON execucaos
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at();
 
@@ -119,13 +119,13 @@ END $$;
 
 -- Criar políticas RLS (Row Level Security)
 ALTER TABLE protocolos_excel ENABLE ROW LEVEL SECURITY;
-ALTER TABLE atendimentos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE execucaos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE divergencias ENABLE ROW LEVEL SECURITY;
 
 -- Criar política padrão para autenticados
 CREATE POLICY "Permitir acesso completo para usuários autenticados" ON protocolos_excel
     FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Permitir acesso completo para usuários autenticados" ON atendimentos
+CREATE POLICY "Permitir acesso completo para usuários autenticados" ON execucaos
     FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Permitir acesso completo para usuários autenticados" ON divergencias
     FOR ALL USING (auth.role() = 'authenticated');
@@ -145,8 +145,8 @@ SELECT
     idPaciente
 FROM sqlite_protocolos_excel;
 
--- Migrar atendimentos
-INSERT INTO atendimentos 
+-- Migrar execucaos
+INSERT INTO execucaos 
     (data_execucao, paciente_carteirinha, paciente_nome, guia_id, 
      codigo_ficha, possui_assinatura)
 SELECT 
@@ -156,7 +156,7 @@ SELECT
     numero_guia_principal,
     codigo_ficha,
     possui_assinatura
-FROM sqlite_atendimentos;
+FROM sqlite_execucaos;
 
 -- Migrar divergencias
 INSERT INTO divergencias 
@@ -172,7 +172,7 @@ FROM sqlite_divergencias;
 -- Comentários sobre a migração:
 /*
 1. Este script assume que você exportou seus dados do SQLite para tabelas temporárias
-   no Supabase (sqlite_protocolos_excel, sqlite_atendimentos, sqlite_divergencias)
+   no Supabase (sqlite_protocolos_excel, sqlite_execucaos, sqlite_divergencias)
 
 2. Para migrar os dados, você precisará:
    a) Exportar os dados do SQLite para CSV

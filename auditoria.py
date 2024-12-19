@@ -19,24 +19,22 @@ logging.basicConfig(
 )
 
 
-def verificar_datas(protocolo: Dict, atendimento: Dict) -> bool:
-    """Verifica se as datas do protocolo e atendimento correspondem"""
+def verificar_datas(protocolo: Dict, execucao: Dict) -> bool:
+    """Verifica se as datas do protocolo e execucao correspondem"""
     try:
         data_protocolo = datetime.strptime(protocolo["dataExec"], "%d/%m/%Y")
-        data_execucao = datetime.strptime(atendimento["data_execucao"], "%d/%m/%Y")
+        data_execucao = datetime.strptime(execucao["data_execucao"], "%d/%m/%Y")
         return data_protocolo == data_execucao
     except ValueError as e:
         logging.error(f"Erro ao comparar datas: {e}")
         return False
 
 
-def verificar_quantidade_atendimentos(
-    protocolo: Dict, atendimentos: List[Dict]
-) -> bool:
-    """Verifica se a quantidade de atendimentos corresponde ao protocolo"""
+def verificar_quantidade_execucaos(protocolo: Dict, execucaos: List[Dict]) -> bool:
+    """Verifica se a quantidade de execucaos corresponde ao protocolo"""
     try:
         qtd_protocolo = int(protocolo.get("quantidade", 1))
-        return len(atendimentos) == qtd_protocolo
+        return len(execucaos) == qtd_protocolo
     except ValueError as e:
         logging.error(f"Erro ao comparar quantidades: {e}")
         return False
@@ -55,7 +53,7 @@ def formatar_data_iso(data_str: str) -> str:
 
 def realizar_auditoria(data_inicial: str = None, data_final: str = None):
     """
-    Realiza a auditoria cruzando dados entre as tabelas de atendimentos e protocolos,
+    Realiza a auditoria cruzando dados entre as tabelas de execucaos e protocolos,
     registrando divergências encontradas.
 
     Args:
@@ -74,7 +72,7 @@ def realizar_auditoria(data_inicial: str = None, data_final: str = None):
 
     logging.info(f"Total de protocolos a serem auditados: {total_protocolos}")
 
-    # Para cada protocolo, verifica se existe correspondência nos atendimentos
+    # Para cada protocolo, verifica se existe correspondência nos execucaos
     for protocolo in protocolos:
         protocolos_processados += 1
 
@@ -96,61 +94,61 @@ def realizar_auditoria(data_inicial: str = None, data_final: str = None):
                 logging.error(f"Erro ao filtrar por data: {e}")
                 continue
 
-        # Busca atendimentos correspondentes
-        atendimentos = listar_guias(limit=0, paciente_nome=protocolo["nomePaciente"])
+        # Busca execucaos correspondentes
+        execucaos = listar_guias(limit=0, paciente_nome=protocolo["nomePaciente"])
 
-        # Filtra atendimentos pelo número da guia
-        atendimentos_correspondentes = [
+        # Filtra execucaos pelo número da guia
+        execucaos_correspondentes = [
             atend
-            for atend in atendimentos["atendimentos"]
+            for atend in execucaos["execucaos"]
             if atend["numero_guia_principal"] == protocolo["idGuia"]
         ]
 
         # Verifica divergências
-        if not atendimentos_correspondentes:
+        if not execucaos_correspondentes:
             divergencias_encontradas += 1
             registrar_divergencia(
                 numero_guia=protocolo["idGuia"],
                 data_execucao=protocolo["dataExec"],
                 codigo_ficha="N/A",
-                tipo_divergencia="sem_atendimento",
-                descricao=f'Protocolo sem atendimento correspondente. Paciente: {protocolo["nomePaciente"]}',
+                tipo_divergencia="sem_execucao",
+                descricao=f'Protocolo sem execucao correspondente. Paciente: {protocolo["nomePaciente"]}',
             )
             continue
 
-        # Verifica cada atendimento correspondente
-        for atendimento in atendimentos_correspondentes:
+        # Verifica cada execucao correspondente
+        for execucao in execucaos_correspondentes:
             # Verifica assinatura
-            if not atendimento["possui_assinatura"]:
+            if not execucao["possui_assinatura"]:
                 divergencias_encontradas += 1
                 registrar_divergencia(
-                    numero_guia=atendimento["numero_guia_principal"],
-                    data_execucao=atendimento["data_execucao"],
-                    codigo_ficha=atendimento["codigo_ficha"],
+                    numero_guia=execucao["numero_guia_principal"],
+                    data_execucao=execucao["data_execucao"],
+                    codigo_ficha=execucao["codigo_ficha"],
                     tipo_divergencia="sem_assinatura",
-                    descricao=f'Atendimento sem assinatura. Paciente: {atendimento["paciente_nome"]}',
+                    descricao=f'execucao sem assinatura. Paciente: {execucao["paciente_nome"]}',
                 )
 
             # Verifica código da ficha
-            if not atendimento["codigo_ficha"]:
+            if not execucao["codigo_ficha"]:
                 divergencias_encontradas += 1
                 registrar_divergencia(
-                    numero_guia=atendimento["numero_guia_principal"],
-                    data_execucao=atendimento["data_execucao"],
+                    numero_guia=execucao["numero_guia_principal"],
+                    data_execucao=execucao["data_execucao"],
                     codigo_ficha="AUSENTE",
                     tipo_divergencia="sem_codigo_ficha",
-                    descricao=f'Atendimento sem código de ficha. Paciente: {atendimento["paciente_nome"]}',
+                    descricao=f'execucao sem código de ficha. Paciente: {execucao["paciente_nome"]}',
                 )
 
-        # Verifica quantidade de atendimentos (mais de um atendimento para o mesmo protocolo)
-        if len(atendimentos_correspondentes) > 1:
+        # Verifica quantidade de execucaos (mais de um execucao para o mesmo protocolo)
+        if len(execucaos_correspondentes) > 1:
             divergencias_encontradas += 1
             registrar_divergencia(
                 numero_guia=protocolo["idGuia"],
                 data_execucao=protocolo["dataExec"],
-                codigo_ficha=atendimentos_correspondentes[0]["codigo_ficha"],
-                tipo_divergencia="multiplos_atendimentos",
-                descricao=f'Protocolo com múltiplos atendimentos ({len(atendimentos_correspondentes)}). Paciente: {protocolo["nomePaciente"]}',
+                codigo_ficha=execucaos_correspondentes[0]["codigo_ficha"],
+                tipo_divergencia="multiplos_execucaos",
+                descricao=f'Protocolo com múltiplos execucaos ({len(execucaos_correspondentes)}). Paciente: {protocolo["nomePaciente"]}',
             )
 
     logging.info(
@@ -208,9 +206,7 @@ def realizar_auditoria_fichas_execucoes(
             # Filtra por data se especificado
             if data_inicial and data_final:
                 try:
-                    data_ficha = datetime.strptime(
-                        ficha["data_atendimento"], "%d/%m/%Y"
-                    )
+                    data_ficha = datetime.strptime(ficha["data_execucao"], "%d/%m/%Y")
                     data_ini = datetime.strptime(data_inicial, "%d/%m/%Y")
                     data_fim = datetime.strptime(data_final, "%d/%m/%Y")
 
@@ -230,7 +226,7 @@ def realizar_auditoria_fichas_execucoes(
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=ficha.get("numero_guia", "-"),
-                    data_execucao=ficha.get("data_atendimento", ""),
+                    data_execucao=ficha.get("data_execucao", ""),
                     codigo_ficha=ficha.get("codigo_ficha", "-"),
                     tipo_divergencia="ficha_sem_execucao",
                     descricao="Ficha de presença sem execução correspondente",
@@ -281,7 +277,7 @@ def realizar_auditoria_fichas_execucoes(
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=ficha.get("numero_guia", "-"),
-                    data_execucao=ficha.get("data_atendimento", ""),
+                    data_execucao=ficha.get("data_execucao", ""),
                     codigo_ficha=ficha.get("codigo_ficha", "-"),
                     tipo_divergencia="ficha_sem_assinatura",
                     descricao="Ficha de presença sem assinatura do paciente",
@@ -297,16 +293,15 @@ def realizar_auditoria_fichas_execucoes(
 
             if (
                 execucao_correspondente
-                and ficha["data_atendimento"]
-                != execucao_correspondente["data_execucao"]
+                and ficha["data_execucao"] != execucao_correspondente["data_execucao"]
             ):
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=ficha.get("numero_guia", "-"),
-                    data_execucao=ficha.get("data_atendimento", ""),
+                    data_execucao=ficha.get("data_execucao", ""),
                     codigo_ficha=ficha.get("codigo_ficha", "-"),
                     tipo_divergencia="data_divergente",
-                    descricao=f'Data da ficha ({ficha["data_atendimento"]}) diferente da execução ({execucao_correspondente["data_execucao"]})',
+                    descricao=f'Data da ficha ({ficha["data_execucao"]}) diferente da execução ({execucao_correspondente["data_execucao"]})',
                     paciente_nome=ficha.get("paciente_nome", "Não informado"),
                 )
 
@@ -328,7 +323,7 @@ def realizar_auditoria_fichas_execucoes(
                 divergencias_encontradas += 1
                 registrar_divergencia(
                     numero_guia=ficha.get("numero_guia", "-"),
-                    data_execucao=ficha.get("data_atendimento", ""),
+                    data_execucao=ficha.get("data_execucao", ""),
                     codigo_ficha=ficha.get("codigo_ficha", "-"),
                     tipo_divergencia="quantidade_sessoes_divergente",
                     descricao=f"Quantidade de sessões executadas ({qtd_execucoes}) diferente das fichas de presença ({qtd_fichas})",

@@ -1,7 +1,7 @@
 # Sistema de Gestão de Guias Médicas - Clínica LMF
 
 ## Descrição
-Sistema web desenvolvido para gerenciamento e auditoria de guias médicas, permitindo o upload, processamento e validação de documentos médicos, com foco em controle de atendimentos e verificação de conformidade.
+Sistema web desenvolvido para gerenciamento e auditoria de guias médicas, permitindo o upload, processamento e validação de documentos médicos, com foco em controle de execucaos e verificação de conformidade.
 
 ## Principais Funcionalidades
 - Upload e processamento de guias médicas em PDF

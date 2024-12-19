@@ -15,7 +15,7 @@ const AuditoriaInterface = () => {
       tipo: 'Assinatura Ausente',
       status: 'pendente',
       dataIdentificacao: '2024-12-14',
-      descricao: 'Atendimento sem assinatura do paciente'
+      descricao: 'execucao sem assinatura do paciente'
     },
     {
       id: 2,
@@ -32,7 +32,7 @@ const AuditoriaInterface = () => {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Cabeçalho */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Auditoria de Atendimentos</h1>
+        <h1 className="text-3xl font-bold mb-2">Auditoria de execucaos</h1>
         <p className="text-gray-600">Sistema de controle e resolução de divergências</p>
       </div>
 

@@ -18,7 +18,7 @@ from database_supabase import (
     registrar_divergencia,
     listar_divergencias,
     atualizar_status_divergencia,
-    atualizar_atendimento,
+    atualizar_execucao,
     salvar_ficha_presenca,
     buscar_ficha_presenca,
     excluir_ficha_presenca,
@@ -185,7 +185,7 @@ class DadosGuia(BaseModel):
     registros: list[Registro]
 
 
-class AtendimentoUpdate(BaseModel):
+class ExecucaoUpdate(BaseModel):
     data_execucao: str
     paciente_carteirinha: str
     paciente_nome: str
@@ -195,7 +195,7 @@ class AtendimentoUpdate(BaseModel):
 
 
 class FichaPresenca(BaseModel):
-    data_atendimento: str
+    data_execucao: str
     paciente_carteirinha: str
     paciente_nome: str
     numero_guia: str
@@ -250,19 +250,19 @@ async def extract_info_from_pdf(pdf_path: str):
                             "codigo_ficha": string,  // Campo 1 - FICHA no canto superior direito, formato XX-XXXXXXXX...
                             "registros": [
                                 {
-                                    "data_execucao": string,         // Data de Atendimento no formato DD/MM/YYYY
+                                    "data_execucao": string,         // Data de execucao no formato DD/MM/YYYY
                                     "paciente_carteirinha": string,          // Número da Carteira
                                     "paciente_nome": string,        // Nome do Beneficiário
                                     "guia_id": string,    // Número da Guia Principal
-                                    "possui_assinatura": boolean        // Indica se o atendimento possui assinatura (marcado com x)
+                                    "possui_assinatura": boolean        // Indica se o execucao possui assinatura (marcado com x)
                                 }
                             ]
                         }
 
                         Regras de extração:
-                        1. Inclua uma linha nos registros se a linha tiver o campo Data de Atendimento OU o campo Assinatura tiver o quadrado preenchido por um "x"
+                        1. Inclua uma linha nos registros se a linha tiver o campo Data de execucao OU o campo Assinatura tiver o quadrado preenchido por um "x"
                         2. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano). Se encontrar uma data no formato DD/MM/YY, converta para DD/MM/YYYY. 
-                        3. Todas as datas no campo Data de Atendimento devem ser válidas (30/02/2024 seria uma data inválida) e iguais para todas as linhas.   
+                        3. Todas as datas no campo Data de execucao devem ser válidas (30/02/2024 seria uma data inválida) e iguais para todas as linhas.   
                         4. Retorne APENAS o JSON, sem texto adicional
                     """,
                         },
@@ -399,7 +399,7 @@ async def upload_pdf(
                         # Salvar registro no banco
                         ficha_id = salvar_ficha_presenca(
                             {
-                                "data_atendimento": registro["data_execucao"],
+                                "data_execucao": registro["data_execucao"],
                                 "paciente_carteirinha": registro[
                                     "paciente_carteirinha"
                                 ],
@@ -417,9 +417,7 @@ async def upload_pdf(
                         result["saved_ids"] = saved_ids
                     else:
                         result["status"] = "error"
-                        result["message"] = (
-                            "Erro ao salvar atendimentos no banco de dados"
-                        )
+                        result["message"] = "Erro ao salvar execucaos no banco de dados"
 
                 results.append(result)
 
@@ -519,16 +517,16 @@ async def upload_excel(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/atendimentos/")
-async def list_atendimentos(
+@app.get("/execucoes/")
+async def list_execucoes(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
     paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
 ):
-    """Lista todos os atendimentos com suporte a paginação e filtro"""
+    """Lista todos os execucaos com suporte a paginação e filtro"""
     try:
         logger.info(
-            f"Buscando atendimentos com: page={page}, per_page={per_page}, paciente_nome={paciente_nome}"
+            f"Buscando execucaos com: page={page}, per_page={per_page}, paciente_nome={paciente_nome}"
         )
         offset = (page - 1) * per_page
         resultado = listar_guias(
@@ -538,7 +536,7 @@ async def list_atendimentos(
         return {
             "success": True,
             "data": {
-                "atendimentos": resultado["atendimentos"],
+                "execucaos": resultado["execucaos"],
                 "pagination": {
                     "total": resultado["total"],
                     "total_pages": ceil(resultado["total"] / per_page),
@@ -548,17 +546,17 @@ async def list_atendimentos(
             },
         }
     except Exception as e:
-        logger.error(f"Erro ao listar atendimentos: {e}")
+        logger.error(f"Erro ao listar execucaos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/guia/{numero_guia}")
 async def get_guia(numero_guia: str):
-    """Busca atendimentos específicos pelo número da guia"""
-    atendimentos = buscar_guia(numero_guia)
-    if not atendimentos:
+    """Busca execucaos específicos pelo número da guia"""
+    execucaos = buscar_guia(numero_guia)
+    if not execucaos:
         raise HTTPException(status_code=404, detail="Guia não encontrada")
-    return atendimentos
+    return execucaos
 
 
 @app.get("/excel/")
@@ -609,9 +607,9 @@ async def sync_database():
     return {"message": "Banco de dados sincronizado com sucesso"}
 
 
-@app.post("/clear-excel-data")
-async def clear_excel_data():
-    """Limpa todos os dados da tabela de protocolos do Excel"""
+@app.post("/clear-execucoes")
+async def clear_execucoes():
+    """Limpa todos os dados da tabela de execuções"""
     try:
         from database_supabase import limpar_protocolos_excel
         import logging
@@ -620,23 +618,23 @@ async def clear_excel_data():
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
 
-        logger.info("Iniciando limpeza dos dados do Excel...")
+        logger.info("Iniciando limpeza dos dados de execuções...")
         success = limpar_protocolos_excel()
 
         if success:
-            logger.info("Dados do Excel limpos com sucesso")
-            return {"success": True, "message": "Dados do Excel limpos com sucesso"}
+            logger.info("Dados de execuções limpos com sucesso")
+            return {"success": True, "message": "Dados de execuções limpos com sucesso"}
         else:
-            logger.error("Erro ao limpar dados do Excel: operação retornou False")
+            logger.error("Erro ao limpar dados de execuções: operação retornou False")
             raise HTTPException(
                 status_code=500,
-                detail="Erro ao limpar dados do Excel: operação não foi concluída com sucesso",
+                detail="Erro ao limpar dados de execuções: operação não foi concluída com sucesso",
             )
     except Exception as e:
-        logger.error(f"Erro ao limpar dados do Excel: {str(e)}")
+        logger.error(f"Erro ao limpar dados de execuções: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao limpar dados do Excel: {str(e)}"
+            status_code=500, detail=f"Erro ao limpar dados de execuções: {str(e)}"
         )
 
 
@@ -723,19 +721,17 @@ async def atualizar_divergencia(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/atendimento/{codigo_ficha}")
-async def atualizar_atendimento_endpoint(
-    codigo_ficha: str, atendimento: AtendimentoUpdate
-):
+@app.put("/execucao/{codigo_ficha}")
+async def atualizar_execucao_endpoint(codigo_ficha: str, execucao: ExecucaoUpdate):
     try:
         # Validate the data format
         if not all(
             [
-                atendimento.data_execucao,
-                atendimento.paciente_carteirinha,
-                atendimento.paciente_nome,
-                atendimento.guia_id,
-                atendimento.codigo_ficha,
+                execucao.data_execucao,
+                execucao.paciente_carteirinha,
+                execucao.paciente_nome,
+                execucao.guia_id,
+                execucao.codigo_ficha,
             ]
         ):
             raise HTTPException(
@@ -745,7 +741,7 @@ async def atualizar_atendimento_endpoint(
         # Validate date format
         try:
             # Expecting date in YYYY-MM-DD format
-            datetime.strptime(atendimento.data_execucao, "%Y-%m-%d")
+            datetime.strptime(execucao.data_execucao, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(
                 status_code=400, detail="Data em formato inválido. Use YYYY-MM-DD"
@@ -753,64 +749,62 @@ async def atualizar_atendimento_endpoint(
 
         # Convert the model to a dictionary
         dados = {
-            "data_execucao": atendimento.data_execucao,
-            "paciente_carteirinha": atendimento.paciente_carteirinha,
-            "paciente_nome": atendimento.paciente_nome,
-            "guia_id": atendimento.guia_id,
-            "possui_assinatura": atendimento.possui_assinatura,
-            "codigo_ficha": atendimento.codigo_ficha,
+            "data_execucao": execucao.data_execucao,
+            "paciente_carteirinha": execucao.paciente_carteirinha,
+            "paciente_nome": execucao.paciente_nome,
+            "guia_id": execucao.guia_id,
+            "possui_assinatura": execucao.possui_assinatura,
+            "codigo_ficha": execucao.codigo_ficha,
         }
 
         # Update in Supabase
         try:
-            from database_supabase import atualizar_atendimento
+            from database_supabase import atualizar_execucao
 
-            success = atualizar_atendimento(codigo_ficha, dados)
+            success = atualizar_execucao(codigo_ficha, dados)
             if not success:
-                raise HTTPException(
-                    status_code=404, detail="Atendimento não encontrado"
-                )
-            return {"message": "Atendimento atualizado com sucesso"}
+                raise HTTPException(status_code=404, detail="execucao não encontrado")
+            return {"message": "execucao atualizado com sucesso"}
         except ValueError as ve:
             raise HTTPException(status_code=400, detail=str(ve))
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Erro ao atualizar atendimento no banco de dados: {str(e)}",
+                detail=f"Erro ao atualizar execucao no banco de dados: {str(e)}",
             )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Erro interno ao atualizar atendimento: {str(e)}"
+            status_code=500, detail=f"Erro interno ao atualizar execucao: {str(e)}"
         )
 
 
-@app.delete("/atendimento/{codigo_ficha}")
-async def excluir_atendimento(codigo_ficha: str):
+@app.delete("/execucao/{codigo_ficha}")
+async def excluir_execucao(codigo_ficha: str):
     try:
         conn = sqlite3.connect(DATABASE_FILE)
         cursor = conn.cursor()
 
-        # Exclui o atendimento
+        # Exclui o execucao
         cursor.execute(
             """
-            DELETE FROM atendimentos 
+            DELETE FROM execucaos 
             WHERE codigo_ficha = ?
         """,
             (codigo_ficha,),
         )
 
         if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Atendimento não encontrado")
+            raise HTTPException(status_code=404, detail="execucao não encontrado")
 
         conn.commit()
-        return {"message": "Atendimento excluído com sucesso"}
+        return {"message": "execucao excluído com sucesso"}
 
     except sqlite3.Error as e:
         raise HTTPException(
-            status_code=500, detail=f"Erro ao excluir atendimento: {str(e)}"
+            status_code=500, detail=f"Erro ao excluir execucao: {str(e)}"
         )
     finally:
         conn.close()
