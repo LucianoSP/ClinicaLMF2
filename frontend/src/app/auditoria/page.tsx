@@ -359,7 +359,7 @@ export default function AuditoriaPage() {
             <Button
               onClick={iniciarAuditoria}
               disabled={executandoAuditoria || loading}
-              className="bg-[#C5A880] text-white hover:bg-[#b49d6b]"
+              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] px-3 py-1.5 text-[14px] h-auto"
             >
               {executandoAuditoria ? 'Executando...' : 'Iniciar Auditoria'}
             </Button>
@@ -432,14 +432,14 @@ export default function AuditoriaPage() {
             <Button
               onClick={gerarRelatorio}
               disabled={gerandoRelatorio || loading}
-              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f]"
+              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] px-3 py-1.5 text-[14px] h-auto"
             >
               {gerandoRelatorio ? 'Gerando...' : 'Gerar Relatório'}
             </Button>
             <Button
               onClick={limparDivergencias}
               disabled={limpandoDivergencias || loading}
-              className="bg-[#8B4513] text-white hover:bg-[#7a3d10]"
+              className="bg-[#8B4513] text-white hover:bg-[#7a3d10] px-3 py-1.5 text-[14px] h-auto"
             >
               {limpandoDivergencias ? 'Limpando...' : 'Limpar Divergências'}
             </Button>
@@ -519,7 +519,24 @@ export default function AuditoriaPage() {
             currentPage={page}
             totalPages={totalPages}
             onPageChange={setPage}
-          />
+          >
+            <Button
+              variant="outline"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-[14px] h-auto"
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-[14px] h-auto"
+            >
+              Próxima
+            </Button>
+          </Pagination>
         </div>
       )}
     </div>

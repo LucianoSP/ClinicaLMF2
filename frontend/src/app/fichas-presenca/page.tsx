@@ -277,7 +277,7 @@ export default function FichasPresenca() {
             accept=".pdf"
           />
           <button
-            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
             onClick={() => document.getElementById('fileInput')?.click()}
           >
             <FiUpload className="w-4 h-4" />
@@ -286,14 +286,14 @@ export default function FichasPresenca() {
           <button
             onClick={handleExportExcel}
             disabled={fichas.length === 0}
-            className="flex items-center space-x-1 px-3 py-2 bg-[#C5A880] text-white rounded-lg hover:bg-[#b49d6b] transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
             <FiDownload className="w-4 h-4" />
             Exportar Excel
           </button>
           <button
             onClick={() => setShowClearDialog(true)}
-            className="flex items-center space-x-1 px-3 py-2 bg-[#C5A880] text-white rounded-lg hover:bg-[#b49d6b] transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
           >
             <FiTrash2 className="w-4 h-4" />
             <span>Limpar Fichas</span>
@@ -338,20 +338,20 @@ export default function FichasPresenca() {
               Total: {totalRecords} registros
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
+              <button
+                className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
                 Anterior
-              </Button>
-              <Button
-                variant="outline"
+              </button>
+              <button
+                className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
               >
                 Próxima
-              </Button>
+              </button>
             </div>
           </div>
         </div>
