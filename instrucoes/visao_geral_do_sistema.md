@@ -230,9 +230,43 @@ CREATE TABLE auditoria_execucoes (
 - Registra totais e tipos de divergências encontradas
 - Mantém histórico de quem executou a auditoria
 
-## 4. Interface do Usuário
+## 4. Interface do Sistema
 
-### 4.1 Página de Auditoria
+### 4.1 Gerenciamento de Pacientes
+
+O sistema possui uma interface dedicada para o gerenciamento de pacientes, acessível através do menu lateral. Esta interface é composta por três componentes principais:
+
+#### 4.1.1 Busca e Listagem de Pacientes
+- Campo de busca para localizar pacientes
+- Tabela interativa com informações básicas dos pacientes
+- Botão para cadastro de novos pacientes
+- Opção de edição para cada paciente listado
+
+#### 4.1.2 Informações do Paciente
+Exibe informações detalhadas do paciente selecionado em duas seções:
+
+**Dados Pessoais:**
+- Nome completo
+- Número da carteirinha
+- Data de cadastro no sistema
+
+**Informações da Carteirinha:**
+- Número da carteirinha
+- Data de validade
+- Status de titularidade (titular/dependente)
+- Nome do titular (quando dependente)
+
+#### 4.1.3 Guias do Paciente
+Apresenta uma tabela com todas as guias associadas ao paciente selecionado, incluindo:
+- Número da guia
+- Nome do procedimento
+- Data de validade
+- Quantidade de sessões autorizadas
+- Quantidade de sessões já utilizadas
+- Saldo disponível de sessões
+- Status da guia (ativa/inativa)
+
+### 4.2 Página de Auditoria
 
 A página de auditoria apresenta um dashboard com cards informativos mostrando:
 - Total de protocolos analisados

@@ -937,3 +937,65 @@ def obter_ultima_auditoria():
     except Exception as e:
         print(f"Erro ao obter última auditoria: {str(e)}")
         raise Exception(f"Erro ao obter última auditoria: {str(e)}")
+
+
+def listar_pacientes(
+    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
+) -> Dict:
+    """
+    Retorna todos os pacientes com suporte a paginação e filtro.
+    Se limit for 0, retorna todos os registros.
+    """
+    try:
+        # Inicia a query
+        query = supabase.table("pacientes").select("*")
+
+        # Adiciona filtro se paciente_nome for fornecido
+        if paciente_nome:
+            query = query.ilike("nome", f"%{paciente_nome.upper()}%")
+
+        # Adiciona ordenação
+        query = query.order("nome")
+
+        # Executa a query
+        response = query.execute()
+
+        if not response.data:
+            return {"items": [], "total": 0}
+
+        # Formata a resposta
+        return {
+            "items": response.data,
+            "total": len(response.data)
+        }
+
+    except Exception as e:
+        print(f"Erro ao listar pacientes: {e}")
+        traceback.print_exc()
+        return {"items": [], "total": 0}
+
+
+def listar_guias_paciente(paciente_id: str) -> Dict:
+    """
+    Retorna todas as guias de um paciente específico.
+    """
+    try:
+        # Executa a query
+        response = supabase.table("guias") \
+            .select("*") \
+            .eq("paciente_id", paciente_id) \
+            .order("created_at", desc=True) \
+            .execute()
+
+        if not response.data:
+            return {"items": [], "total": 0}
+
+        return {
+            "items": response.data,
+            "total": len(response.data)
+        }
+
+    except Exception as e:
+        print(f"Erro ao listar guias do paciente: {e}")
+        traceback.print_exc()
+        return {"items": [], "total": 0}

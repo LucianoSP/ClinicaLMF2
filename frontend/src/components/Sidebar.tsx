@@ -9,7 +9,8 @@ import {
   ArrowUpTrayIcon,
   ChartBarIcon,
   TableCellsIcon,
-  CloudIcon
+  CloudIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -17,6 +18,11 @@ const navigation = [
     name: 'Home',
     href: '/',
     icon: HomeIcon
+  },
+  {
+    name: 'Pacientes',
+    href: '/pacientes',
+    icon: UserGroupIcon
   },
   {
     name: 'Fichas de Presença',

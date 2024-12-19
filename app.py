@@ -1073,6 +1073,34 @@ async def clear_fichas_presenca():
         )
 
 
+@app.get("/pacientes")
+async def listar_pacientes(
+    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+    offset: int = Query(0, ge=0, description="Número de itens para pular"),
+    paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
+):
+    """Lista todos os pacientes com suporte a paginação e filtro"""
+    try:
+        result = listar_pacientes(limit=limit, offset=offset, paciente_nome=paciente_nome)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao listar pacientes: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao listar pacientes")
+
+
+@app.get("/pacientes/{paciente_id}/guias")
+async def listar_guias_paciente(paciente_id: str):
+    """Busca as guias de um paciente específico"""
+    try:
+        guias = listar_guias_paciente(paciente_id)
+        if not guias:
+            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+        return guias
+    except Exception as e:
+        logger.error(f"Erro ao buscar guias do paciente: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao buscar guias do paciente")
+
+
 if __name__ == "__main__":
     import uvicorn
 
