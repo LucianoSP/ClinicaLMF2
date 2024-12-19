@@ -13,6 +13,7 @@ export interface Column<T> {
   label: string;
   editable?: boolean;
   type?: 'boolean' | 'text';
+  render?: (value: any, item: T) => React.ReactNode;
 }
 
 export function SortableTable<T>({ 
@@ -149,7 +150,9 @@ export function SortableTable<T>({
                     )
                   ) : (
                     <span className="block w-full">
-                      {column.type === 'boolean' ? (
+                      {column.render ? (
+                        column.render(item[column.key], item)
+                      ) : column.type === 'boolean' ? (
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${
                             item[column.key] === true || String(item[column.key]) === 'true'

@@ -483,7 +483,8 @@ export default function AuditoriaPage() {
                   label: 'Status',
                   render: (value) => (
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'resolvida'
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${
+                        value === 'resolvida'
                           ? 'bg-[#dcfce7] text-[#15803d]'
                           : 'bg-[#fef9c3] text-[#854d0e]'
                         }`}>
@@ -493,34 +494,19 @@ export default function AuditoriaPage() {
                           <><FiX className="w-3 h-3" />Pendente</>
                         )}
                       </span>
-                      {value === 'resolvida' ? (
-                        <Button
-                          disabled
-                          className="text-xs bg-[#dcfce7] text-[#15803d] flex items-center gap-1"
-                        >
-                          <FiCheck className="w-3 h-3" />
-                          Resolvido
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => marcarResolvido(item.id)}
-                          className="text-xs bg-[#f0e6d3] hover:bg-[#e6dbc8] text-[#6b342f]"
-                        >
-                          Marcar como Resolvida
-                        </Button>
-                      )}
                     </div>
                   )
                 }
               ]}
               actions={(item) => (
-                item.status !== 'Resolvida' && (
-                  <Button
+                item.status !== 'resolvida' && (
+                  <button
                     onClick={() => marcarResolvido(item.id)}
-                    className="text-xs bg-[#f0e6d3] hover:bg-[#e6dbc8] text-[#6b342f]"
+                    className="text-[#15803d] hover:text-[#166534] transition-colors duration-200"
+                    title="Marcar como Resolvida"
                   >
-                    Marcar como Resolvida
-                  </Button>
+                    <FiCheck className="w-5 h-5" />
+                  </button>
                 )
               )}
             />
