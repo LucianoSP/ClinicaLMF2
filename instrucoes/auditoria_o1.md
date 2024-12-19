@@ -11,7 +11,7 @@ id (PRIMARY KEY)
 numero_guia (VARCHAR)
 data_exec (DATE)
 codigo_ficha (VARCHAR)
-descricao_divergencia (TEXT) - explicando qual é o problema (ex: "Data inconsistente", "Ausência de assinatura", "Quantidade de atendimentos divergente", etc.)
+descricao_divergencia (TEXT) - explicando qual é o problema (ex: "Data inconsistente", "Ausência de assinatura", "Quantidade de execucaos divergente", etc.)
 status (VARCHAR) - Ex: "Pendente", "Em análise", "Resolvido"
 data_registro (TIMESTAMP) - Para indicar quando a divergência foi criada
 Assim, você consegue filtrar divergências por guia, por data, por status, e a diretoria ou auditoria podem atacar os pontos problemáticos pontualmente.
@@ -24,7 +24,7 @@ Na tela de auditoria do frontend (em NextJS), você poderia:
 
 Exibir uma lista de divergências (com opção de filtro por guia, data, status).
 Permitir a mudança do status (por alguém autorizado).
-Eventualmente, linkar para detalhes do atendimento e da execução que geraram a divergência.
+Eventualmente, linkar para detalhes do execucao e da execução que geraram a divergência.
 Uso de Pandas (Opcional):
 Caso queira análises mais complexas, você pode extrair os dados do banco, processar com pandas (verificando padrões complexos) e inserir as divergências resultantes na tabela divergencias.
 
@@ -45,7 +45,7 @@ No frontend, eu recomendaria criar uma tela clara e funcional para a auditoria, 
 
 2. **Detalhamento da Divergência:**  
    - Ao clicar em uma linha da lista, abrir um modal ou navegar para uma rota detalhada (ex: `/auditoria/[id]`) mostrando todas as informações sobre aquela divergência.  
-   - Mostrar a descrição da divergência, a data do registro, o histórico de alterações de status e links diretos aos atendimentos e execuções relacionadas.
+   - Mostrar a descrição da divergência, a data do registro, o histórico de alterações de status e links diretos aos execucaos e execuções relacionadas.
    
 3. **Ações no Frontend:**  
    - Botões para alterar o status da divergência (ex: marcar como resolvida, encaminhar para análise).

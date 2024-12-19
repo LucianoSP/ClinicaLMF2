@@ -11,6 +11,7 @@ import Pagination from '@/components/Pagination';
 import { API_URL } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
 
+// 1. Atualizar interface
 interface ExcelData {
   id: number;
   guia_id: string;
@@ -144,7 +145,7 @@ export default function ExcelPage() {
     if (window.confirm('Tem certeza que deseja limpar todos os dados da tabela?')) {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/clear-excel-data`, {
+        const response = await fetch(`${API_URL}/clear-execucoes`, {  // Mudou de /clear-excel-data para /clear-execucoes
           method: 'POST',
         });
 

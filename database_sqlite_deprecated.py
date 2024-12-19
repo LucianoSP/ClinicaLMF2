@@ -29,16 +29,16 @@ def init_db():
         cursor.execute(
             """
             SELECT name FROM sqlite_master 
-            WHERE type='table' AND name='atendimentos'
+            WHERE type='table' AND name='execucaos'
         """
         )
         table_exists = cursor.fetchone() is not None
 
         if not table_exists:
-            # Tabela única para os atendimentos
+            # Tabela única para os execucaos
             cursor.execute(
                 """
-            CREATE TABLE IF NOT EXISTS atendimentos (
+            CREATE TABLE IF NOT EXISTS execucaos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 data_execucao TEXT NOT NULL,
                 paciente_carteirinha TEXT NOT NULL,
@@ -49,13 +49,13 @@ def init_db():
             )
             """
             )
-            print("Tabela 'atendimentos' criada com sucesso!")
+            print("Tabela 'execucaos' criada com sucesso!")
         else:
             # Se a tabela já existe, renomear a coluna codigo_guia para codigo_ficha
             try:
                 cursor.execute(
                     """
-                ALTER TABLE atendimentos RENAME COLUMN codigo_guia TO codigo_ficha
+                ALTER TABLE execucaos RENAME COLUMN codigo_guia TO codigo_ficha
                 """
                 )
                 print("Coluna 'codigo_guia' renomeada para 'codigo_ficha' com sucesso!")
@@ -140,10 +140,10 @@ def validar_formato_data(data_str: str) -> bool:
 
 def salvar_guia(info: Dict):
     """
-    Salva as informações do atendimento no banco de dados
+    Salva as informações do execucao no banco de dados
     Retorna o ID do registro
     """
-    print(f"\nTentando salvar atendimento: {info}")
+    print(f"\nTentando salvar execucao: {info}")
 
     # Garantir que a data está no formato correto antes de salvar
     try:
@@ -169,7 +169,7 @@ def salvar_guia(info: Dict):
     try:
         cursor.execute(
             """
-            INSERT INTO atendimentos (
+            INSERT INTO execucaos (
                 data_execucao,
                 paciente_carteirinha,
                 paciente_nome,
@@ -190,7 +190,7 @@ def salvar_guia(info: Dict):
 
         last_id = cursor.lastrowid
         conn.commit()
-        print(f"Atendimento salvo com ID: {last_id}")
+        print(f"execucao salvo com ID: {last_id}")
         return last_id
     except Exception as e:
         print(f"Erro ao salvar guia: {e}")
@@ -244,7 +244,7 @@ def salvar_dados_excel(registros):
 
 
 def listar_guias(limit: int = 100, offset: int = 0, paciente_nome: str = None):
-    """Retorna todos os atendimentos como uma lista única com suporte a paginação e filtro"""
+    """Retorna todos os execucaos como uma lista única com suporte a paginação e filtro"""
     try:
         conn = sqlite3.connect(DATABASE_FILE)
         cursor = conn.cursor()
@@ -259,7 +259,7 @@ def listar_guias(limit: int = 100, offset: int = 0, paciente_nome: str = None):
                 guia_id,
                 codigo_ficha,
                 possui_assinatura
-            FROM atendimentos
+            FROM execucaos
         """
         params = []
 
@@ -292,9 +292,9 @@ def listar_guias(limit: int = 100, offset: int = 0, paciente_nome: str = None):
         rows = cursor.fetchall()
 
         # Processar resultados
-        atendimentos = []
+        execucaos = []
         for row in rows:
-            atendimento = {
+            execucao = {
                 "id": row[0],
                 "data_execucao": row[1],
                 "paciente_carteirinha": row[2],
@@ -303,17 +303,17 @@ def listar_guias(limit: int = 100, offset: int = 0, paciente_nome: str = None):
                 "codigo_ficha": row[5],
                 "possui_assinatura": bool(row[6]),
             }
-            atendimentos.append(atendimento)
+            execucaos.append(execucao)
 
         conn.close()
-        return atendimentos
+        return execucaos
 
     except Exception as e:
         return []
 
 
 def buscar_guia(guia_id: str):
-    """Busca atendimentos específicos pelo número da guia"""
+    """Busca execucaos específicos pelo número da guia"""
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
 
@@ -327,17 +327,17 @@ def buscar_guia(guia_id: str):
             guia_id,
             codigo_ficha,
             possui_assinatura
-        FROM atendimentos
+        FROM execucaos
         WHERE guia_id = ?
     """,
         (guia_id,),
     )
 
     rows = cursor.fetchall()
-    atendimentos = []
+    execucaos = []
 
     for row in rows:
-        atendimentos.append(
+        execucaos.append(
             {
                 "id": row[0],
                 "data_execucao": row[1],
@@ -350,14 +350,14 @@ def buscar_guia(guia_id: str):
         )
 
     conn.close()
-    return atendimentos
+    return execucaos
 
 
 def limpar_banco():
     """Limpa a tabela do banco de dados"""
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM atendimentos")
+    cursor.execute("DELETE FROM execucaos")
     conn.commit()
     conn.close()
 

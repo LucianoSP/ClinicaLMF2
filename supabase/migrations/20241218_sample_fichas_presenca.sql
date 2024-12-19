@@ -1,7 +1,7 @@
 -- Inserir dados de fichas de presença
 INSERT INTO fichas_presenca (
     id,
-    data_atendimento,
+    data_execucao,
     paciente_nome,
     paciente_carteirinha,
     numero_guia,
@@ -82,5 +82,5 @@ VALUES
 -- Criar índices para otimização
 CREATE INDEX IF NOT EXISTS idx_fichas_codigo ON fichas_presenca(codigo_ficha);
 CREATE INDEX IF NOT EXISTS idx_fichas_guia ON fichas_presenca(numero_guia);
-CREATE INDEX IF NOT EXISTS idx_fichas_data ON fichas_presenca(data_atendimento);
+CREATE INDEX IF NOT EXISTS idx_fichas_data ON fichas_presenca(data_execucao);
 CREATE INDEX IF NOT EXISTS idx_fichas_carteirinha ON fichas_presenca(paciente_carteirinha);

@@ -5,7 +5,7 @@ WITH fichas_sem_execucao AS (
     SELECT 
         f.codigo_ficha,
         f.numero_guia,
-        f.data_atendimento,
+        f.data_execucao,
         f.paciente_nome,
         'Ficha sem execução registrada' as tipo_divergencia
     FROM fichas_presenca f
@@ -31,7 +31,7 @@ fichas_nao_assinadas AS (
     SELECT 
         f.codigo_ficha,
         f.numero_guia,
-        f.data_atendimento,
+        f.data_execucao,
         f.paciente_nome,
         'Ficha sem assinatura' as tipo_divergencia
     FROM fichas_presenca f
@@ -43,12 +43,12 @@ divergencias_data AS (
     SELECT 
         f.codigo_ficha,
         f.numero_guia,
-        f.data_atendimento,
+        f.data_execucao,
         f.paciente_nome,
         'Data da ficha diferente da execução' as tipo_divergencia
     FROM fichas_presenca f
     JOIN execucoes e ON f.codigo_ficha = e.codigo_ficha
-    WHERE f.data_atendimento != e.data_execucao
+    WHERE f.data_execucao != e.data_execucao
 )
 
 -- União de todas as divergências
@@ -82,8 +82,8 @@ SELECT
     NOW() as data_identificacao,
     numero_guia,
     CASE 
-        WHEN tipo_divergencia = 'Ficha sem execução registrada' THEN data_atendimento
-        ELSE data_atendimento
+        WHEN tipo_divergencia = 'Ficha sem execução registrada' THEN data_execucao
+        ELSE data_execucao
     END as data_execucao,
     codigo_ficha,
     paciente_nome,

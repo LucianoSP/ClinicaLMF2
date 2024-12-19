@@ -4,7 +4,7 @@
 
 ### Identificadores de Guia
 Atualmente existem variações:
-- `numero_guia_principal` (atendimentos)
+- `numero_guia_principal` (execucaos)
 - `idGuia` (protocolos_excel)
 - `numero_guia` (divergencias)
 
@@ -12,7 +12,7 @@ Atualmente existem variações:
 
 ### Dados do Paciente
 Atualmente existem variações:
-- `paciente_nome` (atendimentos)
+- `paciente_nome` (execucaos)
 - `nomePaciente` (protocolos_excel)
 - `beneficiario` (divergencias)
 
@@ -20,14 +20,14 @@ Atualmente existem variações:
 
 ### Número da Carteirinha
 Atualmente existem variações:
-- `numero_carteira` (atendimentos)
+- `numero_carteira` (execucaos)
 - `carteirinha` (protocolos_excel)
 
 **Padronização sugerida:** `paciente_carteirinha`
 
 ### Datas
 Atualmente existem variações:
-- `data_execucao` (atendimentos)
+- `data_execucao` (execucaos)
 - `dataExec` (protocolos_excel)
 - `data_exec` (divergencias)
 
@@ -35,7 +35,7 @@ Atualmente existem variações:
 
 ### Código da Ficha
 Atualmente existem variações:
-- `codigo_ficha` (atendimentos e divergencias)
+- `codigo_ficha` (execucaos e divergencias)
 
 **Mantém-se:** `codigo_ficha` (já está padronizado)
 
@@ -53,8 +53,8 @@ CREATE TABLE protocolos_excel (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Tabela atendimentos
-CREATE TABLE atendimentos (
+-- Tabela execucaos
+CREATE TABLE execucaos (
     id BIGINT PRIMARY KEY,
     data_execucao TIMESTAMP NOT NULL,
     paciente_carteirinha TEXT NOT NULL,

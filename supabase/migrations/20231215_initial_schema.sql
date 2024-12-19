@@ -7,7 +7,7 @@ CREATE TYPE status_divergencia AS ENUM ('pendente', 'resolvida', 'ignorada');
 -- Table: fichas_presenca
 CREATE TABLE fichas_presenca (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    data_atendimento DATE NOT NULL,
+    data_execucao DATE NOT NULL,
     paciente_carteirinha TEXT NOT NULL,
     paciente_nome TEXT NOT NULL,
     numero_guia TEXT NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE divergencias (
 
 -- Indexes for better performance
 CREATE INDEX idx_fichas_numero_guia ON fichas_presenca(numero_guia);
-CREATE INDEX idx_fichas_data ON fichas_presenca(data_atendimento);
+CREATE INDEX idx_fichas_data ON fichas_presenca(data_execucao);
 CREATE INDEX idx_execucoes_numero_guia ON execucoes_unimed(numero_guia);
 CREATE INDEX idx_execucoes_data ON execucoes_unimed(data_execucao);
 CREATE INDEX idx_divergencias_status ON divergencias(status);

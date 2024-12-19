@@ -1,38 +1,38 @@
-**Requisitos Detalhados do Projeto de Auditoria de Atendimentos Médicos**
+**Requisitos Detalhados do Projeto de Auditoria de execucaos Médicos**
 
 **1. Contexto Geral**
 
-Você possui um aplicativo de atendimentos médicos com duas tabelas principais no banco de dados:
+Você possui um aplicativo de execucaos médicos com duas tabelas principais no banco de dados:
 
-- **Tabela de Atendimentos (`fichas_presenca`)**: Registra cada atendimento realizado, incluindo informações como data, número da carteira, nome do beneficiário, número da guia principal, código da guia e se possui assinatura.
+- **Tabela de execucaos (`fichas_presenca`)**: Registra cada execucao realizado, incluindo informações como data, número da carteira, nome do beneficiário, número da guia principal, código da guia e se possui assinatura.
 
 - **Tabela de Execuções (`execucoes`)**: Contém as guias geradas e executadas pelo plano de saúde, incluindo o ID da guia, nome do paciente, data de execução, carteirinha, ID do paciente e data de criação do registro.
 
 **2. Objetivo do Projeto**
 
-Desenvolver uma solução que compare as duas tabelas para identificar divergências entre os atendimentos realizados e as execuções registradas pelo plano de saúde. As divergências encontradas devem ser encaminhadas para a diretoria e equipe de auditoria para correção antes de serem enviadas para protocolo.
+Desenvolver uma solução que compare as duas tabelas para identificar divergências entre os execucaos realizados e as execuções registradas pelo plano de saúde. As divergências encontradas devem ser encaminhadas para a diretoria e equipe de auditoria para correção antes de serem enviadas para protocolo.
 
 **3. Requisitos Funcionais**
 
 3.1. **Comparação de Registros**
 
-- **Agrupar Registros**: Os registros devem ser agrupados pelo número da guia e data de atendimento/execução.
+- **Agrupar Registros**: Os registros devem ser agrupados pelo número da guia e data de execucao/execução.
 
 - **Contagem de Execuções**: Determinar a quantidade de execuções para cada guia e data a partir da tabela `protocolos_excel`.
 
-- **Verificação de Atendimentos Correspondentes**: Verificar se a tabela `atendimentos` possui registros correspondentes em quantidade e detalhes para cada grupo identificado.
+- **Verificação de execucaos Correspondentes**: Verificar se a tabela `execucaos` possui registros correspondentes em quantidade e detalhes para cada grupo identificado.
 
 3.2. **Identificação de Inconsistências**
 
 As inconsistências a serem identificadas incluem:
 
-- **Datas Não Preenchidas**: Atendimentos onde o campo `data_execucao` está vazio ou nulo.
+- **Datas Não Preenchidas**: execucaos onde o campo `data_execucao` está vazio ou nulo.
 
-- **Número da Guia Não Preenchido**: Atendimentos onde o campo `numero_guia_principal` está vazio ou nulo, possivelmente porque o paciente estava sem guia no dia.
+- **Número da Guia Não Preenchido**: execucaos onde o campo `numero_guia_principal` está vazio ou nulo, possivelmente porque o paciente estava sem guia no dia.
 
 - **Assinaturas Ausentes ou Divergentes**: Casos em que a quantidade de assinaturas não corresponde à quantidade de execuções, seja por assinatura de quantidade abaixo ou acima do executado.
 
-- **Quantidade de Atendimentos Divergente**: Quando a quantidade de atendimentos registrados não corresponde à quantidade de execuções esperadas.
+- **Quantidade de execucaos Divergente**: Quando a quantidade de execucaos registrados não corresponde à quantidade de execuções esperadas.
 
 - **Datas Preenchidas Acima da Quantidade Executada**: Situações onde há mais datas preenchidas do que o número de execuções registradas.
 
@@ -72,17 +72,17 @@ As inconsistências a serem identificadas incluem:
 
 **5. Detalhamento das Tabelas**
 
-5.1. **Tabela `atendimentos`**
+5.1. **Tabela `execucaos`**
 
 
 - **Campos**:
-  - `id`: Identificador único do atendimento.
-  - `data_execucao`: Data em que o atendimento foi realizado.
+  - `id`: Identificador único do execucao.
+  - `data_execucao`: Data em que o execucao foi realizado.
   - `numero_carteira`: Número da carteira do paciente.
   - `paciente_nome`: Nome do paciente beneficiário.
-  - `numero_guia_principal`: Número da guia principal associada ao atendimento.
+  - `numero_guia_principal`: Número da guia principal associada ao execucao.
   - `codigo_guia`: Código específico da guia.
-  - `possui_assinatura`: Indica se o atendimento possui assinatura (1 para verdadeiro, 0 para falso).
+  - `possui_assinatura`: Indica se o execucao possui assinatura (1 para verdadeiro, 0 para falso).
 
 5.2. **Tabela `protocolos_excel`**
 
@@ -103,21 +103,21 @@ As inconsistências a serem identificadas incluem:
 
 - Agrupar os registros por `idGuia` e `dataExec` para determinar a quantidade de execuções por guia e data.
 
-6.2. **Verificação dos Atendimentos**
+6.2. **Verificação dos execucaos**
 
-- Para cada grupo identificado, buscar os atendimentos correspondentes na tabela `atendimentos` com base em `codigo_guia` e `data_execucao`.
+- Para cada grupo identificado, buscar os execucaos correspondentes na tabela `execucaos` com base em `codigo_guia` e `data_execucao`.
 
-- Comparar a quantidade de atendimentos encontrados com a quantidade de execuções esperadas.
+- Comparar a quantidade de execucaos encontrados com a quantidade de execuções esperadas.
 
 6.3. **Identificação de Problemas Específicos**
 
-- **Datas Não Preenchidas**: Verificar se há atendimentos sem `data_execucao`.
+- **Datas Não Preenchidas**: Verificar se há execucaos sem `data_execucao`.
 
-- **Número da Guia Não Preenchido**: Identificar atendimentos sem `numero_guia_principal`.
+- **Número da Guia Não Preenchido**: Identificar execucaos sem `numero_guia_principal`.
 
 - **Assinaturas Ausentes ou Divergentes**: Verificar se `possui_assinatura` é falso ou se a quantidade de assinaturas não corresponde às execuções.
 
-- **Quantidade Divergente de Atendimentos**: Comparar a quantidade de atendimentos com a quantidade de execuções registradas.
+- **Quantidade Divergente de execucaos**: Comparar a quantidade de execucaos com a quantidade de execuções registradas.
 
 - **Datas Preenchidas em Excesso**: Detectar se há mais datas preenchidas do que o número de execuções.
 
@@ -128,7 +128,7 @@ As inconsistências a serem identificadas incluem:
 - Gerar relatórios que incluam:
   - Identificação da guia e data.
   - Quantidade esperada de execuções.
-  - Quantidade real de atendimentos.
+  - Quantidade real de execucaos.
   - Detalhes das inconsistências específicas.
 
 **7. Implementação Técnica**
@@ -187,4 +187,4 @@ As inconsistências a serem identificadas incluem:
 
 **Resumo**
 
-O projeto visa criar uma ferramenta eficaz para automatizar a auditoria dos atendimentos médicos, comparando registros internos com as execuções registradas pelo plano de saúde. A solução deve identificar divergências específicas, impedir que guias com problemas sejam protocoladas e fornecer relatórios detalhados para a equipe de auditoria, garantindo maior eficiência e precisão nos processos administrativos.
+O projeto visa criar uma ferramenta eficaz para automatizar a auditoria dos execucaos médicos, comparando registros internos com as execuções registradas pelo plano de saúde. A solução deve identificar divergências específicas, impedir que guias com problemas sejam protocoladas e fornecer relatórios detalhados para a equipe de auditoria, garantindo maior eficiência e precisão nos processos administrativos.

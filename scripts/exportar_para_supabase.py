@@ -75,9 +75,9 @@ def exportar_protocolos_excel(conn):
     return len(df)
 
 
-def exportar_atendimentos(conn):
-    """Exporta dados da tabela atendimentos"""
-    logging.info("Exportando atendimentos...")
+def exportar_execucaos(conn):
+    """Exporta dados da tabela execucaos"""
+    logging.info("Exportando execucaos...")
 
     query = """
     SELECT 
@@ -87,7 +87,7 @@ def exportar_atendimentos(conn):
         guia_idas guia_id,
         codigo_ficha,
         possui_assinatura
-    FROM atendimentos
+    FROM execucaos
     """
 
     df = pd.read_sql_query(query, conn)
@@ -104,9 +104,9 @@ def exportar_atendimentos(conn):
     )
 
     # Exportar para CSV
-    csv_path = os.path.join(EXPORT_DIR, "atendimentos.csv")
+    csv_path = os.path.join(EXPORT_DIR, "execucaos.csv")
     df.to_csv(csv_path, index=False)
-    logging.info(f"Exportados {len(df)} registros de atendimentos para {csv_path}")
+    logging.info(f"Exportados {len(df)} registros de execucaos para {csv_path}")
 
     return len(df)
 
@@ -160,7 +160,7 @@ def main():
 
         # Exportar cada tabela
         total_protocolos = exportar_protocolos_excel(conn)
-        total_atendimentos = exportar_atendimentos(conn)
+        total_execucaos = exportar_execucaos(conn)
         total_divergencias = exportar_divergencias(conn)
 
         # Fechar conexão
@@ -169,7 +169,7 @@ def main():
         # Relatório final
         logging.info("\nRelatório de Exportação:")
         logging.info(f"Protocolos Excel: {total_protocolos} registros")
-        logging.info(f"Atendimentos: {total_atendimentos} registros")
+        logging.info(f"execucaos: {total_execucaos} registros")
         logging.info(f"Divergências: {total_divergencias} registros")
         logging.info(f"\nArquivos CSV gerados no diretório: {EXPORT_DIR}")
 

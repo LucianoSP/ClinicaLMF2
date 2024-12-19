@@ -100,27 +100,27 @@ def limpar_protocolos_excel() -> bool:
         print("Tabela execucoes limpa com sucesso!")
         return True
     except Exception as e:
-        print(f"Erro ao limpar execuções no Supabase: {e}")
+        print(f"Erro ao limpar tabela execucoes: {e}")
         return False
 
 
-def contar_protocolos() -> int:
-    """Retorna o número total de protocolos na tabela execucoes"""
+def contar_execucoes() -> int:
+    """Retorna o número total de execuções na tabela execucoes"""
     try:
-        response = supabase.table("execucoes").select("*").execute()
-        return len(response.data)
+        response = supabase.table("execucoes").select("id", count="exact").execute()
+        return response.count
     except Exception as e:
-        print(f"Erro ao contar protocolos no Supabase: {e}")
+        print(f"Erro ao contar execuções: {e}")
         return 0
 
 
 def salvar_guia(info: Dict) -> Optional[int]:
     """
-    Salva as informações do atendimento no Supabase.
+    Salva as informações do execucao no Supabase.
     Se o código da ficha já existir, atualiza o registro.
     """
     try:
-        print(f"Tentando salvar atendimento: {info}")
+        print(f"Tentando salvar execucao: {info}")
 
         # Formata os dados para o formato esperado pelo banco
         dados = {
@@ -140,7 +140,7 @@ def salvar_guia(info: Dict) -> Optional[int]:
         codigo_ficha = info.get("codigo_ficha")
         if codigo_ficha:
             existing = (
-                supabase.table("atendimentos")
+                supabase.table("execucaos")
                 .select("id")
                 .eq("codigo_ficha", codigo_ficha)
                 .execute()
@@ -152,13 +152,13 @@ def salvar_guia(info: Dict) -> Optional[int]:
                     f"Atualizando registro existente para codigo_ficha: {codigo_ficha}"
                 )
                 response = (
-                    supabase.table("atendimentos")
+                    supabase.table("execucaos")
                     .update(dados)
                     .eq("codigo_ficha", codigo_ficha)
                     .execute()
                 )
                 if response.data:
-                    print(f"Atendimento atualizado com sucesso: {response.data}")
+                    print(f"execucao atualizado com sucesso: {response.data}")
                     return response.data[0].get("id")
                 else:
                     print("Erro: Resposta vazia do Supabase ao atualizar")
@@ -166,10 +166,10 @@ def salvar_guia(info: Dict) -> Optional[int]:
 
         # Se não existe, insere novo registro
         print(f"Inserindo novo registro para codigo_ficha: {codigo_ficha}")
-        response = supabase.table("atendimentos").insert(dados).execute()
+        response = supabase.table("execucaos").insert(dados).execute()
 
         if response.data:
-            print(f"Atendimento salvo com sucesso: {response.data}")
+            print(f"execucao salvo com sucesso: {response.data}")
             return response.data[0].get("id")
         else:
             print("Erro: Resposta vazia do Supabase")
@@ -184,10 +184,10 @@ def salvar_guia(info: Dict) -> Optional[int]:
 def listar_guias(
     limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
 ) -> Dict:
-    """Retorna todos os atendimentos como uma lista única com suporte a paginação e filtro"""
+    """Retorna todos os execucaos como uma lista única com suporte a paginação e filtro"""
     try:
         # Inicia a query
-        query = supabase.table("atendimentos").select("*")
+        query = supabase.table("execucaos").select("*")
 
         # Adiciona filtro por nome se fornecido
         if paciente_nome and isinstance(paciente_nome, str):
@@ -214,9 +214,9 @@ def listar_guias(
         rows = response.data
 
         # Processa resultados
-        atendimentos = []
+        execucaos = []
         for row in rows:
-            atendimento = {
+            execucao = {
                 "id": row["id"],
                 "data_execucao": row["data_execucao"],
                 "paciente_carteirinha": row["paciente_carteirinha"],
@@ -226,25 +226,25 @@ def listar_guias(
                 "possui_assinatura": bool(row["possui_assinatura"]),
                 "arquivo_url": row.get("arquivo_url", None),
             }
-            atendimentos.append(atendimento)
+            execucaos.append(execucao)
 
-        return {"atendimentos": atendimentos, "total": total}
+        return {"execucaos": execucaos, "total": total}
 
     except Exception as e:
         print(f"Erro ao listar guias: {e}")
-        return {"atendimentos": [], "total": 0}
+        return {"execucaos": [], "total": 0}
 
 
 def buscar_guia(guia_id: str) -> List[Dict]:
-    """Busca atendimentos específicos pelo número da guia"""
+    """Busca execucaos específicos pelo número da guia"""
     try:
         response = (
-            supabase.table("atendimentos").select("*").eq("guia_id", guia_id).execute()
+            supabase.table("execucaos").select("*").eq("guia_id", guia_id).execute()
         )
 
-        atendimentos = []
+        execucaos = []
         for row in response.data:
-            atendimentos.append(
+            execucaos.append(
                 {
                     "id": row["id"],
                     "data_execucao": row["data_execucao"],
@@ -257,7 +257,7 @@ def buscar_guia(guia_id: str) -> List[Dict]:
                 }
             )
 
-        return atendimentos
+        return execucaos
 
     except Exception as e:
         print(f"Erro ao buscar guia: {e}")
@@ -265,9 +265,9 @@ def buscar_guia(guia_id: str) -> List[Dict]:
 
 
 def limpar_banco() -> None:
-    """Limpa a tabela de atendimentos"""
+    """Limpa a tabela de execucaos"""
     try:
-        supabase.table("atendimentos").delete().neq("id", 0).execute()
+        supabase.table("execucaos").delete().neq("id", 0).execute()
     except Exception as e:
         print(f"Erro ao limpar banco: {e}")
 
@@ -333,7 +333,7 @@ def listar_divergencias(
                 "total": 0,
                 "paginas": 1,
             }
-            
+
         total = len(count_response.data)
 
         # Then get paginated results
@@ -351,14 +351,24 @@ def listar_divergencias(
                     {
                         "id": str(div.get("id", "")),  # Convert ID to string
                         "guia_id": str(div.get("numero_guia", "")),
-                        "data_execucao": (datetime.strptime(str(div.get("data_execucao", "")), "%Y-%m-%d").strftime("%d/%m/%Y") 
-                                        if div.get("data_execucao") else ""),
+                        "data_execucao": (
+                            datetime.strptime(
+                                str(div.get("data_execucao", "")), "%Y-%m-%d"
+                            ).strftime("%d/%m/%Y")
+                            if div.get("data_execucao")
+                            else ""
+                        ),
                         "codigo_ficha": str(div.get("codigo_ficha", "")),
                         "descricao_divergencia": str(div.get("descricao", "")),
                         "paciente_nome": str(div.get("paciente_nome", "")),
                         "status": str(div.get("status", "pendente")),
-                        "data_registro": (datetime.fromisoformat(str(div.get("created_at", "")).replace("Z", "+00:00")).strftime("%d/%m/%Y %H:%M") 
-                                        if div.get("created_at") else ""),
+                        "data_registro": (
+                            datetime.fromisoformat(
+                                str(div.get("created_at", "")).replace("Z", "+00:00")
+                            ).strftime("%d/%m/%Y %H:%M")
+                            if div.get("created_at")
+                            else ""
+                        ),
                     }
                 )
             except Exception as e:
@@ -387,7 +397,7 @@ def atualizar_status_divergencia(
     try:
         # Converte o ID para inteiro
         id_numerico = int(id)
-        
+
         dados = {
             "status": novo_status,
             "data_resolucao": (
@@ -405,9 +415,9 @@ def atualizar_status_divergencia(
         return False
 
 
-def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
+def atualizar_execucao(codigo_ficha: str, dados: Dict) -> bool:
     """
-    Atualiza um atendimento no Supabase
+    Atualiza um execucao no Supabase
     """
     try:
         # Formata os dados no padrão esperado
@@ -423,7 +433,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
 
         # Verifica se o registro existe
         check_response = (
-            supabase.table("atendimentos")
+            supabase.table("execucaos")
             .select("id")
             .eq("codigo_ficha", codigo_ficha)
             .execute()
@@ -434,7 +444,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
         # Se o código da ficha está sendo alterado, verifica se o novo código já existe
         if codigo_ficha != dados_atualizados["codigo_ficha"]:
             check_new_code = (
-                supabase.table("atendimentos")
+                supabase.table("execucaos")
                 .select("id")
                 .eq("codigo_ficha", dados_atualizados["codigo_ficha"])
                 .execute()
@@ -444,7 +454,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
 
         # Atualiza o registro no Supabase
         response = (
-            supabase.table("atendimentos")
+            supabase.table("execucaos")
             .update(dados_atualizados)
             .eq("codigo_ficha", codigo_ficha)
             .execute()
@@ -453,7 +463,7 @@ def atualizar_atendimento(codigo_ficha: str, dados: Dict) -> bool:
         return True
 
     except Exception as e:
-        print(f"Erro ao atualizar atendimento: {e}")
+        print(f"Erro ao atualizar execucao: {e}")
         raise e
 
 
@@ -592,40 +602,42 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
         dados = {
             "data_atendimento": info["data_atendimento"],
             "paciente_carteirinha": info["paciente_carteirinha"],
-            "paciente_nome": info["paciente_nome"],
+            "paciente_nome": info["paciente_nome"].upper(),
             "numero_guia": info["numero_guia"],
-            "possui_assinatura": info.get("possui_assinatura", False),
             "codigo_ficha": info["codigo_ficha"],
+            "possui_assinatura": info.get("possui_assinatura", False),
             "arquivo_digitalizado": info.get("arquivo_digitalizado"),
         }
 
-        # Verifica se já existe um registro com este código_ficha
-        codigo_ficha = info["codigo_ficha"]
-        existing = (
-            supabase.table("fichas_presenca")
-            .select("id")
-            .eq("codigo_ficha", codigo_ficha)
-            .execute()
-        )
-
-        if existing.data and len(existing.data) > 0:
-            # Atualiza o registro existente
-            print(f"Atualizando registro existente para codigo_ficha: {codigo_ficha}")
-            response = (
+        # Verifica se já existe um registro com o mesmo código de ficha
+        codigo_ficha = info.get("codigo_ficha")
+        if codigo_ficha:
+            existing = (
                 supabase.table("fichas_presenca")
-                .update(dados)
+                .select("id")
                 .eq("codigo_ficha", codigo_ficha)
                 .execute()
             )
-            if response.data:
-                print(f"Ficha atualizada com sucesso: {response.data}")
-                return response.data[0].get("id")
-            else:
-                print("Erro: Resposta vazia do Supabase ao atualizar")
-                return None
+
+            if existing.data:
+                print(
+                    f"Atualizando registro existente para codigo_ficha: {codigo_ficha}"
+                )
+                response = (
+                    supabase.table("fichas_presenca")
+                    .update(dados)
+                    .eq("codigo_ficha", codigo_ficha)
+                    .execute()
+                )
+                if response.data:
+                    print(f"Ficha atualizada com sucesso: {response.data}")
+                    return response.data[0].get("id")
+                else:
+                    print("Erro: Resposta vazia do Supabase ao atualizar")
+                    return None
 
         # Se não existe, insere novo registro
-        print(f"Inserindo nova ficha para codigo_ficha: {codigo_ficha}")
+        print(f"Inserindo novo registro para codigo_ficha: {codigo_ficha}")
         response = supabase.table("fichas_presenca").insert(dados).execute()
 
         if response.data:
@@ -636,8 +648,7 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
             return None
 
     except Exception as e:
-        print(f"Erro ao salvar ficha: {e}")
-        traceback.print_exc()
+        print(f"Erro ao salvar ficha de presença: {e}")
         return None
 
 
@@ -652,9 +663,13 @@ def listar_fichas_presenca(
         # Inicia a query
         query = supabase.table("fichas_presenca").select("*")
 
-        # Adiciona filtro se paciente_nome for fornecido
-        if paciente_nome:
+        # Adiciona filtro por nome se fornecido
+        if paciente_nome and isinstance(paciente_nome, str):
             query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
+
+        # Busca todos os registros para contar
+        count_response = query.execute()
+        total = len(count_response.data)
 
         # Adiciona ordenação e paginação
         query = query.order("data_atendimento", desc=True)
@@ -674,22 +689,16 @@ def listar_fichas_presenca(
                 except ValueError:
                     pass  # Mantém o formato original se não conseguir converter
 
-        # Se limit = 0, retorna todas as fichas
-        if limit == 0:
-            return {"fichas": fichas, "total": len(fichas), "paginas": 1}
-
-        # Se limit > 0, retorna com paginação
-        total = len(supabase.table("fichas_presenca").select("id").execute().data)
         return {
             "fichas": fichas,
             "total": total,
-            "paginas": (total + limit - 1) // limit,
+            "total_pages": ceil(total / limit) if limit > 0 else 1,
         }
 
     except Exception as e:
         print(f"Erro ao listar fichas de presença: {e}")
-        traceback.print_exc()
-        return {"fichas": [], "total": 0, "paginas": 1}
+        traceback.print_exc()  # Isso imprimirá o traceback completo
+        return {"fichas": [], "total": 0, "total_pages": 1}
 
 
 def buscar_ficha_presenca(
@@ -706,23 +715,20 @@ def buscar_ficha_presenca(
         Dict com os dados da ficha ou None se não encontrada
     """
     try:
-        # Inicia a query
-        query = supabase.table("fichas_presenca").select("*")
+        # Determina o campo de busca com base no tipo
+        campo = "id" if tipo_busca == "id" else "codigo_ficha"
 
-        # Aplica o filtro adequado
-        if tipo_busca == "id":
-            query = query.eq("id", identificador)
-        else:  # codigo
-            query = query.eq("codigo_ficha", identificador)
+        # Executa a busca
+        response = (
+            supabase.table("fichas_presenca")
+            .select("*")
+            .eq(campo, identificador)
+            .execute()
+        )
 
-        # Executa a query
-        response = query.execute()
-
-        if not response.data or len(response.data) == 0:
-            print(f"Ficha não encontrada para {tipo_busca}={identificador}")
+        if not response.data:
             return None
 
-        # Pega o primeiro resultado
         row = response.data[0]
 
         # Formata o resultado
@@ -739,11 +745,18 @@ def buscar_ficha_presenca(
             "updated_at": row["updated_at"],
         }
 
+        # Formata a data se necessário
+        if ficha["data_atendimento"]:
+            try:
+                data = datetime.strptime(ficha["data_atendimento"], "%Y-%m-%d")
+                ficha["data_atendimento"] = data.strftime("%d/%m/%Y")
+            except ValueError:
+                pass  # Mantém o formato original se não conseguir converter
+
         return ficha
 
     except Exception as e:
         print(f"Erro ao buscar ficha: {e}")
-        traceback.print_exc()
         return None
 
 

@@ -16,7 +16,7 @@ import { FiCheck, FiX } from 'react-icons/fi';
 import { API_URL } from '@/config/api';
 import { useToast } from '@/components/ui/toasts';
 
-interface Atendimento {
+interface execucao {
   id: number;
   numero_carteira: string;
   paciente_nome: string;

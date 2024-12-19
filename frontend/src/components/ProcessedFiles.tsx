@@ -23,20 +23,21 @@ interface Registro {
 
 interface DadosGuia {
   codigo_ficha: string;
-  registros: Registro[];
+  registros: Execucao[];
 }
 
-interface Atendimento {
+
+interface Execucao {
   data_execucao: string;
-  paciente_carteirinha: string;  // Changed from numero_carteira
+  paciente_carteirinha: string;
   paciente_nome: string;
-  guia_id: string;              // Changed from numero_guia_principal
+  guia_id: string;
   possui_assinatura: boolean;
   codigo_ficha: string;
 }
 
 const ProcessedFiles = () => {
-  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [execucoes, setExecucoes] = useState<Execucao[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -49,11 +50,11 @@ const ProcessedFiles = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedAtendimento, setEditedAtendimento] = useState<Atendimento | null>(null);
+  const [editedexecucao, setEditedexecucao] = useState<execucao | null>(null);
   const [originalCodigoFicha, setOriginalCodigoFicha] = useState<string | null>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [atendimentoToDelete, setAtendimentoToDelete] = useState<Atendimento | null>(null);
+  const [execucaoToDelete, setexecucaoToDelete] = useState<execucao | null>(null);
 
   const fetchProcessedFiles = async () => {
     setLoading(true);
@@ -61,7 +62,7 @@ const ProcessedFiles = () => {
       setError(null);
       setSyncSuccess(false);
 
-      const baseUrl = `${API_URL}/atendimentos`;
+      const baseUrl = `${API_URL}/execucoes`;  // Mudou de /execucaos para /execucoes
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('per_page', perPage.toString());
@@ -73,21 +74,20 @@ const ProcessedFiles = () => {
 
       const url = `${baseUrl}?${params.toString()}`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
-        throw new Error('Falha ao carregar arquivos processados');
+        throw new Error('Falha ao carregar execuções');
       }
 
       const result = await response.json();
       console.log('Resultado da busca:', result);
 
       if (result.success) {
-        // Format dates before setting the state
-        const formattedAtendimentos = (result.data.atendimentos || []).map((atendimento: Atendimento) => ({
-          ...atendimento,
-          data_execucao: formatDate(atendimento.data_execucao.split('T')[0]) // Remove time part and format
+        const formattedExecucoes = (result.data.execucoes || []).map((execucao: Execucao) => ({
+          ...execucao,
+          data_execucao: formatDate(execucao.data_execucao.split('T')[0])
         }));
-        setAtendimentos(formattedAtendimentos);
+        setExecucoes(formattedExecucoes);
         setTotalPages(result.data.pagination.total_pages);
         setTotalRecords(result.data.pagination.total);
       } else {
@@ -95,7 +95,7 @@ const ProcessedFiles = () => {
       }
     } catch (error) {
       console.error('Error:', error);
-      setError('Erro ao carregar arquivos processados');
+      setError('Erro ao carregar execuções');
     } finally {
       setLoading(false);
     }
@@ -152,7 +152,7 @@ const ProcessedFiles = () => {
   const handleExportExcel = () => {
     try {
       // Preparar os dados para exportação
-      const exportData = atendimentos.map(item => ({
+      const exportData = execucaos.map(item => ({
         'DATA': item.data_execucao,
         'CARTEIRINHA': item.paciente_carteirinha,
         'PACIENTE': item.paciente_nome,
@@ -164,10 +164,10 @@ const ProcessedFiles = () => {
       // Criar uma nova planilha
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Atendimentos');
+      XLSX.utils.book_append_sheet(wb, ws, 'execucaos');
 
       // Gerar o arquivo e fazer o download
-      const fileName = `atendimentos_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
+      const fileName = `execucaos_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
       XLSX.writeFile(wb, fileName);
     } catch (err) {
       console.error('Erro ao exportar:', err);
@@ -175,16 +175,16 @@ const ProcessedFiles = () => {
     }
   };
 
-  const handleEdit = (atendimento: Atendimento) => {
-    setEditingId(atendimento.codigo_ficha);
-    setEditedAtendimento({ ...atendimento });
-    setOriginalCodigoFicha(atendimento.codigo_ficha);
+  const handleEdit = (execucao: execucao) => {
+    setEditingId(execucao.codigo_ficha);
+    setEditedexecucao({ ...execucao });
+    setOriginalCodigoFicha(execucao.codigo_ficha);
   };
 
-  const handleCellEdit = (item: Atendimento, key: keyof Atendimento, value: any) => {
-    if (editedAtendimento && item.codigo_ficha === editingId) {
-      const updatedAtendimento = { ...editedAtendimento, [key]: value };
-      setEditedAtendimento(updatedAtendimento);
+  const handleCellEdit = (item: execucao, key: keyof execucao, value: any) => {
+    if (editedexecucao && item.codigo_ficha === editingId) {
+      const updatedexecucao = { ...editedexecucao, [key]: value };
+      setEditedexecucao(updatedexecucao);
 
       // If we're editing the codigo_ficha, we need to update the editingId
       if (key === 'codigo_ficha') {
@@ -192,19 +192,19 @@ const ProcessedFiles = () => {
       }
 
       // Update the local state to reflect changes immediately
-      setAtendimentos(atendimentos.map(a =>
-        a.codigo_ficha === (originalCodigoFicha || editingId) ? updatedAtendimento : a
+      setexecucaos(execucaos.map(a =>
+        a.codigo_ficha === (originalCodigoFicha || editingId) ? updatedexecucao : a
       ));
     }
   };
 
-  const handleSave = async (item: Atendimento) => {
-    if (!editedAtendimento || !originalCodigoFicha) return;
+  const handleSave = async (item: execucao) => {
+    if (!editedexecucao || !originalCodigoFicha) return;
 
     try {
       const dataToSend = {
-        ...editedAtendimento,
-        data_execucao: editedAtendimento.data_execucao
+        ...editedexecucao,
+        data_execucao: editedexecucao.data_execucao
       };
 
       // Validate required fields
@@ -231,7 +231,7 @@ const ProcessedFiles = () => {
 
       console.log('Sending data:', dataToSend);
 
-      const response = await fetch(`${API_URL}/atendimento/${originalCodigoFicha}`, {
+      const response = await fetch(`${API_URL}/execucao/${originalCodigoFicha}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -241,49 +241,49 @@ const ProcessedFiles = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.detail || 'Erro ao atualizar o atendimento');
+        throw new Error(errorData?.detail || 'Erro ao atualizar o execucao');
       }
 
       // Format the date back to DD/MM/YYYY for display
-      const updatedAtendimento = {
-        ...editedAtendimento,
+      const updatedexecucao = {
+        ...editedexecucao,
         data_execucao: formatDate(dataToSend.data_execucao)
       };
 
       // Update local state with the new data
-      setAtendimentos(atendimentos.map(a =>
-        a.codigo_ficha === originalCodigoFicha ? updatedAtendimento : a
+      setexecucaos(execucaos.map(a =>
+        a.codigo_ficha === originalCodigoFicha ? updatedexecucao : a
       ));
 
       // Clear edit state
       setEditingId(null);
-      setEditedAtendimento(null);
+      setEditedexecucao(null);
       setOriginalCodigoFicha(null);
 
     } catch (error) {
       console.error('Error:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao atualizar o atendimento');
+      alert(error instanceof Error ? error.message : 'Erro ao atualizar o execucao');
     }
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditedAtendimento(null);
+    setEditedexecucao(null);
     setOriginalCodigoFicha(null);
     // Revert any local changes
     fetchProcessedFiles();
   };
 
-  const handleDelete = (atendimento: Atendimento) => {
-    setAtendimentoToDelete(atendimento);
+  const handleDelete = (execucao: execucao) => {
+    setexecucaoToDelete(execucao);
     setShowDeleteModal(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!atendimentoToDelete) return;
+    if (!execucaoToDelete) return;
 
     try {
-      const response = await fetch(`${API_URL}/atendimento/${atendimentoToDelete.codigo_ficha}`, {
+      const response = await fetch(`${API_URL}/execucao/${execucaoToDelete.codigo_ficha}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -291,20 +291,20 @@ const ProcessedFiles = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao excluir o atendimento');
+        throw new Error('Falha ao excluir o execucao');
       }
 
       // Atualiza o estado local removendo o item excluído
-      setAtendimentos(atendimentos.filter(a => a.codigo_ficha !== atendimentoToDelete.codigo_ficha));
+      setexecucaos(execucaos.filter(a => a.codigo_ficha !== execucaoToDelete.codigo_ficha));
       setShowDeleteModal(false);
-      setAtendimentoToDelete(null);
+      setexecucaoToDelete(null);
     } catch (error) {
       console.error('Error:', error);
-      alert('Erro ao excluir o atendimento');
+      alert('Erro ao excluir o execucao');
     }
   };
 
-  const columns: Column<Atendimento>[] = [
+  const columns: Column<execucao>[] = [
     { key: 'data_execucao', label: 'Data', editable: true },
     { key: 'paciente_carteirinha', label: 'Carteira', editable: true },
     { key: 'paciente_nome', label: 'Paciente', editable: true },
@@ -320,7 +320,7 @@ const ProcessedFiles = () => {
         <div className="flex space-x-4">
           <button
             onClick={handleExportExcel}
-            disabled={loading || atendimentos.length === 0}
+            disabled={loading || execucaos.length === 0}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
             Exportar Excel
@@ -378,10 +378,10 @@ const ProcessedFiles = () => {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <SortableTable
-            data={atendimentos.map(atendimento =>
-              atendimento.codigo_ficha === editingId && editedAtendimento
-                ? editedAtendimento
-                : atendimento
+            data={execucaos.map(execucao =>
+              execucao.codigo_ficha === editingId && editedexecucao
+                ? editedexecucao
+                : execucao
             )}
             columns={columns}
             onEdit={handleEdit}
@@ -397,7 +397,7 @@ const ProcessedFiles = () => {
       {/* Paginação */}
       <div className="mt-6 flex flex-col items-center justify-center gap-4">
         <div className="text-sm text-gray-600">
-          Mostrando {atendimentos.length} de {totalRecords} registros
+          Mostrando {execucaos.length} de {totalRecords} registros
         </div>
         <div className="flex items-center space-x-1">
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -447,20 +447,20 @@ const ProcessedFiles = () => {
         </div>
       )}
 
-      {atendimentos.length === 0 && !error && !loading && (
+      {execucaos.length === 0 && !error && !loading && (
         <div className="text-center py-8 text-gray-500">
           Nenhum arquivo processado encontrado
         </div>
       )}
 
       {/* Modal de Confirmação de Exclusão */}
-      {showDeleteModal && atendimentoToDelete && (
+      {showDeleteModal && execucaoToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <h2 className="text-lg font-semibold mb-4">Confirmar Exclusão</h2>
             <p className="text-gray-600">
-              Tem certeza que deseja excluir o atendimento do paciente{' '}
-              <span className="font-medium">{atendimentoToDelete.paciente_nome}</span>?
+              Tem certeza que deseja excluir o execucao do paciente{' '}
+              <span className="font-medium">{execucaoToDelete.paciente_nome}</span>?
               Esta ação não pode ser desfeita.
             </p>
             <div className="mt-6 flex justify-end space-x-3">

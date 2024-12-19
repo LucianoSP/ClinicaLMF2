@@ -5,7 +5,7 @@ def salvar_guia(info: Dict):
 
         cursor.execute(
             """
-        INSERT INTO atendimentos (
+        INSERT INTO execucaos (
             data_execucao, paciente_carteirinha, paciente_nome, 
             guia_id, codigo_ficha, possui_assinatura
         ) VALUES (?, ?, ?, ?, ?, ?)
@@ -35,7 +35,7 @@ def listar_guias(limit: int = 100, offset: int = 0, paciente_nome: str = None):
         cursor = conn.cursor()
 
         # Base da query
-        query = "SELECT * FROM atendimentos"
+        query = "SELECT * FROM execucaos"
         params = []
 
         # Adiciona filtro por nome se fornecido
@@ -71,7 +71,7 @@ def buscar_guia(guia_id: str):
 
         cursor.execute(
             """
-        SELECT * FROM atendimentos WHERE guia_id = ?
+        SELECT * FROM execucaos WHERE guia_id = ?
         """,
             (guia_id,),
         )

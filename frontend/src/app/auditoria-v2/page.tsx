@@ -21,12 +21,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Activity, 
-  AlertCircle, 
-  CheckCircle2, 
-  FileText, 
-  Users, 
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  Users,
   Clock,
   Filter,
   Search
@@ -34,7 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 interface AuditStats {
-  totalAtendimentos: number;
+  totalexecucaos: number;
   divergenciasAbertas: number;
   guiasVencendo: number;
   protocolosPendentes: number;
@@ -51,12 +51,12 @@ interface Divergencia {
 
 export default function AuditoriaV2Page() {
   const [stats, setStats] = useState<AuditStats>({
-    totalAtendimentos: 0,
+    totalexecucaos: 0,
     divergenciasAbertas: 0,
     guiasVencendo: 0,
     protocolosPendentes: 0
   });
-  
+
   const [divergencias, setDivergencias] = useState<Divergencia[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
@@ -65,24 +65,24 @@ export default function AuditoriaV2Page() {
     // TODO: Implement API calls
     // Simulated data for now
     setStats({
-      totalAtendimentos: 1250,
+      totalexecucaos: 1250,
       divergenciasAbertas: 23,
       guiasVencendo: 15,
       protocolosPendentes: 8
     });
-    
+
     setDivergencias([
       {
         id: 1,
         guiaId: "G123456",
-        descricao: "Assinatura ausente no atendimento",
+        descricao: "Assinatura ausente no execucao",
         status: "aberta",
         dataCriacao: "2024-01-15",
         dataAtualizacao: "2024-01-15"
       },
       // Add more mock data as needed
     ]);
-    
+
     setLoading(false);
   }, []);
 
@@ -99,15 +99,15 @@ export default function AuditoriaV2Page() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Atendimentos
+              Total execucaos
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalAtendimentos}</div>
+            <div className="text-2xl font-bold">{stats.totalexecucaos}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -121,7 +121,7 @@ export default function AuditoriaV2Page() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -135,7 +135,7 @@ export default function AuditoriaV2Page() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -174,9 +174,9 @@ export default function AuditoriaV2Page() {
                           <p className="font-medium">Guia: {div.guiaId}</p>
                           <p className="text-sm text-muted-foreground">{div.descricao}</p>
                         </div>
-                        <Badge 
-                          variant={div.status === 'aberta' ? 'destructive' : 
-                                 div.status === 'em_analise' ? 'warning' : 'success'}
+                        <Badge
+                          variant={div.status === 'aberta' ? 'destructive' :
+                            div.status === 'em_analise' ? 'warning' : 'success'}
                         >
                           {div.status}
                         </Badge>
@@ -208,8 +208,8 @@ export default function AuditoriaV2Page() {
                 <CardTitle>Gerenciamento de Divergências</CardTitle>
                 <div className="flex gap-2">
                   <div className="flex items-center gap-2">
-                    <Input 
-                      placeholder="Buscar divergências..." 
+                    <Input
+                      placeholder="Buscar divergências..."
                       className="w-[200px]"
                     />
                     <Button variant="outline" size="icon">
@@ -248,9 +248,9 @@ export default function AuditoriaV2Page() {
                       <TableCell>{div.guiaId}</TableCell>
                       <TableCell>{div.descricao}</TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={div.status === 'aberta' ? 'destructive' : 
-                                 div.status === 'em_analise' ? 'warning' : 'success'}
+                        <Badge
+                          variant={div.status === 'aberta' ? 'destructive' :
+                            div.status === 'em_analise' ? 'warning' : 'success'}
                         >
                           {div.status}
                         </Badge>

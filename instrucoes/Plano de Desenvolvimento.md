@@ -3,7 +3,7 @@
 ## 1. Visão Geral do Projeto
 
 ### 1.1 Objetivo
-Desenvolver um sistema de agendamento especializado para clínica de atendimento a crianças autistas, com foco em gestão eficiente de horários, profissionais e salas.
+Desenvolver um sistema de agendamento especializado para clínica de execucao a crianças autistas, com foco em gestão eficiente de horários, profissionais e salas.
 
 ### 1.2 Stack Tecnológica
 - **Frontend**: Next.js 14 com App Router + Shadcn/UI + TailwindCSS
@@ -80,14 +80,14 @@ Desenvolver um sistema de agendamento especializado para clínica de atendimento
 
 2. **Gestão de Pacientes**
    - Prontuário eletrônico básico
-   - Histórico de atendimentos
+   - Histórico de execucaos
    - Evolução do paciente
    - Preferências e observações
 
 3. **Relatórios e Analytics**
    - Dashboard administrativo
    - Relatórios de ocupação
-   - Métricas de atendimento
+   - Métricas de execucao
    - Exportação de dados
 
 ### Fase 5: Refinamento e Testes (2 semanas)

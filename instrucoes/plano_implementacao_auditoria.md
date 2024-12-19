@@ -14,7 +14,7 @@
 - ✅ Funcionalidade para marcar divergências como resolvidas
 
 ### 1.2 Backend (auditoria.py)
-- ✅ Função `realizar_auditoria()`: Verifica protocolos vs atendimentos
+- ✅ Função `realizar_auditoria()`: Verifica protocolos vs execucaos
 - ✅ Função `realizar_auditoria_fichas_execucoes()`: Verifica fichas vs execuções
 
 ### 1.3 Verificações Implementadas
