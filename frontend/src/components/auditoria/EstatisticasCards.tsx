@@ -1,7 +1,8 @@
 // components/auditoria/EstatisticasCards.tsx
-import { ClipboardList, AlertCircle, CheckCircle2, FileSignature, FileWarning, Clock } from 'lucide-react';
+import { ClipboardList, AlertCircle, CheckCircle2, FileSignature, FileWarning, Clock, Files, FileCheck2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatarData } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface EstatisticasProps {
   resultadoAuditoria?: {
@@ -25,85 +26,93 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
   return (
     <div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="p-6 rounded-lg shadow-sm bg-white text-gray-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium opacity-80">Total de Guias</p>
-              <p className="text-2xl font-semibold mt-1">{resultadoAuditoria.total_protocolos}</p>
-              <p className="text-xs mt-1 opacity-70">
-                {resultadoAuditoria.total_fichas} fichas verificadas
-              </p>
-            </div>
-            <div className="opacity-80"><ClipboardList className="w-6 h-6" /></div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Guias</CardTitle>
+            <Files className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{resultadoAuditoria.total_protocolos}</div>
+            <p className="text-xs text-muted-foreground">
+              Guias analisadas
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Fichas</CardTitle>
+            <FileCheck2 className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{resultadoAuditoria.total_fichas}</div>
+            <p className="text-xs text-muted-foreground">
+              Fichas verificadas
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="p-6 rounded-lg shadow-sm bg-yellow-50 text-yellow-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium opacity-80">Divergências Encontradas</p>
-              <p className="text-2xl font-semibold mt-1">{resultadoAuditoria.total_divergencias}</p>
-              <p className="text-xs mt-1 opacity-70">{resultadoAuditoria.total_pendentes} pendentes</p>
-            </div>
-            <div className="opacity-80"><AlertCircle className="w-6 h-6" /></div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Divergências</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{resultadoAuditoria.total_divergencias}</div>
+            <p className="text-xs text-muted-foreground">
+              Total de divergências encontradas
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="p-6 rounded-lg shadow-sm bg-green-50 text-green-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium opacity-80">Divergências Resolvidas</p>
-              <p className="text-2xl font-semibold mt-1">
-                {resultadoAuditoria.total_divergencias > 0
-                  ? Math.round((resultadoAuditoria.total_resolvidas / resultadoAuditoria.total_divergencias) * 100)
-                  : 0}%
-              </p>
-              <p className="text-xs mt-1 opacity-70">
-                {resultadoAuditoria.total_resolvidas} de {resultadoAuditoria.total_divergencias}
-              </p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Resolvidas</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {resultadoAuditoria.total_divergencias > 0
+                ? Math.round((resultadoAuditoria.total_resolvidas / resultadoAuditoria.total_divergencias) * 100)
+                : 0}%
             </div>
-            <div className="opacity-80"><CheckCircle2 className="w-6 h-6" /></div>
-          </div>
-        </div>
-
-        <div className="p-6 rounded-lg shadow-sm bg-red-50 text-red-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium opacity-80">Fichas sem Assinatura</p>
-              <p className="text-2xl font-semibold mt-1">{resultadoAuditoria.total_fichas_sem_assinatura}</p>
-              <p className="text-xs mt-1 opacity-70">Necessitam regularização</p>
-            </div>
-            <div className="opacity-80"><FileSignature className="w-6 h-6" /></div>
-          </div>
-        </div>
+            <p className="text-xs text-muted-foreground">
+              Divergências resolvidas
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mt-4">
-        <div className="p-6 rounded-lg shadow-sm bg-yellow-50 text-yellow-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium opacity-80">Execuções sem Ficha</p>
-              <p className="text-2xl font-semibold mt-1">{resultadoAuditoria.total_execucoes_sem_ficha}</p>
-              <p className="text-xs mt-1 opacity-70">Fichas não encontradas</p>
-            </div>
-            <div className="opacity-80"><FileWarning className="w-6 h-6" /></div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Execuções sem Ficha</CardTitle>
+            <FileWarning className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{resultadoAuditoria.total_execucoes_sem_ficha}</div>
+            <p className="text-xs text-muted-foreground">
+              Fichas não encontradas
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="p-6 rounded-lg shadow-sm bg-white text-gray-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium opacity-80">Última Execução</p>
-              <p className="text-2xl font-semibold mt-1">
-                {resultadoAuditoria.data_execucao 
-                  ? format(new Date(resultadoAuditoria.data_execucao), "dd/MM/yyyy HH:mm")
-                  : "-"}
-              </p>
-              <p className="text-xs mt-1 opacity-70">{resultadoAuditoria.tempo_execucao}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Última Execução</CardTitle>
+            <Clock className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {resultadoAuditoria.data_execucao 
+                ? format(new Date(resultadoAuditoria.data_execucao), "dd/MM/yyyy HH:mm")
+                : "-"}
             </div>
-            <div className="opacity-80"><Clock className="w-6 h-6" /></div>
-          </div>
-        </div>
+            <p className="text-xs text-muted-foreground">
+              {resultadoAuditoria.tempo_execucao}
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

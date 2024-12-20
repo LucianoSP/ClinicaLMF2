@@ -31,15 +31,15 @@ interface TabelaDivergenciasProps {
 
 const DivergenciaBadge = ({ tipo }: { tipo: string }) => {
   const tipos: { [key: string]: { label: string; className: string } } = {
-    'EXECUCAO_SEM_FICHA': { label: 'Execução sem Ficha', className: 'bg-red-100 text-red-800' },
-    'FICHA_SEM_EXECUCAO': { label: 'Ficha sem Execução', className: 'bg-yellow-100 text-yellow-800' },
-    'QUANTIDADE_EXCEDIDA': { label: 'Quantidade Excedida', className: 'bg-orange-100 text-orange-800' },
-    'DATA_INCONSISTENTE': { label: 'Data Inconsistente', className: 'bg-blue-100 text-blue-800' },
-    'DOC_INCOMPLETO': { label: 'Documentação Incompleta', className: 'bg-purple-100 text-purple-800' },
-    'ASSINATURA_AUSENTE': { label: 'Assinatura Ausente', className: 'bg-pink-100 text-pink-800' },
+    'EXECUCAO_SEM_FICHA': { label: 'Execução sem Ficha', className: 'bg-white border border-red-200 text-red-700' },
+    'FICHA_SEM_EXECUCAO': { label: 'Ficha sem Execução', className: 'bg-white border border-yellow-200 text-yellow-700' },
+    'QUANTIDADE_EXCEDIDA': { label: 'Quantidade Excedida', className: 'bg-white border border-orange-200 text-orange-700' },
+    'DATA_INCONSISTENTE': { label: 'Data Inconsistente', className: 'bg-white border border-blue-200 text-blue-700' },
+    'DOC_INCOMPLETO': { label: 'Documentação Incompleta', className: 'bg-white border border-purple-200 text-purple-700' },
+    'ASSINATURA_AUSENTE': { label: 'Assinatura Ausente', className: 'bg-white border border-pink-200 text-pink-700' },
   };
 
-  const { label, className } = tipos[tipo] || { label: tipo, className: 'bg-gray-100 text-gray-800' };
+  const { label, className } = tipos[tipo] || { label: tipo, className: 'bg-white border border-gray-200 text-gray-700' };
 
   return (
     <Badge variant="outline" className={className}>
@@ -50,12 +50,12 @@ const DivergenciaBadge = ({ tipo }: { tipo: string }) => {
 
 const StatusBadge = ({ status }: { status: string }) => {
   const statusConfig = {
-    'pendente': 'bg-yellow-100 text-yellow-800',
-    'resolvida': 'bg-green-100 text-green-800',
+    'pendente': 'bg-white border border-yellow-200 text-yellow-700',
+    'resolvida': 'bg-white border border-green-200 text-green-700',
   };
 
   return (
-    <Badge variant="outline" className={statusConfig[status] || 'bg-gray-100'}>
+    <Badge variant="outline" className={statusConfig[status] || 'bg-white border border-gray-200 text-gray-700'}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </Badge>
   );
@@ -211,7 +211,7 @@ export const TabelaDivergencias = ({
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
-                  <Badge variant="outline" className={divergencia.possui_assinatura ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                  <Badge variant="outline" className={divergencia.possui_assinatura ? 'bg-white border border-green-200 text-green-700' : 'bg-white border border-red-200 text-red-700'}>
                     {divergencia.possui_assinatura ? 'Sim' : 'Não'}
                   </Badge>
                 </span>
