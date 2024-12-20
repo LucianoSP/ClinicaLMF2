@@ -13,8 +13,14 @@ interface Divergencia {
   data_registro: string;
   codigo_ficha: string;
   paciente_nome: string;
+  paciente_carteirinha: string;
   status: string;
   tipo_divergencia?: string;
+  possui_assinatura: boolean;
+  arquivo_digitalizado?: string;
+  observacoes?: string;
+  quantidade_autorizada?: number;
+  quantidade_executada?: number;
 }
 
 interface TabelaDivergenciasProps {
@@ -152,6 +158,9 @@ export const TabelaDivergencias = ({
             <SortableHeader sortKey="data_execucao">Data Execução</SortableHeader>
             <SortableHeader sortKey="tipo_divergencia">Tipo</SortableHeader>
             <SortableHeader sortKey="paciente_nome">Paciente</SortableHeader>
+            <SortableHeader sortKey="paciente_carteirinha">Carteirinha</SortableHeader>
+            <SortableHeader sortKey="quantidade_executada">Qtd.</SortableHeader>
+            <SortableHeader sortKey="possui_assinatura">Assinatura</SortableHeader>
             <SortableHeader sortKey="status">Status</SortableHeader>
             <TableHead className="text-xs">Ações</TableHead>
           </TableRow>
@@ -186,6 +195,25 @@ export const TabelaDivergencias = ({
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
                   {divergencia.paciente_nome}
+                </span>
+              </TableCell>
+              <TableCell className="px-4 py-2 text-xs text-gray-900">
+                <span className="block w-full">
+                  {divergencia.paciente_carteirinha}
+                </span>
+              </TableCell>
+              <TableCell className="px-4 py-2 text-xs text-gray-900">
+                <span className="block w-full">
+                  {divergencia.quantidade_executada !== undefined ? 
+                    `${divergencia.quantidade_executada}/${divergencia.quantidade_autorizada}` : 
+                    '-'}
+                </span>
+              </TableCell>
+              <TableCell className="px-4 py-2 text-xs text-gray-900">
+                <span className="block w-full">
+                  <Badge variant="outline" className={divergencia.possui_assinatura ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                    {divergencia.possui_assinatura ? 'Sim' : 'Não'}
+                  </Badge>
                 </span>
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">

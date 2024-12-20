@@ -10,9 +10,15 @@ interface DetalheDivergenciaProps {
     data_registro: string;
     codigo_ficha: string;
     paciente_nome: string;
+    paciente_carteirinha: string;
     status: string;
     tipo_divergencia?: string;
     descricao_divergencia?: string;
+    possui_assinatura: boolean;
+    arquivo_digitalizado?: string;
+    observacoes?: string;
+    quantidade_autorizada?: number;
+    quantidade_executada?: number;
   } | null;
   open: boolean;
   onClose: () => void;
@@ -23,12 +29,12 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Detalhes da Divergência</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-500">Guia</h4>
               <p className="mt-1">{divergencia.guia_id}</p>
@@ -36,6 +42,10 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
             <div>
               <h4 className="text-sm font-medium text-gray-500">Paciente</h4>
               <p className="mt-1">{divergencia.paciente_nome}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-500">Carteirinha</h4>
+              <p className="mt-1">{divergencia.paciente_carteirinha}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Data de Execução</h4>
@@ -52,6 +62,23 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
             <div>
               <h4 className="text-sm font-medium text-gray-500">Código da Ficha</h4>
               <p className="mt-1">{divergencia.codigo_ficha || '-'}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-500">Quantidade</h4>
+              <p className="mt-1">
+                {divergencia.quantidade_executada !== undefined ? 
+                  `${divergencia.quantidade_executada}/${divergencia.quantidade_autorizada} executadas` : 
+                  '-'}
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-500">Assinatura</h4>
+              <Badge 
+                variant="outline" 
+                className={divergencia.possui_assinatura ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+              >
+                {divergencia.possui_assinatura ? 'Presente' : 'Ausente'}
+              </Badge>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Status</h4>
@@ -80,6 +107,29 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
               <p className="text-sm text-gray-700 whitespace-pre-line">
                 {divergencia.descricao_divergencia}
               </p>
+            </div>
+          )}
+
+          {divergencia.observacoes && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Observações</h4>
+              <p className="text-sm text-gray-700 whitespace-pre-line">
+                {divergencia.observacoes}
+              </p>
+            </div>
+          )}
+
+          {divergencia.arquivo_digitalizado && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Arquivo Digitalizado</h4>
+              <a 
+                href={divergencia.arquivo_digitalizado}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                Visualizar arquivo
+              </a>
             </div>
           )}
         </div>

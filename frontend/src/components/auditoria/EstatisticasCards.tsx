@@ -5,12 +5,13 @@ import { formatarData } from '@/lib/utils';
 interface AuditoriaResultado {
   total_protocolos: number;
   total_divergencias: number;
+  total_resolvidas: number;
+  total_pendentes: number;
+  total_fichas_sem_assinatura: number;
+  total_execucoes_sem_ficha: number;
   data_execucao: string;
   data_inicial: string;
   data_final: string;
-  divergencias_por_tipo?: Record<string, number>;
-  divergencias_resolvidas?: number;
-  divergencias_pendentes?: number;
   tempo_execucao?: string;
 }
 
@@ -49,11 +50,8 @@ const StatCard = ({ title, value, icon, variant = 'default', subtitle }: StatCar
 export const EstatisticasCards = ({ resultadoAuditoria }: { resultadoAuditoria: AuditoriaResultado | null }) => {
   if (!resultadoAuditoria) return null;
 
-  const totalDivergencias = resultadoAuditoria.total_divergencias || 0;
-  const divergenciasResolvidas = resultadoAuditoria.divergencias_resolvidas || 0;
-  const divergenciasPendentes = resultadoAuditoria.divergencias_pendentes || totalDivergencias - divergenciasResolvidas;
-  const percentualResolvido = totalDivergencias > 0 
-    ? Math.round((divergenciasResolvidas / totalDivergencias) * 100) 
+  const percentualResolvido = resultadoAuditoria.total_divergencias > 0 
+    ? Math.round((resultadoAuditoria.total_resolvidas / resultadoAuditoria.total_divergencias) * 100) 
     : 0;
 
   return (
@@ -66,17 +64,31 @@ export const EstatisticasCards = ({ resultadoAuditoria }: { resultadoAuditoria: 
       />
       <StatCard
         title="Divergências Encontradas"
-        value={totalDivergencias}
+        value={resultadoAuditoria.total_divergencias}
         icon={<AlertCircle className="w-6 h-6" />}
-        variant={totalDivergencias > 0 ? "warning" : "success"}
-        subtitle={`${divergenciasPendentes} pendentes`}
+        variant={resultadoAuditoria.total_divergencias > 0 ? "warning" : "success"}
+        subtitle={`${resultadoAuditoria.total_pendentes} pendentes`}
       />
       <StatCard
         title="Divergências Resolvidas"
         value={`${percentualResolvido}%`}
         icon={<FileCheck className="w-6 h-6" />}
         variant="success"
-        subtitle={`${divergenciasResolvidas} de ${totalDivergencias}`}
+        subtitle={`${resultadoAuditoria.total_resolvidas} de ${resultadoAuditoria.total_divergencias}`}
+      />
+      <StatCard
+        title="Fichas sem Assinatura"
+        value={resultadoAuditoria.total_fichas_sem_assinatura}
+        icon={<FileX className="w-6 h-6" />}
+        variant="danger"
+        subtitle="Necessitam regularização"
+      />
+      <StatCard
+        title="Execuções sem Ficha"
+        value={resultadoAuditoria.total_execucoes_sem_ficha}
+        icon={<AlertCircle className="w-6 h-6" />}
+        variant="warning"
+        subtitle="Fichas não encontradas"
       />
       <StatCard
         title="Última Execução"

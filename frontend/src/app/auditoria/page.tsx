@@ -14,6 +14,10 @@ import { API_URL } from '@/config/api';
 interface AuditoriaResultado {
   total_protocolos: number;
   total_divergencias: number;
+  total_resolvidas: number;
+  total_pendentes: number;
+  total_fichas_sem_assinatura: number;
+  total_execucoes_sem_ficha: number;
   data_execucao: string;
   data_inicial: string;
   data_final: string;
@@ -26,9 +30,15 @@ interface Divergencia {
   codigo_ficha: string;
   descricao_divergencia: string;
   paciente_nome: string;
+  paciente_carteirinha: string;
   status: string;
   data_registro: string;
   tipo_divergencia?: string;
+  possui_assinatura: boolean;
+  arquivo_digitalizado?: string;
+  observacoes?: string;
+  quantidade_autorizada?: number;
+  quantidade_executada?: number;
 }
 
 export default function AuditoriaPage() {
