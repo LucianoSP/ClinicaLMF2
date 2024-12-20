@@ -1,40 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { FiCheck, FiX } from 'react-icons/fi';
-import { SortableTable, Column } from '@/components/SortableTable';
+import { AuditoriaHeader } from '@/components/auditoria/AuditoriaHeader';
+import { EstatisticasCards } from '@/components/auditoria/EstatisticasCards';
+import { FiltrosAuditoria } from '@/components/auditoria/FiltrosAuditoria';
+import { TabelaDivergencias } from '@/components/auditoria/TabelaDivergencias';
 import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-//import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import Pagination from '@/components/Pagination';
+import { FileDown, RefreshCw } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { format } from 'date-fns';
 import { API_URL } from '@/config/api';
-import { useToast } from '@/components/ui/toasts';
-
-interface execucao {
-  id: number;
-  numero_carteira: string;
-  paciente_nome: string;
-  numero_guia_principal?: string;
-  data_execucao?: string;
-}
-
-interface Divergencia {
-  id: string;  // Changed from number to string to handle UUIDs
-  guia_id: string;
-  data_execucao: string;
-  codigo_ficha: string;
-  descricao_divergencia: string;
-  paciente_nome: string;  // alterado de beneficiario
-  status: string;
-  data_registro: string;
-  tipo_divergencia: string;
-}
 
 interface AuditoriaResultado {
   total_protocolos: number;
@@ -42,227 +17,146 @@ interface AuditoriaResultado {
   data_execucao: string;
   data_inicial: string;
   data_final: string;
-  divergencias_por_tipo?: Record<string, number>;
+}
+
+interface Divergencia {
+  id: string;
+  guia_id: string;
+  data_execucao: string;
+  codigo_ficha: string;
+  descricao_divergencia: string;
+  paciente_nome: string;
+  status: string;
+  data_registro: string;
+  tipo_divergencia?: string;
 }
 
 export default function AuditoriaPage() {
-  const [dados, setDados] = useState<Divergencia[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [dataInicial, setDataInicial] = useState<Date>();
-  const [dataFinal, setDataFinal] = useState<Date>();
-  const [executandoAuditoria, setExecutandoAuditoria] = useState(false);
+  const [dataInicial, setDataInicial] = useState<Date | null>(null);
+  const [dataFinal, setDataFinal] = useState<Date | null>(null);
+  const [statusFiltro, setStatusFiltro] = useState('todos');
+  const [tipoDivergencia, setTipoDivergencia] = useState('todos');
   const [resultadoAuditoria, setResultadoAuditoria] = useState<AuditoriaResultado | null>(null);
+  const [divergencias, setDivergencias] = useState<Divergencia[]>([]);
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [sortField, setSortField] = useState<keyof Divergencia>('data_registro');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
-  const [limpandoDivergencias, setLimpandoDivergencias] = useState(false);
-  const [statusFiltro, setStatusFiltro] = useState<'todos' | 'pendente' | 'resolvida'>('todos');
+  const [perPage, setPerPage] = useState(10);
   const { toast } = useToast();
 
-  const formatarData = (date: Date | undefined) => {
+  const formatarData = (date: Date | null) => {
     if (!date) return '';
     return format(date, 'yyyy-MM-dd');
   };
 
-  const formatarDataExibicao = (dataString: string | undefined) => {
-    if (!dataString) return '-';
-    try {
-      // Pega só a parte antes do +
-      const dataLimpa = dataString.split('+')[0];
-      const data = new Date(dataLimpa.replace('T', ' '));
-      return format(data, 'dd/MM/yyyy HH:mm', { locale: ptBR });
-    } catch (error) {
-      console.error('Erro ao formatar data:', error);
-      return dataString;
-    }
-  };
-
-  useEffect(() => {
-    console.log('Buscando divergências...');
-    buscarDivergencias();
-  }, [page, statusFiltro]); // Adiciona statusFiltro como dependência
-
-  const buscarDivergencias = async () => {
+  const handleAuditoria = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('per_page', '10');
-      if (statusFiltro !== 'todos') {
-        params.append('status', statusFiltro);
-      }
-      if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
-      if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
+      const params = new URLSearchParams({
+        data_inicial: formatarData(dataInicial),
+        data_final: formatarData(dataFinal),
+        status: statusFiltro,
+        tipo_divergencia: tipoDivergencia,
+      });
 
-      const response = await fetch(`${API_URL}/auditoria/divergencias?${params.toString()}`);
-      const data = await response.json();
+      const response = await fetch(`${API_URL}/auditoria/iniciar/?${params.toString()}`, {
+        method: 'POST',
+      });
 
-      if (response.ok && data.divergencias) {
-        const divergenciasFormatadas = data.divergencias.map((div: any) => ({
-          ...div,
-          // Dates are already formatted by the backend
-          data_registro: div.data_registro || '-',
-          data_execucao: div.data_execucao || '-'
-        }));
-        setDados(divergenciasFormatadas);
-        setTotalPages(Math.ceil((data.total || 0) / 10));
-        setError(null);
-      } else {
-        console.error('Resposta inválida:', data);
-        throw new Error(data.detail || 'Erro ao buscar divergências');
+      if (!response.ok) {
+        throw new Error('Falha ao iniciar auditoria');
       }
+
+      const result = await response.json();
+      setResultadoAuditoria(result.data);
+      await buscarDivergencias();
+
+      toast({
+        title: "Sucesso",
+        description: "Auditoria iniciada com sucesso",
+      });
     } catch (error) {
-      console.error('Erro ao buscar divergências:', error);
-      setError(error instanceof Error ? error.message : 'Erro ao carregar divergências');
-      // Mantém os dados anteriores em caso de erro
-      // setDados([]);
+      console.error('Erro ao iniciar auditoria:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao iniciar auditoria",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const iniciarAuditoria = async () => {
-    setExecutandoAuditoria(true);
-    setError(null);
+  const buscarDivergencias = async () => {
     try {
       const params = new URLSearchParams();
-      if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
-      if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
+      if (dataInicial) params.append('data_inicio', formatarData(dataInicial));
+      if (dataFinal) params.append('data_fim', formatarData(dataFinal));
+      if (statusFiltro !== 'todos') params.append('status', statusFiltro);
+      if (tipoDivergencia !== 'todos') params.append('tipo', tipoDivergencia);
+      params.append('page', page.toString());
+      params.append('per_page', perPage.toString());
 
-      console.log('Parâmetros da auditoria:', Object.fromEntries(params));
-
-      // Construir a URL base
-      const baseUrl = `${API_URL}/auditoria/iniciar/`;
-
-      const response = await fetch(`${baseUrl}?${params.toString()}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-
+      const response = await fetch(`${API_URL}/auditoria/divergencias?${params.toString()}`);
+      
       if (!response.ok) {
-        throw new Error(`Erro ao executar auditoria: ${response.status}`);
+        throw new Error('Falha ao buscar divergências');
       }
 
-      const result = await response.json();
-      console.log('Resultado da auditoria:', result);
-
-      if (!result || !result.data) {
-        throw new Error('Formato de resposta inválido');
-      }
-
-      setResultadoAuditoria(result.data);
-      await buscarDivergencias();
-    } catch (err) {
-      console.error('Erro ao executar auditoria:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    } finally {
-      setExecutandoAuditoria(false);
+      const data = await response.json();
+      setDivergencias(data.divergencias || []);
+      setTotalPages(Math.ceil((data.total || 0) / perPage));
+    } catch (error) {
+      console.error('Erro ao buscar divergências:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao buscar divergências",
+        variant: "destructive",
+      });
     }
   };
 
   const gerarRelatorio = async () => {
-    setGerandoRelatorio(true);
+    setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (dataInicial) params.append('data_inicio', format(dataInicial, 'yyyy-MM-dd'));
-      if (dataFinal) params.append('data_fim', format(dataFinal, 'yyyy-MM-dd'));
+      if (dataInicial) params.append('data_inicio', formatarData(dataInicial));
+      if (dataFinal) params.append('data_fim', formatarData(dataFinal));
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auditoria/relatorio?${params.toString()}`);
+      const response = await fetch(`${API_URL}/auditoria/relatorio?${params.toString()}`);
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `relatorio-auditoria-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        toast({
-          title: "Sucesso",
-          description: "Relatório gerado com sucesso",
-        });
-      } else {
-        const data = await response.json();
-        throw new Error(data.detail || 'Falha ao gerar relatório');
+      if (!response.ok) {
+        throw new Error('Falha ao gerar relatório');
       }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-auditoria-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Sucesso",
+        description: "Relatório gerado com sucesso",
+      });
     } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
       toast({
         title: "Erro",
         description: "Falha ao gerar relatório",
         variant: "destructive",
       });
     } finally {
-      setGerandoRelatorio(false);
-    }
-  };
-
-  const limparDivergencias = async () => {
-    if (!confirm('Tem certeza que deseja limpar todas as divergências? Esta ação não pode ser desfeita.')) {
-      return;
-    }
-
-    setLimpandoDivergencias(true);
-    try {
-      const response = await fetch(`${API_URL}/auditoria/limpar-divergencias`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao limpar divergências');
-      }
-
-      const data = await response.json();
-
-      // Atualiza os dados diretamente com o retorno da API
-      if (data.dados) {
-        setDados(data.dados.divergencias || []);
-        setTotalPages(Math.ceil((data.dados.total || 0) / 10));
-      } else {
-        // Se não houver dados, limpa a tabela
-        setDados([]);
-        setTotalPages(1);
-      }
-
-      toast({
-        title: "Sucesso!",
-        description: "As divergências foram limpas com sucesso.",
-        className: "bg-green-50 border-green-200 text-green-800",
-      });
-
-    } catch (error) {
-      console.error('Erro ao limpar divergências:', error);
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao limpar as divergências.",
-        variant: "destructive",
-      });
-    } finally {
-      setLimpandoDivergencias(false);
-    }
-  };
-
-  const handleSort = (field: keyof Divergencia) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+      setLoading(false);
     }
   };
 
   const marcarResolvido = async (id: string) => {
     try {
-      console.log('Marcando divergência como resolvida:', id);
-      setError(null);
-
       const response = await fetch(`${API_URL}/auditoria/divergencia/${id}`, {
         method: 'PUT',
         headers: {
@@ -271,60 +165,38 @@ export default function AuditoriaPage() {
         body: JSON.stringify({ status: 'resolvida' }),
       });
 
-      console.log('Status da resposta:', response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erro na resposta:', errorText);
-        throw new Error(`Erro ao atualizar status: ${response.status} - ${errorText}`);
+        throw new Error('Falha ao marcar como resolvida');
       }
 
-      const result = await response.json();
-      console.log('Resultado:', result);
-
-      // Atualiza a lista localmente
-      setDados(dados.map(d =>
-        d.id === id ? { ...d, status: 'resolvida' } : d
-      ));
-
-      // Mostra mensagem de sucesso
+      await buscarDivergencias();
+      
       toast({
         title: "Sucesso",
         description: "Divergência marcada como resolvida",
       });
-
-      // Busca os dados atualizados
-      await buscarDivergencias();
-
     } catch (error) {
-      console.error('Erro ao marcar como resolvido:', error);
-      setError(error instanceof Error ? error.message : 'Erro ao atualizar status da divergência');
-
+      console.error('Erro ao marcar como resolvida:', error);
       toast({
         title: "Erro",
-        description: "Erro ao marcar divergência como resolvida",
+        description: "Falha ao marcar divergência como resolvida",
         variant: "destructive",
       });
     }
   };
 
-  useEffect(() => {
-    console.log('Data Inicial:', dataInicial);
-    console.log('Data Final:', dataFinal);
-  }, [dataInicial, dataFinal]);
-
+  // Buscar divergências quando os filtros mudarem
   useEffect(() => {
     buscarDivergencias();
-  }, [page, sortField, sortDirection]);
+  }, [statusFiltro, tipoDivergencia, page, perPage]);
 
+  // Buscar última auditoria ao carregar a página
   useEffect(() => {
     const buscarUltimaAuditoria = async () => {
       try {
         const response = await fetch(`${API_URL}/auditoria/ultima`);
-        console.log('Resposta da última auditoria:', response);
         if (response.ok) {
           const data = await response.json();
-          console.log('Dados da última auditoria:', data);
           if (data.data) {
             setResultadoAuditoria(data.data);
           }
@@ -337,244 +209,89 @@ export default function AuditoriaPage() {
   }, []);
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-semibold mb-6 text-[#6b342f]">Auditoria</h1>
-
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex gap-4 items-center">
-            <div className="space-y-4">
-              <Label>Data Inicial</Label>
-              <div className="mt-2">
-                <DatePicker date={dataInicial} setDate={setDataInicial} />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <Label>Data Final</Label>
-              <div className="mt-2">
-                <DatePicker date={dataFinal} setDate={setDataFinal} />
-              </div>
-            </div>
-          </div>
-          <div>
-            <Button
-              onClick={iniciarAuditoria}
-              disabled={executandoAuditoria || loading}
-              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] px-3 py-1.5 text-[14px] h-auto"
+    <div className="min-h-screen bg-gray-50">
+      <AuditoriaHeader />
+      
+      <main className="container mx-auto px-4 py-8">
+        <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
+        
+        <FiltrosAuditoria
+          dataInicial={dataInicial}
+          setDataInicial={setDataInicial}
+          dataFinal={dataFinal}
+          setDataFinal={setDataFinal}
+          statusFiltro={statusFiltro}
+          setStatusFiltro={setStatusFiltro}
+          tipoDivergencia={tipoDivergencia}
+          setTipoDivergencia={setTipoDivergencia}
+        />
+        
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Itens por página:</label>
+            <select
+              value={perPage}
+              onChange={(e) => {
+                setPerPage(Number(e.target.value));
+                setPage(1);
+              }}
+              className="text-sm border rounded px-2 py-1"
             >
-              {executandoAuditoria ? 'Executando...' : 'Iniciar Auditoria'}
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={gerarRelatorio}
+              disabled={loading}
+            >
+              <FileDown className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+            <Button
+              onClick={handleAuditoria}
+              disabled={loading}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar Auditoria
             </Button>
           </div>
         </div>
 
-        {resultadoAuditoria && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-2">Total de Protocolos</h3>
-              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.total_protocolos}</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-2">Divergências Encontradas</h3>
-              <p className="text-2xl text-[#8B4513]">{resultadoAuditoria.total_divergencias}</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-2">Data Inicial</h3>
-              <p className="text-2xl text-[#8B4513]">{formatarData(dataInicial)}</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-2">Data Final</h3>
-              <p className="text-2xl text-[#8B4513]">{formatarData(dataFinal)}</p>
+        <TabelaDivergencias
+          divergencias={divergencias}
+          onResolve={marcarResolvido}
+          loading={loading}
+        />
+
+        {totalPages > 1 && (
+          <div className="mt-4 flex justify-center">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-gray-600">
+                Página {page} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || loading}
+              >
+                Próxima
+              </Button>
             </div>
           </div>
         )}
-
-        <div className="flex justify-between items-center mb-4">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Filtrar por status:</span>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="todos"
-                    checked={statusFiltro === 'todos'}
-                    onChange={(e) => setStatusFiltro(e.target.value as 'todos' | 'pendente' | 'resolvida')}
-                    className="text-[#b49d6b]"
-                  />
-                  <span className="text-sm">Todos</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="pendente"
-                    checked={statusFiltro === 'pendente'}
-                    onChange={(e) => setStatusFiltro(e.target.value as 'todos' | 'pendente' | 'resolvida')}
-                    className="text-[#b49d6b]"
-                  />
-                  <span className="text-sm">Pendentes</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="resolvida"
-                    checked={statusFiltro === 'resolvida'}
-                    onChange={(e) => setStatusFiltro(e.target.value as 'todos' | 'pendente' | 'resolvida')}
-                    className="text-[#b49d6b]"
-                  />
-                  <span className="text-sm">Resolvidas</span>
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-end gap-2">
-            <Button
-              onClick={gerarRelatorio}
-              disabled={gerandoRelatorio || loading}
-              className="bg-[#b49d6b] text-white hover:bg-[#a08b5f] px-3 py-1.5 text-[14px] h-auto"
-            >
-              {gerandoRelatorio ? 'Gerando...' : 'Gerar Relatório'}
-            </Button>
-            <Button
-              onClick={limparDivergencias}
-              disabled={limpandoDivergencias || loading}
-              className="bg-[#8B4513] text-white hover:bg-[#7a3d10] px-3 py-1.5 text-[14px] h-auto"
-            >
-              {limpandoDivergencias ? 'Limpando...' : 'Limpar Divergências'}
-            </Button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow">
-          {loading ? (
-            <div className="text-center py-4">Carregando...</div>
-          ) : error ? (
-            <div className="text-red-600 py-4">Erro: {error}</div>
-          ) : (
-            <SortableTable
-              data={dados}
-              columns={[
-                {
-                  key: 'data_registro',
-                  label: 'Data Registro',
-                  render: (value) => formatarDataExibicao(value)
-                },
-                {
-                  key: 'guia_id',
-                  label: 'Número Guia',
-                  render: (value) => value || '-'
-                },
-                {
-                  key: 'data_execucao',
-                  label: 'Data Execução',
-                  render: (value) => formatarDataExibicao(value)
-                },
-                {
-                  key: 'descricao_divergencia',
-                  label: 'Descrição',
-                  render: (value) => (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" className="h-auto p-0 text-left hover:bg-transparent">
-                          <span className="line-clamp-2">{value}</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-4">
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Detalhes da Divergência</h4>
-                          <div className="whitespace-pre-line text-sm">{value}</div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  )
-                },
-                {
-                  key: 'paciente_nome',
-                  label: 'Paciente',
-                  render: (value) => value || '-'
-                },
-                {
-                  key: 'tipo_divergencia',
-                  label: 'Tipo',
-                  render: (value) => (
-                    <Badge variant={
-                      value === 'execucao_sem_ficha' ? 'destructive' :
-                        value === 'ficha_sem_execucao' ? 'warning' :
-                          value === 'ficha_sem_assinatura' ? 'secondary' :
-                            value === 'data_divergente' ? 'outline' :
-                              'default'
-                    }>
-                      {value === 'execucao_sem_ficha' ? 'Execução sem Ficha' :
-                        value === 'ficha_sem_execucao' ? 'Ficha sem Execução' :
-                          value === 'ficha_sem_assinatura' ? 'Sem Assinatura' :
-                            value === 'data_divergente' ? 'Data Divergente' :
-                              value === 'quantidade_sessoes_divergente' ? 'Qtd. Sessões Divergente' :
-                                value}
-                    </Badge>
-                  )
-                },
-                {
-                  key: 'status',
-                  label: 'Status',
-                  render: (value) => (
-                    <div className="flex items-center gap-1.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'resolvida'
-                          ? 'bg-[#dcfce7] text-[#15803d]'
-                          : 'bg-[#fef9c3] text-[#854d0e]'
-                        }`}>
-                        {value === 'resolvida' ? (
-                          <><FiCheck className="w-3 h-3" />Resolvida</>
-                        ) : (
-                          <><FiX className="w-3 h-3" />Pendente</>
-                        )}
-                      </span>
-                    </div>
-                  )
-                }
-              ]}
-              actions={(item) => (
-                item.status !== 'resolvida' && (
-                  <button
-                    onClick={() => marcarResolvido(item.id)}
-                    className="text-[#15803d] hover:text-[#166534] transition-colors duration-200"
-                    title="Marcar como Resolvida"
-                  >
-                    <FiCheck className="w-5 h-5" />
-                  </button>
-                )
-              )}
-            />
-          )}
-        </div>
-      </div>
-      {totalPages > 1 && (
-        <div className="mt-6">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          >
-            <Button
-              variant="outline"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-[14px] h-auto"
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-[14px] h-auto"
-            >
-              Próxima
-            </Button>
-          </Pagination>
-        </div>
-      )}
+      </main>
     </div>
   );
 }

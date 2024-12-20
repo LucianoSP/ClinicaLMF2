@@ -316,78 +316,75 @@ def listar_divergencias(
     e suporte a paginação
     """
     try:
-        query = supabase.table("divergencias").select("*")
+        # Inicia a query base para buscar divergências
+        query = supabase.table("divergencias").select(
+            "divergencias.id",
+            "divergencias.guia_id",
+            "divergencias.tipo_divergencia",
+            "divergencias.descricao_divergencia",
+            "divergencias.status",
+            "divergencias.created_at",
+            "fichas_presenca.data_execucao as data_registro",
+            "execucoes.data_execucao",
+            "execucoes.paciente_nome"
+        ).join(
+            "fichas_presenca",
+            "divergencias.codigo_ficha",
+            "fichas_presenca.codigo_ficha",
+            join_type="left"
+        ).join(
+            "execucoes",
+            "divergencias.codigo_ficha",
+            "execucoes.codigo_ficha",
+            join_type="left"
+        )
 
+        # Adiciona filtros se fornecidos
         if data_inicio:
-            query = query.gte("created_at", data_inicio)
+            query = query.gte("fichas_presenca.data_execucao", data_inicio)
         if data_fim:
-            query = query.lte("created_at", data_fim)
+            query = query.lte("fichas_presenca.data_execucao", data_fim)
         if status:
             query = query.eq("status", status)
 
-        # Get total count first
+        # Busca o total de registros para paginação
         count_response = query.execute()
-        if not count_response.data:
-            return {
-                "divergencias": [],
-                "total": 0,
-                "paginas": 1,
-            }
-
         total = len(count_response.data)
 
-        # Then get paginated results
+        # Adiciona ordenação e paginação
         query = query.order("created_at", desc=True)
         if limit > 0:
             query = query.range(offset, offset + limit - 1)
 
+        # Executa a query
         response = query.execute()
+        divergencias = response.data
 
-        # Formata os resultados para o formato esperado pelo frontend
-        divergencias = []
-        for div in response.data:
-            try:
-                divergencias.append(
-                    {
-                        "id": str(div.get("id", "")),  # Convert ID to string
-                        "guia_id": str(div.get("numero_guia", "")),
-                        "data_execucao": (
-                            datetime.strptime(
-                                str(div.get("data_execucao", "")), "%Y-%m-%d"
-                            ).strftime("%d/%m/%Y")
-                            if div.get("data_execucao")
-                            else ""
-                        ),
-                        "codigo_ficha": str(div.get("codigo_ficha", "")),
-                        "descricao_divergencia": str(div.get("descricao", "")),
-                        "paciente_nome": str(div.get("paciente_nome", "")),
-                        "status": str(div.get("status", "pendente")),
-                        "data_registro": (
-                            datetime.fromisoformat(
-                                str(div.get("created_at", "")).replace("Z", "+00:00")
-                            ).strftime("%d/%m/%Y %H:%M")
-                            if div.get("created_at")
-                            else ""
-                        ),
-                    }
-                )
-            except Exception as e:
-                print(f"Erro ao formatar divergência: {e}")
-                continue
+        # Formata os dados para retorno
+        divergencias_formatadas = []
+        for div in divergencias:
+            divergencias_formatadas.append({
+                "id": div["id"],
+                "guia_id": div["guia_id"],
+                "data_registro": div["data_registro"] or "-",
+                "data_execucao": div["data_execucao"] or "-",
+                "tipo_divergencia": div["tipo_divergencia"],
+                "descricao_divergencia": div["descricao_divergencia"],
+                "paciente_nome": div["paciente_nome"],
+                "status": div["status"],
+                "created_at": div["created_at"]
+            })
 
         return {
-            "divergencias": divergencias,
+            "divergencias": divergencias_formatadas,
             "total": total,
-            "paginas": ceil(total / limit) if limit > 0 else 1,
+            "total_pages": ceil(total / limit) if limit > 0 else 1
         }
+
     except Exception as e:
-        print(f"Erro ao listar divergências: {str(e)}")
-        # Retorna uma resposta vazia mas no formato correto
-        return {
-            "divergencias": [],
-            "total": 0,
-            "paginas": 1,
-        }
+        print(f"Erro ao listar divergências: {e}")
+        traceback.print_exc()
+        return {"divergencias": [], "total": 0, "total_pages": 1}
 
 
 def atualizar_status_divergencia(

@@ -1,5 +1,8 @@
 import { DatePicker } from '@/components/ui/date-picker';
-import { SelectField } from '@/components/ui/select-field';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 interface FiltrosAuditoriaProps {
   dataInicial: Date | null;
@@ -12,6 +15,22 @@ interface FiltrosAuditoriaProps {
   setTipoDivergencia: (tipo: string) => void;
 }
 
+const tiposDivergencia = [
+  { value: 'todos', label: 'Todos os tipos' },
+  { value: 'execucao_sem_ficha', label: 'Execução sem Ficha' },
+  { value: 'ficha_sem_execucao', label: 'Ficha sem Execução' },
+  { value: 'quantidade_excedida', label: 'Quantidade Excedida' },
+  { value: 'data_inconsistente', label: 'Data Inconsistente' },
+  { value: 'doc_incompleto', label: 'Documentação Incompleta' },
+  { value: 'assinatura_ausente', label: 'Assinatura Ausente' },
+];
+
+const statusOptions = [
+  { value: 'todos', label: 'Todos os status' },
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'resolvida', label: 'Resolvida' },
+];
+
 export const FiltrosAuditoria = ({
   dataInicial,
   setDataInicial,
@@ -22,40 +41,70 @@ export const FiltrosAuditoria = ({
   tipoDivergencia,
   setTipoDivergencia,
 }: FiltrosAuditoriaProps) => {
+  const limparFiltros = () => {
+    setDataInicial(null);
+    setDataFinal(null);
+    setStatusFiltro('todos');
+    setTipoDivergencia('todos');
+  };
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+    <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold text-gray-800">Filtros</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={limparFiltros}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <X className="w-4 h-4 mr-1" />
+          Limpar Filtros
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DatePicker
-          label="Data Inicial"
-          date={dataInicial}
-          setDate={setDataInicial}
-        />
-        <DatePicker
-          label="Data Final"
-          date={dataFinal}
-          setDate={setDataFinal}
-        />
-        <SelectField
-          label="Status"
-          value={statusFiltro}
-          onChange={setStatusFiltro}
-          options={[
-            { value: 'todos', label: 'Todos' },
-            { value: 'pendente', label: 'Pendentes' },
-            { value: 'resolvida', label: 'Resolvidas' },
-          ]}
-        />
-        <SelectField
-          label="Tipo de Divergência"
-          value={tipoDivergencia}
-          onChange={setTipoDivergencia}
-          options={[
-            { value: 'todos', label: 'Todos' },
-            { value: 'data', label: 'Datas' },
-            { value: 'documentacao', label: 'Documentação' },
-            { value: 'quantidade', label: 'Quantitativas' },
-          ]}
-        />
+        <div className="space-y-2">
+          <Label>Data Inicial</Label>
+          <DatePicker date={dataInicial} setDate={setDataInicial} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Data Final</Label>
+          <DatePicker date={dataFinal} setDate={setDataFinal} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Status</Label>
+          <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o status" />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Tipo de Divergência</Label>
+          <Select value={tipoDivergencia} onValueChange={setTipoDivergencia}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              {tiposDivergencia.map(tipo => (
+                <SelectItem key={tipo.value} value={tipo.value}>
+                  {tipo.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );
