@@ -2,6 +2,20 @@
 
 **1. Contexto Geral**
 
+## Tipos de divergências possiveis:
+Os tipos de divergências podem ser organizados de forma a abranger as principais categorias identificadas no processo de auditoria. Uma lista de tipos que podem ser cadastrados no banco de dados (por exemplo, em uma coluna tipo_divergencia) inclui:
+
+DATA_INCONSISTENTE: Divergências envolvendo datas, como datas ausentes, divergentes entre ficha e execução ou datas fora do intervalo autorizado.
+
+DOC_INCOMPLETO: Problemas na documentação, tais como número da guia faltando ou incorreto, código da ficha ausente ou inválido.
+
+ASSINATURA_AUSENTE: Fichas de presença sem a devida assinatura do paciente.
+
+QUANTIDADE_EXCEDIDA: Quando a quantidade de execuções registradas excede a quantidade autorizada na guia.
+
+EXECUCAO_SEM_FICHA: Execuções registradas no sistema sem a ficha de presença correspondente.
+
+FICHA_SEM_EXECUCAO: Fichas de presença digitalizadas sem execução correspondente registrada.
 Você possui um aplicativo de execucaos médicos com duas tabelas principais no banco de dados:
 
 - **Tabela de execucaos (`fichas_presenca`)**: Registra cada execucao realizado, incluindo informações como data, número da carteira, nome do beneficiário, número da guia principal, código da guia e se possui assinatura.

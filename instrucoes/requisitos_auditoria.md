@@ -225,153 +225,152 @@ CREATE TABLE auditoria_execucoes (
 
 ## 3. Tipos de Divergências a Serem Identificadas
 
-**Divergências de Datas:**  
-- Datas não preenchidas  
-- Datas divergentes entre a ficha de presença e a execução registrada  
-- Datas incompatíveis com a quantidade autorizada
+3. Tipos de Divergências a Serem Identificadas
+As divergências serão identificadas e agrupadas pelo codigo_ficha. Dessa forma, cada ficha será o ponto central para rastrear problemas, tornando a análise mais direta.
 
-**Divergências de Documentação:**  
-- Número da guia ausente ou incorreto  
-- Código da ficha ausente ou incorreto  
-- Falta de assinatura na ficha de presença
+### Divergências de Datas (DATA_INCONSISTENTE):
 
-**Divergências Quantitativas:**  
-- Quantidade de execuções diferente da quantidade autorizada  
-- Quantidade de fichas assinadas não correspondente às execuções realizadas
+Datas ausentes no registro
+Datas divergentes entre a ficha de presença e a execução correspondente
+Datas fora do intervalo autorizado pelas guias
+
+### Divergências de Documentação (DOC_INCOMPLETO):
+
+Ausência ou divergência no número da guia
+Ausência ou divergência no código da ficha
+Assinatura ausente na ficha de presença (ASSINATURA_AUSENTE)
+
+### Divergências Quantitativas (QUANTIDADE_EXCEDIDA):
+
+Quantidade executada maior que a autorizada na guia
+Divergências de Execução vs. Ficha:
+
+Execução sem ficha correspondente (EXECUCAO_SEM_FICHA)
+Ficha sem execução correspondente (FICHA_SEM_EXECUCAO)
+
 
 ## 4. Auditorias Possíveis
+Essas auditorias servem para detectar divergências, sempre levando em conta o codigo_ficha como chave de agrupamento:
 
-**Execuções sem ficha correspondente:**  
-Verifica execuções no sistema sem ficha de presença associada, comparando `numero_guia`, `data_execucao` e `codigo_ficha`.
+Execuções sem ficha correspondente (EXECUCAO_SEM_FICHA):
+Compara execucoes e fichas_presenca para encontrar execuções que não tenham uma ficha associada, usando numero_guia, data_execucao e codigo_ficha.
 
-**Fichas sem execução correspondente:**  
-Verifica fichas de presença sem execução registrada, comparando `numero_guia`, `data_execucao` e `codigo_ficha`.
+Fichas sem execução correspondente (FICHA_SEM_EXECUCAO):
+Compara fichas_presenca e execucoes para encontrar fichas sem a execução devida, usando numero_guia, data_execucao e codigo_ficha.
 
-**Divergência na quantidade executada vs. quantidade autorizada:**  
-Identifica guias em que o total de execuções excede a quantidade autorizada.
+Divergência na quantidade executada vs. quantidade autorizada (QUANTIDADE_EXCEDIDA):
+Verifica se o total de execuções associadas a uma determinada ficha (via guia e codigo_ficha) excede a quantidade autorizada.
 
-**Ficha sem assinatura:**  
-Identifica fichas de presença sem assinatura, apesar da execução correspondente.
+Ficha sem assinatura (ASSINATURA_AUSENTE):
+Verifica fichas de presença sem assinatura, indicando possível falta de validação presencial do paciente.
 
-**Diferenças de data:**  
-Detecta casos em que a data da execução não coincide com a data da ficha de presença.
-
+Diferenças de data (DATA_INCONSISTENTE):
+Identifica se a data na ficha difere da data da execução, causando inconsistência no registro.
 
 ### Códigos de exemplos
 
-
-```python
--- Auditoria 1: Execuções sem Ficha Correspondente
+Auditoria 1: Execuções sem Ficha Correspondente
 INSERT INTO divergencias (
     id, tipo_divergencia, descricao, status, data_identificacao, numero_guia, data_execucao, codigo_ficha, created_at, updated_at
 )
 SELECT
-    gen_random_uuid() AS id,
-    'execucao_sem_ficha' AS tipo_divergencia,
-    'Execução registrada sem ficha de presença correspondente' AS descricao,
-    'pendente'::text AS status,
-    now() AS data_identificacao,
+    gen_random_uuid(),
+    'EXECUCAO_SEM_FICHA',
+    'Execução registrada sem ficha correspondente',
+    'pendente',
+    now(),
     e.numero_guia,
     e.data_execucao,
     e.codigo_ficha,
-    now() AS created_at,
-    now() AS updated_at
+    now(),
+    now()
 FROM execucoes e
 LEFT JOIN fichas_presenca f ON f.numero_guia = e.numero_guia 
   AND f.data_execucao = e.data_execucao 
   AND f.codigo_ficha = e.codigo_ficha
 WHERE f.id IS NULL;
 
-
-
--- Auditoria 2: Fichas sem Execução Correspondente
+Auditoria 2: Fichas sem Execução Correspondente
 INSERT INTO divergencias (
     id, tipo_divergencia, descricao, status, data_identificacao, numero_guia, data_execucao, codigo_ficha, created_at, updated_at
 )
 SELECT
-    gen_random_uuid() AS id,
-    'ficha_sem_execucao' AS tipo_divergencia,
-    'Ficha de presença digitalizada sem execução correspondente registrada' AS descricao,
-    'pendente'::text AS status,
-    now() AS data_identificacao,
+    gen_random_uuid(),
+    'FICHA_SEM_EXECUCAO',
+    'Ficha sem execução correspondente',
+    'pendente',
+    now(),
     f.numero_guia,
     f.data_execucao,
     f.codigo_ficha,
-    now() AS created_at,
-    now() AS updated_at
+    now(),
+    now()
 FROM fichas_presenca f
 LEFT JOIN execucoes e ON e.numero_guia = f.numero_guia 
   AND e.data_execucao = f.data_execucao 
   AND e.codigo_ficha = f.codigo_ficha
 WHERE e.id IS NULL;
 
-
--- Auditoria 3: Divergência na Quantidade Executada vs. Quantidade Autorizada
--- Aqui assumimos que a quantidade executada total deve ser <= quantidade_autorizada na guia
+Auditoria 3: Divergência na Quantidade Executada vs. Quantidade Autorizada
+-- Aqui supõe-se que a quantidade autorizada está na tabela guias
+-- e que podemos verificar a soma das execuções por guia e ficha.
 INSERT INTO divergencias (
-    id, tipo_divergencia, descricao, status, data_identificacao, numero_guia, data_execucao, codigo_ficha, created_at, updated_at
+    id, tipo_divergencia, descricao, status, data_identificacao, numero_guia, codigo_ficha, created_at, updated_at
 )
 SELECT
-    gen_random_uuid() AS id,
-    'quantidade_divergente' AS tipo_divergencia,
-    'Soma das execuções excede a quantidade autorizada na guia' AS descricao,
-    'pendente'::text AS status,
-    now() AS data_identificacao,
+    gen_random_uuid(),
+    'QUANTIDADE_EXCEDIDA',
+    'A quantidade executada na ficha excede a quantidade autorizada',
+    'pendente',
+    now(),
     g.numero_guia,
-    NULL::date AS data_execucao,
-    NULL::text AS codigo_ficha,
-    now() AS created_at,
-    now() AS updated_at
+    e.codigo_ficha,
+    now(),
+    now()
 FROM guias g
+JOIN execucoes e ON e.numero_guia = g.numero_guia
 JOIN (
-    SELECT numero_guia, SUM(quantidade_sessoes) AS total_executado
+    SELECT numero_guia, codigo_ficha, SUM(quantidade_sessoes) AS total_executado
     FROM execucoes
-    GROUP BY numero_guia
-) ex ON ex.numero_guia = g.numero_guia
+    GROUP BY numero_guia, codigo_ficha
+) ex ON ex.numero_guia = g.numero_guia AND ex.codigo_ficha = e.codigo_ficha
 WHERE ex.total_executado > g.quantidade_autorizada;
 
 
--- Auditoria 4: Ficha sem Assinatura
+Auditoria 4: Ficha sem Assinatura
 INSERT INTO divergencias (
     id, tipo_divergencia, descricao, status, data_identificacao, numero_guia, data_execucao, codigo_ficha, created_at, updated_at
 )
 SELECT
-    gen_random_uuid() AS id,
-    'ficha_sem_assinatura' AS tipo_divergencia,
-    'Ficha de presença sem assinatura detectada' AS descricao,
-    'pendente'::text AS status,
-    now() AS data_identificacao,
+    gen_random_uuid(),
+    'ASSINATURA_AUSENTE',
+    'A ficha não possui assinatura do paciente',
+    'pendente',
+    now(),
     f.numero_guia,
     f.data_execucao,
     f.codigo_ficha,
-    now() AS created_at,
-    now() AS updated_at
+    now(),
+    now()
 FROM fichas_presenca f
 WHERE f.possui_assinatura = false;
 
 
--- Auditoria 5: Divergência de Data entre Ficha e Execução
--- Considera-se divergência se existe a mesma guia e ficha, porém datas não batem.
--- Aqui utilizamos um exemplo simplificado: fichas e execuções que compartilham guia e ficha, mas com datas diferentes.
+Auditoria 5: Diferenças de Data
 INSERT INTO divergencias (
     id, tipo_divergencia, descricao, status, data_identificacao, numero_guia, data_execucao, codigo_ficha, created_at, updated_at
 )
 SELECT
-    gen_random_uuid() AS id,
-    'data_divergente' AS tipo_divergencia,
-    'A data da ficha de presença não corresponde à data da execução registrada' AS descricao,
-    'pendente'::text AS status,
-    now() AS data_identificacao,
+    gen_random_uuid(),
+    'DATA_INCONSISTENTE',
+    'A data da execução não coincide com a data da ficha de presença',
+    'pendente',
+    now(),
     e.numero_guia,
     e.data_execucao,
     e.codigo_ficha,
-    now() AS created_at,
-    now() AS updated_at
+    now(),
+    now()
 FROM execucoes e
 JOIN fichas_presenca f ON f.numero_guia = e.numero_guia AND f.codigo_ficha = e.codigo_ficha
 WHERE f.data_execucao != e.data_execucao;
-```
-
-
-Prompt:
-veja os requisitos em instrucoes\requisitos_auditoria.md e a página da auditoria  em frontend\src\app\auditoria\page.tsx

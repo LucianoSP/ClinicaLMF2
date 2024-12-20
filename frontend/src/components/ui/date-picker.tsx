@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Label } from "@/components/ui/label"
 import {
   Popover,
   PopoverContent,
@@ -15,34 +16,39 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
-  date?: Date
-  setDate: (date: Date | undefined) => void
+  label: string
+  date?: Date | null
+  setDate: (date: Date | null) => void
+  className?: string
 }
 
-export function DatePicker({ date, setDate }: DatePickerProps) {
+export function DatePicker({ label, date, setDate, className }: DatePickerProps) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant={"outline"}
-          className={cn(
-            "w-[280px] justify-start text-left font-normal",
-            !date && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          initialFocus
-          locale={ptBR}
-        />
-      </PopoverContent>
-    </Popover>
+    <div className={className}>
+      <Label>{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant={"outline"}
+            className={cn(
+              "w-full justify-start text-left font-normal mt-2",
+              !date && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0">
+          <Calendar
+            mode="single"
+            selected={date || undefined}
+            onSelect={setDate}
+            initialFocus
+            locale={ptBR}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   )
 }
