@@ -29,6 +29,8 @@ O sistema foi desenvolvido para automatizar e controlar o processo de auditoria 
 
 ## 3. Estrutura do Banco de Dados
 
+
+
 ### 3.1 Tabelas Principais
 
 #### `pacientes` (Pacientes)

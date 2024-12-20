@@ -368,7 +368,11 @@ def realizar_auditoria_fichas_execucoes(
 
         # Contabiliza execuções sem ficha
         for execucao in execucoes:
-            if execucao.get("codigo_ficha"):
+            if not execucao.get("codigo_ficha"):  # Se não tem código de ficha
+                divergencias_por_tipo["execucao_sem_ficha"] += 1
+                divergencias_por_tipo["sem_ficha"] += 1
+                divergencias_por_tipo["pendente"] += 1
+            else:  # Se tem código de ficha, verifica se existe a ficha
                 ficha_correspondente = next(
                     (f for f in fichas if f["codigo_ficha"] == execucao["codigo_ficha"]),
                     None,
@@ -418,6 +422,7 @@ def realizar_auditoria_fichas_execucoes(
         return {
             "status": "success",
             "divergencias_encontradas": divergencias_encontradas,
+            "total_fichas": total_fichas,
         }
 
     except Exception as e:

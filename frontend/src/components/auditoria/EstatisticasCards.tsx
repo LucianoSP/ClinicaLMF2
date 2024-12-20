@@ -11,6 +11,7 @@ interface EstatisticasProps {
     total_pendentes: number;
     total_fichas_sem_assinatura: number;
     total_execucoes_sem_ficha: number;
+    total_fichas: number;
     data_execucao: string;
     tempo_execucao?: string;
   };
@@ -27,9 +28,11 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <div className="p-6 rounded-lg shadow-sm bg-white text-gray-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium opacity-80">Total de Protocolos</p>
+              <p className="text-sm font-medium opacity-80">Total de Guias</p>
               <p className="text-2xl font-semibold mt-1">{resultadoAuditoria.total_protocolos}</p>
-              <p className="text-xs mt-1 opacity-70">Protocolos analisados</p>
+              <p className="text-xs mt-1 opacity-70">
+                {resultadoAuditoria.total_fichas} fichas verificadas
+              </p>
             </div>
             <div className="opacity-80"><ClipboardList className="w-6 h-6" /></div>
           </div>

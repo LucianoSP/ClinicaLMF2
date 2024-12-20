@@ -914,6 +914,10 @@ def calcular_estatisticas_divergencias() -> Dict:
         ).execute()
         divergencias = response.data
         
+        # Busca o total de protocolos (execuções)
+        response_execucoes = supabase.table("execucoes").select("*").execute()
+        total_protocolos = len(response_execucoes.data)
+        
         # Calcula totais
         total_divergencias = len(divergencias)
         total_resolvidas = len([d for d in divergencias if d["status"] == "resolvida"])
@@ -936,17 +940,18 @@ def calcular_estatisticas_divergencias() -> Dict:
             "total_resolvidas": total_resolvidas,
             "total_pendentes": total_pendentes,
             "total_fichas_sem_assinatura": total_fichas_sem_assinatura,
-            "total_execucoes_sem_ficha": total_execucoes_sem_ficha
+            "total_execucoes_sem_ficha": total_execucoes_sem_ficha,
+            "total_protocolos": total_protocolos
         }
     except Exception as e:
         print(f"Erro ao calcular estatísticas: {e}")
-        traceback.print_exc()
         return {
             "total_divergencias": 0,
             "total_resolvidas": 0,
             "total_pendentes": 0,
             "total_fichas_sem_assinatura": 0,
-            "total_execucoes_sem_ficha": 0
+            "total_execucoes_sem_ficha": 0,
+            "total_protocolos": 0
         }
 
 
