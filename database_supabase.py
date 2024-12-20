@@ -905,24 +905,86 @@ def registrar_execucao_auditoria(
         return None
 
 
-def obter_ultima_auditoria():
+def calcular_estatisticas_divergencias() -> Dict:
+    """Calcula estatísticas das divergências para os cards"""
+    try:
+        # Busca todas as divergências com seus relacionamentos
+        response = supabase.table("divergencias").select(
+            "*, fichas_presenca!inner(possui_assinatura)"
+        ).execute()
+        divergencias = response.data
+        
+        # Calcula totais
+        total_divergencias = len(divergencias)
+        total_resolvidas = len([d for d in divergencias if d["status"] == "resolvida"])
+        total_pendentes = len([d for d in divergencias if d["status"] == "pendente"])
+        
+        # Conta fichas sem assinatura olhando o campo possui_assinatura da tabela fichas_presenca
+        total_fichas_sem_assinatura = len([
+            d for d in divergencias 
+            if d.get("fichas_presenca") and not d["fichas_presenca"].get("possui_assinatura", True)
+        ])
+        
+        # Conta execuções sem ficha
+        total_execucoes_sem_ficha = len([
+            d for d in divergencias 
+            if d["tipo_divergencia"] == "execucao_sem_ficha"
+        ])
+        
+        return {
+            "total_divergencias": total_divergencias,
+            "total_resolvidas": total_resolvidas,
+            "total_pendentes": total_pendentes,
+            "total_fichas_sem_assinatura": total_fichas_sem_assinatura,
+            "total_execucoes_sem_ficha": total_execucoes_sem_ficha
+        }
+    except Exception as e:
+        print(f"Erro ao calcular estatísticas: {e}")
+        traceback.print_exc()
+        return {
+            "total_divergencias": 0,
+            "total_resolvidas": 0,
+            "total_pendentes": 0,
+            "total_fichas_sem_assinatura": 0,
+            "total_execucoes_sem_ficha": 0
+        }
+
+
+def obter_ultima_auditoria() -> Dict:
     """
-    Obtém a última execução de auditoria registrada no banco de dados.
+    Obtém o resultado da última auditoria realizada e calcula estatísticas das divergências
     """
     try:
-        response = (
-            supabase.table("auditoria_execucoes")
-            .select("*")
-            .order("data_execucao", desc=True)
-            .limit(1)
+        # Busca última auditoria
+        response = supabase.table("auditoria_execucoes") \
+            .select("*") \
+            .order("data_execucao", desc=True) \
+            .limit(1) \
             .execute()
-        )
-        if response.data and len(response.data) > 0:
-            return response.data[0]
-        return None
+        
+        if not response.data:
+            return None
+            
+        ultima_auditoria = response.data[0]
+        
+        # Calcula estatísticas das divergências
+        estatisticas = calcular_estatisticas_divergencias()
+        
+        return {
+            "total_protocolos": ultima_auditoria.get("total_protocolos", 0),
+            "total_divergencias": estatisticas["total_divergencias"],
+            "total_resolvidas": estatisticas["total_resolvidas"],
+            "total_pendentes": estatisticas["total_pendentes"],
+            "total_fichas_sem_assinatura": estatisticas["total_fichas_sem_assinatura"],
+            "total_execucoes_sem_ficha": estatisticas["total_execucoes_sem_ficha"],
+            "data_execucao": ultima_auditoria.get("data_execucao"),
+            "tempo_execucao": "Tempo não disponível"  # TODO: Calcular tempo de execução se necessário
+        }
+
     except Exception as e:
-        print(f"Erro ao obter última auditoria: {str(e)}")
-        raise Exception(f"Erro ao obter última auditoria: {str(e)}")
+        print(f"Erro ao obter última auditoria: {e}")
+        traceback.print_exc()
+        return None
 
 
 def listar_pacientes(

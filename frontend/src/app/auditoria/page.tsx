@@ -206,9 +206,9 @@ export default function AuditoriaPage() {
       try {
         const response = await fetch(`${API_URL}/auditoria/ultima`);
         if (response.ok) {
-          const data = await response.json();
-          if (data.data) {
-            setResultadoAuditoria(data.data);
+          const { data } = await response.json();
+          if (data) {
+            setResultadoAuditoria(data);
           }
         }
       } catch (error) {

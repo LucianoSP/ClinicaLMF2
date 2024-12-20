@@ -248,13 +248,19 @@ def realizar_auditoria_fichas_execucoes(
                     logging.error(f"Erro ao filtrar por data: {e}")
                     continue
 
-            if execucao.get("codigo_ficha"):  # Só verifica se tiver código de ficha
+            if not execucao.get("codigo_ficha"):  # Registra divergência se NÃO tiver código de ficha
+                divergencias_encontradas += 1
+                registrar_divergencia(
+                    numero_guia=execucao.get("numero_guia", "-"),
+                    data_execucao=execucao.get("data_execucao", ""),
+                    codigo_ficha="-",  # Não tem código de ficha
+                    tipo_divergencia="execucao_sem_ficha",
+                    descricao="Execução sem ficha de presença correspondente",
+                    paciente_nome=execucao.get("paciente_nome", "Não informado"),
+                )
+            else:  # Se tem código de ficha, verifica se existe a ficha
                 ficha_correspondente = next(
-                    (
-                        f
-                        for f in fichas
-                        if f["codigo_ficha"] == execucao["codigo_ficha"]
-                    ),
+                    (f for f in fichas if f["codigo_ficha"] == execucao["codigo_ficha"]),
                     None,
                 )
 
@@ -331,40 +337,78 @@ def realizar_auditoria_fichas_execucoes(
                 )
 
         # Contabiliza divergências por tipo
-        divergencias_por_tipo = {}
+        divergencias_por_tipo = {
+            "ficha_sem_assinatura": 0,
+            "ficha_sem_execucao": 0,
+            "execucao_sem_ficha": 0,
+            "quantidade_sessoes_divergente": 0,
+            "data_divergente": 0,
+            "sem_assinatura": 0,
+            "sem_ficha": 0,
+            "pendente": 0,
+            "resolvida": 0
+        }
+
+        # Contabiliza fichas sem assinatura
         for ficha in fichas:
             if not ficha.get("possui_assinatura", True):
-                divergencias_por_tipo["ficha_sem_assinatura"] = (
-                    divergencias_por_tipo.get("ficha_sem_assinatura", 0) + 1
-                )
+                divergencias_por_tipo["ficha_sem_assinatura"] += 1
+                divergencias_por_tipo["sem_assinatura"] += 1
+                divergencias_por_tipo["pendente"] += 1
 
+        # Contabiliza fichas sem execução
+        for ficha in fichas:
             execucao_correspondente = next(
                 (e for e in execucoes if e["codigo_ficha"] == ficha["codigo_ficha"]),
                 None,
             )
             if not execucao_correspondente:
-                divergencias_por_tipo["ficha_sem_execucao"] = (
-                    divergencias_por_tipo.get("ficha_sem_execucao", 0) + 1
-                )
+                divergencias_por_tipo["ficha_sem_execucao"] += 1
+                divergencias_por_tipo["pendente"] += 1
 
-            # Adiciona contagem para divergência de quantidade de sessões
-            execucoes_da_guia = [
-                e for e in execucoes if e["numero_guia"] == ficha["numero_guia"]
-            ]
-            fichas_da_guia = [
-                f for f in fichas if f["numero_guia"] == ficha["numero_guia"]
-            ]
-            if len(execucoes_da_guia) != len(fichas_da_guia):
-                divergencias_por_tipo["quantidade_sessoes_divergente"] = (
-                    divergencias_por_tipo.get("quantidade_sessoes_divergente", 0) + 1
+        # Contabiliza execuções sem ficha
+        for execucao in execucoes:
+            if execucao.get("codigo_ficha"):
+                ficha_correspondente = next(
+                    (f for f in fichas if f["codigo_ficha"] == execucao["codigo_ficha"]),
+                    None,
                 )
+                if not ficha_correspondente:
+                    divergencias_por_tipo["execucao_sem_ficha"] += 1
+                    divergencias_por_tipo["sem_ficha"] += 1
+                    divergencias_por_tipo["pendente"] += 1
+
+        # Contabiliza divergências de data
+        for ficha in fichas:
+            execucao_correspondente = next(
+                (e for e in execucoes if e["codigo_ficha"] == ficha["codigo_ficha"]),
+                None,
+            )
+            if execucao_correspondente and ficha["data_execucao"] != execucao_correspondente["data_execucao"]:
+                divergencias_por_tipo["data_divergente"] += 1
+                divergencias_por_tipo["pendente"] += 1
+
+        # Contabiliza divergências de quantidade (agora usando um set para evitar duplicatas)
+        guias_processadas = set()
+        for ficha in fichas:
+            numero_guia = ficha["numero_guia"]
+            if numero_guia not in guias_processadas:
+                guias_processadas.add(numero_guia)
+                
+                # Agrupa execuções e fichas por número da guia
+                execucoes_da_guia = [e for e in execucoes if e["numero_guia"] == numero_guia]
+                fichas_da_guia = [f for f in fichas if f["numero_guia"] == numero_guia]
+                
+                if len(execucoes_da_guia) != len(fichas_da_guia):
+                    divergencias_por_tipo["quantidade_sessoes_divergente"] += 1
+                    divergencias_por_tipo["pendente"] += 1
 
         # Registra metadados da execução da auditoria
         registrar_execucao_auditoria(
             data_inicial=data_inicial,
             data_final=data_final,
             total_protocolos=total_fichas + total_execucoes,
-            total_divergencias=divergencias_encontradas,
+            total_divergencias=sum(divergencias_por_tipo[tipo] for tipo in ["ficha_sem_assinatura", "ficha_sem_execucao", "execucao_sem_ficha", "quantidade_sessoes_divergente", "data_divergente"]),
             divergencias_por_tipo=divergencias_por_tipo,
         )
 
