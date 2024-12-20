@@ -17,13 +17,14 @@ import { CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon, DocumentIcon } fro
 
 interface FichaPresenca {
   id: string;
-  data_execucao: string;
+  data_atendimento: string;
   paciente_carteirinha: string;
   paciente_nome: string;
   numero_guia: string;
   codigo_ficha: string;
   possui_assinatura: boolean;
   arquivo_digitalizado?: string;
+  observacoes?: string;
 }
 
 export default function FichasPresenca() {
@@ -225,7 +226,7 @@ export default function FichasPresenca() {
 
     // Convert the data to the format we want to export
     const exportData = fichas.map(ficha => ({
-      'Data': format(new Date(ficha.data_execucao), 'dd/MM/yyyy'),
+      'Data': ficha.data_atendimento,
       'Paciente': ficha.paciente_nome,
       'Carteirinha': ficha.paciente_carteirinha,
       'Guia': ficha.numero_guia,
@@ -248,7 +249,20 @@ export default function FichasPresenca() {
   }, [page, debouncedSearchTerm]);
 
   const columns: Column<FichaPresenca>[] = [
-    { key: 'data_execucao', label: 'Data' },
+    { 
+      key: 'data_atendimento', 
+      label: 'Data',
+      render: (value) => {
+        if (!value) return '-';
+        try {
+          const [dia, mes, ano] = value.split('/');
+          return `${dia}/${mes}/${ano}`;
+        } catch (error) {
+          console.error('Erro ao formatar data:', value);
+          return value || '-';
+        }
+      }
+    },
     { key: 'paciente_carteirinha', label: 'Carteirinha' },
     { key: 'paciente_nome', label: 'Paciente' },
     { key: 'numero_guia', label: 'Guia' },
@@ -392,10 +406,10 @@ export default function FichasPresenca() {
               <Input
                 id="data"
                 type="date"
-                value={editedFicha.data_execucao}
+                value={editedFicha.data_atendimento}
                 onChange={(e) => setEditedFicha({
                   ...editedFicha,
-                  data_execucao: e.target.value
+                  data_atendimento: e.target.value
                 })}
                 className="col-span-3"
               />

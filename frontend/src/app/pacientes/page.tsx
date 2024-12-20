@@ -134,7 +134,7 @@ export default function PatientsPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-semibold mb-6">Gerenciamento de Pacientes</h1>
+      <h1 className="text-[22px] font-semibold text-[#6b342f] mb-6">Gerenciamento de Pacientes</h1>
       
       <div className="grid grid-cols-1 gap-6 mb-6">
         {/* Card de Busca de Pacientes */}
@@ -157,13 +157,14 @@ export default function PatientsPage() {
                   variant="outline" 
                   size="icon"
                   onClick={() => handleSearch(searchTerm)}
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200"
                 >
                   <SearchIcon className="h-4 w-4" />
                 </Button>
               </div>
               <Button 
                 onClick={() => setIsFormOpen(true)}
-                className="bg-[#8f732b] hover:bg-[#8f732b]/90 text-[14px]"
+                className="px-4 py-2 rounded-lg font-medium bg-[#C5A880] text-white hover:bg-[#C5A880]/90"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Novo Paciente
