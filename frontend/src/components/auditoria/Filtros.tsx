@@ -27,10 +27,10 @@ export function Filtros({
   onSearch,
 }: FiltrosProps) {
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm mb-4 space-y-4">
+    <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-gray-700">
             Data Inicial
           </label>
           <DatePicker
@@ -38,8 +38,8 @@ export function Filtros({
             onChange={onChangeDataInicial}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-gray-700">
             Data Final
           </label>
           <DatePicker
@@ -47,8 +47,8 @@ export function Filtros({
             onChange={onChangeDataFinal}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-gray-700">
             Status
           </label>
           <Select value={status} onValueChange={onChangeStatus}>
@@ -62,8 +62,8 @@ export function Filtros({
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-gray-700">
             Tipo de Divergência
           </label>
           <Select value={tipoDivergencia} onValueChange={onChangeTipoDivergencia}>
@@ -82,7 +82,7 @@ export function Filtros({
           </Select>
         </div>
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end mt-4">
         <Button onClick={onSearch} className="bg-blue-600 hover:bg-blue-700 text-white">
           <Search className="w-4 h-4 mr-2" />
           Buscar
