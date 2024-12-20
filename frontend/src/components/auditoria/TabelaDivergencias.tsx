@@ -127,7 +127,7 @@ export const TabelaDivergencias = ({
     <TableHead className="text-xs cursor-pointer" onClick={() => handleSort(sortKey)}>
       <div className="flex items-center space-x-1">
         <span>{children}</span>
-        <ArrowUpDown className="w-4 h-4" />
+        <ArrowUpDown className="w-3 h-3 text-gray-400" />
       </div>
     </TableHead>
   );
@@ -154,7 +154,7 @@ export const TabelaDivergencias = ({
         <TableHeader>
           <TableRow>
             <SortableHeader sortKey="guia_id">Guia</SortableHeader>
-            <SortableHeader sortKey="data_registro">Data Registro</SortableHeader>
+            <SortableHeader sortKey="data_registro">Data do Atendimento</SortableHeader>
             <SortableHeader sortKey="data_execucao">Data Execução</SortableHeader>
             <SortableHeader sortKey="tipo_divergencia">Tipo</SortableHeader>
             <SortableHeader sortKey="paciente_nome">Paciente</SortableHeader>

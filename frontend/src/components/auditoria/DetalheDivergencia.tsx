@@ -54,7 +54,7 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
               </p>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-500">Data de Registro</h4>
+              <h4 className="text-sm font-medium text-gray-500">Data do Atendimento</h4>
               <p className="mt-1">
                 {divergencia.data_registro ? formatarData(new Date(divergencia.data_registro), false) : '-'}
               </p>
