@@ -33,6 +33,7 @@ interface Divergencia {
   paciente_nome: string;  // alterado de beneficiario
   status: string;
   data_registro: string;
+  tipo_divergencia: string;
 }
 
 interface AuditoriaResultado {
@@ -462,7 +463,8 @@ export default function AuditoriaPage() {
                 },
                 {
                   key: 'guia_id',
-                  label: 'Número Guia'
+                  label: 'Número Guia',
+                  render: (value) => value || '-'
                 },
                 {
                   key: 'data_execucao',
@@ -471,7 +473,22 @@ export default function AuditoriaPage() {
                 },
                 {
                   key: 'descricao_divergencia',
-                  label: 'Descrição'
+                  label: 'Descrição',
+                  render: (value) => (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" className="h-auto p-0 text-left hover:bg-transparent">
+                          <span className="line-clamp-2">{value}</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-4">
+                        <div className="space-y-2">
+                          <h4 className="font-medium">Detalhes da Divergência</h4>
+                          <div className="whitespace-pre-line text-sm">{value}</div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )
                 },
                 {
                   key: 'paciente_nome',
@@ -479,12 +496,31 @@ export default function AuditoriaPage() {
                   render: (value) => value || '-'
                 },
                 {
+                  key: 'tipo_divergencia',
+                  label: 'Tipo',
+                  render: (value) => (
+                    <Badge variant={
+                      value === 'execucao_sem_ficha' ? 'destructive' :
+                        value === 'ficha_sem_execucao' ? 'warning' :
+                          value === 'ficha_sem_assinatura' ? 'secondary' :
+                            value === 'data_divergente' ? 'outline' :
+                              'default'
+                    }>
+                      {value === 'execucao_sem_ficha' ? 'Execução sem Ficha' :
+                        value === 'ficha_sem_execucao' ? 'Ficha sem Execução' :
+                          value === 'ficha_sem_assinatura' ? 'Sem Assinatura' :
+                            value === 'data_divergente' ? 'Data Divergente' :
+                              value === 'quantidade_sessoes_divergente' ? 'Qtd. Sessões Divergente' :
+                                value}
+                    </Badge>
+                  )
+                },
+                {
                   key: 'status',
                   label: 'Status',
                   render: (value) => (
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${
-                        value === 'resolvida'
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${value === 'resolvida'
                           ? 'bg-[#dcfce7] text-[#15803d]'
                           : 'bg-[#fef9c3] text-[#854d0e]'
                         }`}>
