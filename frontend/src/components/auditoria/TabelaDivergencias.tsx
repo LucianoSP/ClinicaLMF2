@@ -1,25 +1,33 @@
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Check, ArrowUpDown } from 'lucide-react';
-import { formatarData } from '@/lib/utils';
-import { useState } from 'react';
-import { DetalheDivergencia } from './DetalheDivergencia';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatarData } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Check, ArrowUpDown } from "lucide-react";
+import { useState } from "react";
+import { DetalheDivergencia } from "./DetalheDivergencia";
+import { DivergenciaBadge } from "../ui/divergencia-badge";
+import { StatusBadge } from "../ui/status-badge";
+import { Badge } from "../ui/badge";
 
 interface Divergencia {
   id: string;
   numero_guia: string;
-  data_execucao: string;
-  data_atendimento: string;
-  data_registro: string;
-  codigo_ficha: string;
-  paciente_nome: string;
-  paciente_carteirinha: string;
+  data_execucao: string | null;
+  data_atendimento: string | null;
+  data_identificacao: string;
+  codigo_ficha: string | null;
+  paciente_nome: string | null;
+  carteirinha: string | null;
   status: string;
-  tipo_divergencia?: string;
+  tipo_divergencia: string;
+  prioridade: string;
+  descricao: string | null;
   possui_assinatura: boolean;
-  arquivo_digitalizado?: string;
-  observacoes?: string;
+  arquivo_digitalizado: string | null;
+  observacoes: string | null;
+  resolvido_por: string | null;
+  data_resolucao: string | null;
+  quantidade_autorizada: number | null;
+  quantidade_executada: number | null;
 }
 
 interface TabelaDivergenciasProps {
@@ -27,38 +35,6 @@ interface TabelaDivergenciasProps {
   onResolve: (id: string) => void;
   loading?: boolean;
 }
-
-const DivergenciaBadge = ({ tipo }: { tipo: string }) => {
-  const tipos: { [key: string]: { label: string; className: string } } = {
-    'EXECUCAO_SEM_FICHA': { label: 'Execução sem Ficha', className: 'bg-white border border-red-200 text-red-700' },
-    'FICHA_SEM_EXECUCAO': { label: 'Ficha sem Execução', className: 'bg-white border border-yellow-200 text-yellow-700' },
-    'QUANTIDADE_EXCEDIDA': { label: 'Quantidade Excedida', className: 'bg-white border border-orange-200 text-orange-700' },
-    'DATA_INCONSISTENTE': { label: 'Data Inconsistente', className: 'bg-white border border-blue-200 text-blue-700' },
-    'DOC_INCOMPLETO': { label: 'Documentação Incompleta', className: 'bg-white border border-purple-200 text-purple-700' },
-    'ASSINATURA_AUSENTE': { label: 'Assinatura Ausente', className: 'bg-white border border-pink-200 text-pink-700' },
-  };
-
-  const { label, className } = tipos[tipo] || { label: tipo, className: 'bg-white border border-gray-200 text-gray-700' };
-
-  return (
-    <Badge variant="outline" className={className}>
-      {label}
-    </Badge>
-  );
-};
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const statusConfig = {
-    'pendente': 'bg-white border border-yellow-200 text-yellow-700',
-    'resolvida': 'bg-white border border-green-200 text-green-700',
-  };
-
-  return (
-    <Badge variant="outline" className={statusConfig[status] || 'bg-white border border-gray-200 text-gray-700'}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </Badge>
-  );
-};
 
 const AcoesDropdown = ({ divergencia, onResolve }: { divergencia: Divergencia; onResolve: (id: string) => void }) => {
   if (divergencia.status === 'resolvida') {
@@ -69,11 +45,13 @@ const AcoesDropdown = ({ divergencia, onResolve }: { divergencia: Divergencia; o
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => onResolve(divergencia.id)}
-      className="opacity-0 group-hover:opacity-100 transition-opacity"
+      onClick={(e) => {
+        e.stopPropagation();
+        onResolve(divergencia.id);
+      }}
+      className="opacity-0 group-hover:opacity-100"
     >
       <Check className="w-4 h-4" />
-      <span className="sr-only">Marcar como resolvida</span>
     </Button>
   );
 };
@@ -98,7 +76,7 @@ export const TabelaDivergencias = ({
     if (aValue === null || aValue === undefined) return 1;
     if (bValue === null || bValue === undefined) return -1;
 
-    if (sortConfig.key === 'data_execucao' || sortConfig.key === 'data_registro' || sortConfig.key === 'data_atendimento') {
+    if (sortConfig.key === 'data_execucao' || sortConfig.key === 'data_identificacao' || sortConfig.key === 'data_atendimento') {
       const aDate = new Date(aValue);
       const bDate = new Date(bValue);
       return sortConfig.direction === 'asc' ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime();
@@ -157,7 +135,7 @@ export const TabelaDivergencias = ({
             <SortableHeader sortKey="data_execucao">Data Execução</SortableHeader>
             <SortableHeader sortKey="tipo_divergencia">Tipo</SortableHeader>
             <SortableHeader sortKey="paciente_nome">Paciente</SortableHeader>
-            <SortableHeader sortKey="paciente_carteirinha">Carteirinha</SortableHeader>
+            <SortableHeader sortKey="carteirinha">Carteirinha</SortableHeader>
             <SortableHeader sortKey="possui_assinatura">Assinatura</SortableHeader>
             <SortableHeader sortKey="status">Status</SortableHeader>
             <TableHead className="text-xs">Ações</TableHead>
@@ -187,17 +165,17 @@ export const TabelaDivergencias = ({
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
-                  <DivergenciaBadge tipo={divergencia.tipo_divergencia || 'execucao_sem_ficha'} />
+                  <DivergenciaBadge tipo={divergencia.tipo_divergencia} />
                 </span>
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
-                  {divergencia.paciente_nome}
+                  {divergencia.paciente_nome || '-'}
                 </span>
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
-                  {divergencia.paciente_carteirinha}
+                  {divergencia.carteirinha || '-'}
                 </span>
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">

@@ -1,11 +1,11 @@
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from config import supabase
 from math import ceil
 import os
 import traceback
-import uuid
 import logging
+import uuid
 
 
 def salvar_dados_excel(registros: List[Dict]) -> bool:
@@ -43,20 +43,28 @@ def listar_dados_excel(
 ) -> Dict:
     """Retorna os dados da tabela execucoes com suporte a paginação e filtro"""
     try:
-        print(f"Iniciando listagem de dados com limit={limit}, offset={offset}, paciente_nome={paciente_nome}")
-        
+        print(
+            f"Iniciando listagem de dados com limit={limit}, offset={offset}, paciente_nome={paciente_nome}"
+        )
+
         # Verifica se o Supabase está configurado
         if not supabase:
             print("Erro: Supabase não está configurado")
-            return {"success": False, "data": {"registros": [], "pagination": {"total_pages": 1, "total": 0}}}
-            
+            return {
+                "success": False,
+                "data": {"registros": [], "pagination": {"total_pages": 1, "total": 0}},
+            }
+
         # Testa a conexão
         try:
             test_response = supabase.table("execucoes").select("*").limit(1).execute()
             print("Conexão com Supabase OK")
         except Exception as e:
             print(f"Erro ao testar conexão com Supabase: {e}")
-            return {"success": False, "data": {"registros": [], "pagination": {"total_pages": 1, "total": 0}}}
+            return {
+                "success": False,
+                "data": {"registros": [], "pagination": {"total_pages": 1, "total": 0}},
+            }
 
         # Inicia a query
         query = supabase.table("execucoes").select("*")
@@ -98,7 +106,7 @@ def listar_dados_excel(
                     "codigo_ficha": reg.get("codigo_ficha"),
                     "usuario_executante": reg.get("usuario_executante"),
                     "created_at": reg["created_at"],
-                    "updated_at": reg.get("updated_at")
+                    "updated_at": reg.get("updated_at"),
                 }
             )
 
@@ -108,15 +116,18 @@ def listar_dados_excel(
                 "registros": registros_formatados,
                 "pagination": {
                     "total_pages": ceil(total / limit) if limit > 0 else 1,
-                    "total": total
-                }
-            }
+                    "total": total,
+                },
+            },
         }
 
     except Exception as e:
         print(f"Erro ao listar dados do Excel: {e}")
         traceback.print_exc()
-        return {"success": False, "data": {"registros": [], "pagination": {"total_pages": 1, "total": 0}}}
+        return {
+            "success": False,
+            "data": {"registros": [], "pagination": {"total_pages": 1, "total": 0}},
+        }
 
 
 def limpar_protocolos_excel() -> bool:
@@ -144,71 +155,38 @@ def contar_execucoes() -> int:
         return 0
 
 
-def salvar_guia(info: Dict) -> Optional[int]:
+def salvar_guia(dados: Dict) -> bool:
     """
-    Salva as informações do execucao no Supabase.
-    Se o código da ficha já existir, atualiza o registro.
+    Salva uma nova guia no banco de dados.
+
+    Args:
+        dados: Dicionário com os dados da guia
+
+    Returns:
+        bool indicando sucesso da operação
     """
     try:
-        print(f"Tentando salvar execucao: {info}")
-
-        # Formata os dados para o formato esperado pelo banco
-        dados = {
-            "data_execucao": info["data_execucao"],
-            "paciente_carteirinha": info["paciente_carteirinha"],
-            "paciente_nome": info["paciente_nome"],
-            "guia_id": info["guia_id"],
-            "possui_assinatura": info.get("possui_assinatura", False),
-            "codigo_ficha": info.get("codigo_ficha"),
+        # Prepara os dados no formato correto
+        guia_formatada = {
+            "numero_guia": str(dados["numero_guia"]),
+            "paciente_nome": str(dados["paciente_nome"]).upper(),
+            "paciente_id": str(dados["paciente_id"]),
+            "paciente_carteirinha": str(dados["paciente_carteirinha"]),
+            "data_inicio": dados.get("data_inicio"),
+            "data_fim": dados.get("data_fim"),
+            "quantidade_sessoes": dados.get("quantidade_sessoes", 1),
+            "status": dados.get("status", "ATIVO"),
         }
 
-        # Adiciona arquivo_url se existir
-        if "arquivo_url" in info:
-            dados["arquivo_url"] = info["arquivo_url"]
+        # Insere a guia no Supabase
+        response = supabase.table("guias").insert(guia_formatada).execute()
 
-        # Verifica se já existe um registro com este código_ficha
-        codigo_ficha = info.get("codigo_ficha")
-        if codigo_ficha:
-            existing = (
-                supabase.table("execucaos")
-                .select("id")
-                .eq("codigo_ficha", codigo_ficha)
-                .execute()
-            )
-
-            if existing.data and len(existing.data) > 0:
-                # Atualiza o registro existente
-                print(
-                    f"Atualizando registro existente para codigo_ficha: {codigo_ficha}"
-                )
-                response = (
-                    supabase.table("execucaos")
-                    .update(dados)
-                    .eq("codigo_ficha", codigo_ficha)
-                    .execute()
-                )
-                if response.data:
-                    print(f"execucao atualizado com sucesso: {response.data}")
-                    return response.data[0].get("id")
-                else:
-                    print("Erro: Resposta vazia do Supabase ao atualizar")
-                    return None
-
-        # Se não existe, insere novo registro
-        print(f"Inserindo novo registro para codigo_ficha: {codigo_ficha}")
-        response = supabase.table("execucaos").insert(dados).execute()
-
-        if response.data:
-            print(f"execucao salvo com sucesso: {response.data}")
-            return response.data[0].get("id")
-        else:
-            print("Erro: Resposta vazia do Supabase")
-            return None
+        print(f"Guia salva com sucesso: {guia_formatada['numero_guia']}")
+        return True
 
     except Exception as e:
-        print(f"Erro ao salvar guia: {e}")
-        print(f"Dados: {dados}")
-        return None
+        print(f"Erro ao salvar guia: {str(e)}")
+        return False
 
 
 def listar_guias(
@@ -234,12 +212,74 @@ def listar_guias(
         count_response = query.execute()
         total = len(count_response.data)
 
-        # Adiciona ordenação e paginação
+        # Inicializa contadores
+        total_por_tipo = 0
+        total_por_status = 0
+        total_por_prioridade = 0
+
+        # Lista de valores válidos
+        tipos_validos = [
+            "execucao_sem_ficha",
+            "ficha_sem_execucao",
+            "quantidade_excedida",
+            "data_inconsistente",
+            "doc_incompleto",
+            "assinatura_ausente",
+        ]
+        status_validos = ["pendente", "em_analise", "resolvida"]
+        prioridades_validas = [
+            "alta",
+            "media",
+            "ALTA",
+            "MEDIA",
+        ]  # Aceita maiúsculas e minúsculas
+
+        # Calcula as contagens para o resumo
+        for div in count_response.data:
+            tipo_div = div.get("tipo_divergencia", "").lower()
+            status_div = div.get("status", "").lower()
+            prioridade_div = div.get("prioridade", "media").lower()
+
+            if tipo_div in tipos_validos:
+                total_por_tipo += 1
+            if status_div in status_validos:
+                total_por_status += 1
+            if prioridade_div.lower() in ["alta", "media"]:  # Compara em minúsculas
+                total_por_prioridade += 1
+
+        # Consulta paginada para obter as divergências
+        query = supabase.table("execucaos").select(
+            """
+            id,
+            numero_guia,
+            data_execucao,
+            codigo_ficha,
+            tipo_divergencia,
+            descricao,
+            status,
+            data_identificacao,
+            data_resolucao,
+            resolvido_por,
+            observacoes,
+            created_at,
+            updated_at,
+            paciente_nome,
+            ficha_id,
+            execucao_id,
+            prioridade,
+            detalhes,
+            data_atendimento,
+            carteirinha
+            """
+        )
+
+        if paciente_nome:
+            query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
+
         query = query.order("data_execucao", desc=True)
         if limit > 0:
             query = query.range(offset, offset + limit - 1)
 
-        # Executa a query
         response = query.execute()
         rows = response.data
 
@@ -304,72 +344,67 @@ def limpar_banco() -> None:
 
 def registrar_divergencia(
     numero_guia: str,
-    data_execucao: str = None,
-    data_atendimento: str = None,
-    codigo_ficha: str = None,
-    tipo_divergencia: str = None,
-    descricao: str = None,
-    paciente_nome: str = None,
-    prioridade: str = None,
-    carteirinha: str = None,
-    detalhes: dict = None,
+    data_execucao: Optional[str] = None,
+    data_atendimento: Optional[str] = None,
+    codigo_ficha: Optional[str] = None,
+    tipo_divergencia: Optional[str] = None,
+    descricao: Optional[str] = None,
+    paciente_nome: Optional[str] = None,
+    prioridade: Optional[str] = None,
+    carteirinha: Optional[str] = None,
+    detalhes: Optional[Dict] = None,
+    **kwargs,
 ) -> bool:
     """
-    Registra uma nova divergência encontrada na auditoria.
-
-    Args:
-        numero_guia: Número da guia relacionada
-        data_execucao: Data da execução
-        data_atendimento: Data do atendimento
-        codigo_ficha: Código da ficha
-        tipo_divergencia: Tipo da divergência
-        descricao: Descrição detalhada
-        paciente_nome: Nome do paciente
-        prioridade: ALTA ou MEDIA (será definida automaticamente se não informada)
-        carteirinha: Número da carteirinha do paciente
-        detalhes: Dicionário com informações adicionais
+    Registra uma nova divergência no banco de dados.
     """
     try:
-        # Define a prioridade baseada no tipo se não informada
-        if not prioridade:
-            prioridade = (
-                "ALTA"
-                if tipo_divergencia
-                in [
-                    "execucao_sem_ficha",
-                    "ficha_sem_execucao",
-                    "quantidade_execucoes_divergente",
-                ]
-                else "MEDIA"
-            )
+        divergencia_id = str(uuid.uuid4())
 
-        # Prepara os dados para inserção
-        dados = {
+        # Se não tiver data_execucao, usa a data atual
+        if not data_execucao:
+            data_execucao = datetime.now().strftime("%d/%m/%Y")
+
+        # Monta o dicionário base
+        divergencia = {
+            "id": divergencia_id,
             "numero_guia": numero_guia,
             "data_execucao": data_execucao,
-            "data_atendimento": data_atendimento,
+            "data_atendimento": data_atendimento
+            or data_execucao,  # Se não tiver data_atendimento, usa data_execucao
             "codigo_ficha": codigo_ficha,
             "tipo_divergencia": tipo_divergencia,
             "descricao": descricao,
-            "status": "pendente",
-            "data_identificacao": datetime.now().isoformat(),
             "paciente_nome": paciente_nome,
+            "prioridade": prioridade or "ALTA",
             "carteirinha": carteirinha,
-            "prioridade": prioridade,
+            "status": "pendente",
+            "data_identificacao": datetime.now(timezone.utc).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
             "detalhes": detalhes or {},
         }
 
+        # Remove campos que são None
+        divergencia = {k: v for k, v in divergencia.items() if v is not None}
+
+        # Adiciona campos extras ao detalhes
+        if kwargs:
+            divergencia["detalhes"].update(kwargs)
+
         # Insere no Supabase
-        response = supabase.table("divergencias").insert(dados).execute()
+        response = supabase.table("divergencias").insert(divergencia).execute()
 
-        if not response.data:
-            raise Exception("Erro ao inserir divergência")
-
-        return True
+        if response.data:
+            logging.info(f"Divergência registrada com sucesso: {divergencia_id}")
+            return True
+        else:
+            logging.error("Erro: Resposta vazia do Supabase ao registrar divergência")
+            return False
 
     except Exception as e:
-        print(f"Erro ao registrar divergência: {e}")
-        traceback.print_exc()
+        logging.error(f"Erro ao registrar divergência: {str(e)}")
+        logging.error(traceback.format_exc())
         return False
 
 
@@ -384,101 +419,117 @@ def listar_divergencias(
 ) -> Dict:
     """
     Lista as divergências encontradas na auditoria, com filtros opcionais.
-
-    Args:
-        data_inicio: Data inicial para filtro (YYYY-MM-DD)
-        data_fim: Data final para filtro (YYYY-MM-DD)
-        status: Status da divergência (pendente, em_analise, resolvida)
-        tipo: Tipo específico de divergência
-        prioridade: ALTA ou MEDIA
-        limit: Limite de registros por página
-        offset: Deslocamento para paginação
     """
     try:
-        # Inicia a query com os JOINs necessários
-        query = supabase.table("divergencias").select(
-            """
-            divergencias.*,
-            fichas_presenca!left(fichas_presenca.codigo_ficha=divergencias.codigo_ficha) (
-                data_atendimento,
-                possui_assinatura
-            ),
-            execucoes!left(execucoes.numero_guia=divergencias.numero_guia) (
-                paciente_carteirinha,
-                quantidade_sessoes,
-                data_execucao
-            )
-            """
+        print(
+            f"Buscando divergências - página: {offset//limit + 1}, por página: {limit}, data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
         )
 
-        # Aplica os filtros
+        # Consulta para obter o total de divergências e contagens para o resumo
+        resumo_query = supabase.table("divergencias").select("*")
+        if data_inicio:
+            resumo_query = resumo_query.gte("data_execucao", data_inicio)
+        if data_fim:
+            resumo_query = resumo_query.lte("data_execucao", data_fim)
+
+        resumo_response = resumo_query.execute()
+        divergencias = resumo_response.data
+        total_divergencias = len(divergencias)
+
+        # Inicializa contadores
+        total_por_tipo = 0
+        total_por_status = 0
+        total_por_prioridade = 0
+
+        # Calcula as contagens para o resumo
+        for div in divergencias:
+            if div.get("tipo_divergencia"):
+                total_por_tipo += 1
+            if div.get("status"):
+                total_por_status += 1
+            if div.get("prioridade"):
+                total_por_prioridade += 1
+
+        # Consulta paginada
+        query = supabase.table("divergencias").select("*")
+
         if data_inicio:
             query = query.gte("data_execucao", data_inicio)
         if data_fim:
             query = query.lte("data_execucao", data_fim)
         if status:
-            query = query.eq("status", status)
+            query = query.eq("status", status.lower())
         if tipo:
-            query = query.eq("tipo_divergencia", tipo)
+            query = query.eq("tipo_divergencia", tipo.lower())
         if prioridade:
-            query = query.eq("prioridade", prioridade)
+            query = query.eq("prioridade", prioridade.upper())
 
-        # Busca o total de registros para paginação
-        count_response = query.execute()
-        total = len(count_response.data)
-
-        # Adiciona ordenação e paginação
         query = query.order("data_identificacao", desc=True)
         if limit > 0:
             query = query.range(offset, offset + limit - 1)
 
-        # Executa a query final
         response = query.execute()
-        print("Resposta do Supabase:", response.data)  # Debug
+        print("Resposta do Supabase:", response.data)
 
         if not response.data:
-            return {"divergencias": [], "total": 0, "paginas": 0}
+            return {
+                "divergencias": [],
+                "total": 0,
+                "paginas": 0,
+                "resumo": {
+                    "total": 0,
+                    "por_tipo": 0,
+                    "por_status": 0,
+                    "por_prioridade": 0,
+                },
+            }
 
-        # Formata os dados para incluir informações das tabelas relacionadas
         divergencias_formatadas = []
         for div in response.data:
-            ficha = (
-                div.get("fichas_presenca", [{}])[0]
-                if div.get("fichas_presenca")
-                else {}
-            )
-            execucao = div.get("execucoes", [{}])[0] if div.get("execucoes") else {}
+            detalhes = div.get("detalhes", {}) or {}
 
             divergencias_formatadas.append(
                 {
                     "id": div["id"],
                     "numero_guia": div["numero_guia"],
-                    "data_atendimento": ficha.get(
-                        "data_atendimento"
-                    ),  # Data do atendimento presencial
-                    "data_execucao": execucao.get(
-                        "data_execucao", div.get("data_execucao")
-                    ),  # Data do faturamento
-                    "tipo_divergencia": div["tipo_divergencia"],
+                    "data_execucao": div.get("data_execucao"),
+                    "data_atendimento": div.get("data_atendimento"),
+                    "data_identificacao": div["data_identificacao"],
+                    "codigo_ficha": div.get("codigo_ficha"),
                     "paciente_nome": div["paciente_nome"],
-                    "carteirinha": execucao.get("paciente_carteirinha"),
-                    "quantidade": execucao.get("quantidade_sessoes"),
-                    "assinatura": ficha.get("possui_assinatura", False),
-                    "status": div["status"],
-                    "prioridade": div.get("prioridade", "MEDIA"),
+                    "carteirinha": div.get("carteirinha"),
+                    "status": div["status"].lower(),
+                    "tipo_divergencia": div["tipo_divergencia"].lower(),
+                    "prioridade": div.get("prioridade", "MEDIA").lower(),
+                    "descricao": div.get("descricao"),
+                    "observacoes": div.get("observacoes"),
+                    "resolvido_por": div.get("resolvido_por"),
+                    "data_resolucao": div.get("data_resolucao"),
+                    "detalhes": detalhes,
                 }
             )
 
         return {
             "divergencias": divergencias_formatadas,
-            "total": total,
-            "paginas": ceil(total / limit) if limit > 0 else 1,
+            "total": total_divergencias,
+            "paginas": ceil(total_divergencias / limit) if limit > 0 else 1,
+            "resumo": {
+                "total": total_divergencias,
+                "por_tipo": total_por_tipo,
+                "por_status": total_por_status,
+                "por_prioridade": total_por_prioridade,
+            },
         }
 
     except Exception as e:
-        print(f"Erro ao listar divergências: {e}")
+        print(f"Erro ao buscar divergências: {e}")
         traceback.print_exc()
-        return {"divergencias": [], "total": 0, "paginas": 0}
+        return {
+            "divergencias": [],
+            "total": 0,
+            "paginas": 0,
+            "resumo": {"total": 0, "por_tipo": 0, "por_status": 0, "por_prioridade": 0},
+        }
 
 
 def atualizar_status_divergencia(
@@ -905,9 +956,12 @@ def limpar_divergencias_db() -> bool:
     try:
         print("Iniciando limpeza da tabela divergencias...")
         # Deleta todos os registros
-        response = supabase.table("divergencias").delete().gt(
-            "id", "00000000-0000-0000-0000-000000000000"
-        ).execute()
+        response = (
+            supabase.table("divergencias")
+            .delete()
+            .gt("id", "00000000-0000-0000-0000-000000000000")
+            .execute()
+        )
         print(f"Resposta do Supabase: {response}")
         print("Tabela divergencias limpa com sucesso!")
         return True
@@ -1012,57 +1066,54 @@ def registrar_execucao_auditoria(
 
 
 def calcular_estatisticas_divergencias() -> Dict:
-    """Calcula estatísticas das divergências para os cards"""
+    """
+    Calcula estatísticas das divergências para os cards
+    """
     try:
-        # Busca todas as divergências com seus relacionamentos
-        response = (
-            supabase.table("divergencias")
-            .select("*, fichas_presenca!inner(possui_assinatura)")
-            .execute()
-        )
-        divergencias = response.data
+        # Busca todas as divergências
+        response = supabase.table("divergencias").select("*").execute()
+        divergencias = response.data if response.data else []
 
-        # Busca o total de protocolos (execuções)
-        response_execucoes = supabase.table("execucoes").select("*").execute()
-        total_protocolos = len(response_execucoes.data)
+        # Inicializa contadores
+        por_tipo = {}
+        por_prioridade = {"ALTA": 0, "MEDIA": 0}
+        por_status = {"pendente": 0, "em_analise": 0, "resolvida": 0}
 
-        # Calcula totais
-        total_divergencias = len(divergencias)
-        total_resolvidas = len([d for d in divergencias if d["status"] == "resolvida"])
-        total_pendentes = len([d for d in divergencias if d["status"] == "pendente"])
+        # Conta divergências por tipo, prioridade e status
+        for div in divergencias:
+            # Por tipo
+            tipo = div.get("tipo_divergencia", "outros")
+            por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
 
-        # Conta fichas sem assinatura olhando o campo possui_assinatura da tabela fichas_presenca
-        total_fichas_sem_assinatura = len(
-            [
-                d
-                for d in divergencias
-                if d.get("fichas_presenca")
-                and not d["fichas_presenca"].get("possui_assinatura", True)
-            ]
-        )
+            # Por prioridade
+            prioridade = div.get("prioridade", "MEDIA")
+            por_prioridade[prioridade] = por_prioridade.get(prioridade, 0) + 1
 
-        # Conta execuções sem ficha
-        total_execucoes_sem_ficha = len(
-            [d for d in divergencias if d["tipo_divergencia"] == "execucao_sem_ficha"]
-        )
+            # Por status
+            status = div.get("status", "pendente")
+            por_status[status] = por_status.get(status, 0) + 1
+
+        # Garante que todos os campos são inteiros
+        por_tipo = {k: int(v) for k, v in por_tipo.items()}
+        por_prioridade = {k: int(v) for k, v in por_prioridade.items()}
+        por_status = {k: int(v) for k, v in por_status.items()}
 
         return {
-            "total_divergencias": total_divergencias,
-            "total_resolvidas": total_resolvidas,
-            "total_pendentes": total_pendentes,
-            "total_fichas_sem_assinatura": total_fichas_sem_assinatura,
-            "total_execucoes_sem_ficha": total_execucoes_sem_ficha,
-            "total_protocolos": total_protocolos,
+            "total": len(divergencias),
+            "por_tipo": por_tipo,
+            "por_prioridade": por_prioridade,
+            "por_status": por_status,
         }
+
     except Exception as e:
-        print(f"Erro ao calcular estatísticas: {e}")
+        logging.error(f"Erro ao calcular estatísticas: {str(e)}")
+        logging.error(traceback.format_exc())
+        # Retorna estrutura vazia em caso de erro
         return {
-            "total_divergencias": 0,
-            "total_resolvidas": 0,
-            "total_pendentes": 0,
-            "total_fichas_sem_assinatura": 0,
-            "total_execucoes_sem_ficha": 0,
-            "total_protocolos": 0,
+            "total": 0,
+            "por_tipo": {},
+            "por_prioridade": {"ALTA": 0, "MEDIA": 0},
+            "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0},
         }
 
 
@@ -1090,11 +1141,11 @@ def obter_ultima_auditoria() -> Dict:
 
         return {
             "total_protocolos": ultima_auditoria.get("total_protocolos", 0),
-            "total_divergencias": estatisticas["total_divergencias"],
-            "total_resolvidas": estatisticas["total_resolvidas"],
-            "total_pendentes": estatisticas["total_pendentes"],
-            "total_fichas_sem_assinatura": estatisticas["total_fichas_sem_assinatura"],
-            "total_execucoes_sem_ficha": estatisticas["total_execucoes_sem_ficha"],
+            "total_divergencias": estatisticas["total"],
+            "total_resolvidas": estatisticas["por_status"]["resolvida"],
+            "total_pendentes": estatisticas["por_status"]["pendente"],
+            "total_fichas_sem_assinatura": 0,  # TODO: Implementar
+            "total_execucoes_sem_ficha": 0,  # TODO: Implementar
             "data_execucao": ultima_auditoria.get("data_execucao"),
             "tempo_execucao": "Tempo não disponível",  # TODO: Calcular tempo de execução se necessário
         }
@@ -1161,3 +1212,47 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
         print(f"Erro ao listar guias do paciente: {e}")
         traceback.print_exc()
         return {"items": [], "total": 0}
+
+
+def listar_guias(
+    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
+) -> Dict:
+    """
+    Retorna todas as guias com suporte a paginação e filtro.
+    Se limit for 0, retorna todos os registros.
+
+    Args:
+        limit: Número máximo de registros a retornar
+        offset: Número de registros a pular
+        paciente_nome: Nome do paciente para filtrar
+
+    Returns:
+        Dict contendo os registros e metadados da paginação
+    """
+    try:
+        query = supabase.table("guias").select("*")
+
+        # Aplica filtro por nome do paciente se fornecido
+        if paciente_nome:
+            query = query.ilike("paciente_nome", f"%{paciente_nome}%")
+
+        # Conta total de registros para paginação
+        total = len(query.execute().data)
+
+        # Aplica paginação se limit > 0
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
+        response = query.execute()
+
+        if response.data is None:
+            return {"registros": [], "total": 0, "paginas": 0}
+
+        registros = response.data
+        paginas = ceil(total / limit) if limit > 0 else 1
+
+        return {"registros": registros, "total": total, "paginas": paginas}
+
+    except Exception as e:
+        print(f"Erro ao listar guias: {str(e)}")
+        return {"registros": [], "total": 0, "paginas": 0}
