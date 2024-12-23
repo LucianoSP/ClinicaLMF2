@@ -1,23 +1,23 @@
-from database_supabase import (
-    registrar_divergencia,
-    listar_guias,
-    listar_dados_excel,
-    listar_fichas_presenca,
-    listar_execucoes,
-    registrar_execucao_auditoria,
-    limpar_divergencias_db
-)
 from datetime import datetime
 from typing import Dict, List, Optional
 import logging
 import traceback
+from fastapi import APIRouter, HTTPException
 
-# Configuração do logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("auditoria.log"), logging.StreamHandler()],
+from database_supabase import (
+    listar_fichas_presenca,
+    listar_execucoes,
+    registrar_divergencia,
+    registrar_auditoria_execucoes,
+    limpar_divergencias_db,
+    listar_divergencias,
 )
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+
+# Criar router
+router = APIRouter()
 
 
 def verificar_datas(protocolo: Dict, execucao: Dict) -> bool:
@@ -122,42 +122,38 @@ def realizar_auditoria(data_inicial: Optional[str] = None, data_final: Optional[
         for execucao in execucoes:
             numero_guia = execucao.get("numero_guia")
             if not fichas_por_guia.get(numero_guia):
-                registrar_divergencia_detalhada(
-                    {
-                        "numero_guia": numero_guia,
-                        "data_execucao": execucao.get("data_execucao"),
-                        "codigo_ficha": execucao.get("codigo_ficha"),
-                        "tipo_divergencia": "execucao_sem_ficha",
-                        "descricao": "Execução sem ficha de presença correspondente",
-                        "paciente_nome": execucao.get("paciente_nome"),
-                        "carteirinha": execucao.get("carteirinha"),
-                        "prioridade": "ALTA"
-                    }
+                registrar_divergencia(
+                    numero_guia=numero_guia,
+                    data_execucao=execucao.get("data_execucao"),
+                    codigo_ficha=execucao.get("codigo_ficha"),
+                    tipo_divergencia="execucao_sem_ficha",
+                    descricao="Execução sem ficha de presença correspondente",
+                    paciente_nome=execucao.get("paciente_nome"),
+                    carteirinha=execucao.get("carteirinha"),
+                    prioridade="ALTA"
                 )
 
         # Verifica fichas sem execução
         for ficha in fichas:
             numero_guia = ficha.get("numero_guia")
             if not execucoes_por_guia.get(numero_guia):
-                registrar_divergencia_detalhada(
-                    {
-                        "numero_guia": numero_guia,
-                        "data_atendimento": ficha.get("data_atendimento"),
-                        "codigo_ficha": ficha.get("codigo_ficha"),
-                        "tipo_divergencia": "ficha_sem_execucao",
-                        "descricao": "Ficha sem execução correspondente",
-                        "paciente_nome": ficha.get("paciente_nome"),
-                        "carteirinha": ficha.get("carteirinha"),
-                        "prioridade": "ALTA"
-                    }
+                registrar_divergencia(
+                    numero_guia=numero_guia,
+                    data_atendimento=ficha.get("data_atendimento"),
+                    codigo_ficha=ficha.get("codigo_ficha"),
+                    tipo_divergencia="ficha_sem_execucao",
+                    descricao="Ficha sem execução correspondente",
+                    paciente_nome=ficha.get("paciente_nome"),
+                    carteirinha=ficha.get("carteirinha"),
+                    prioridade="ALTA"
                 )
 
         # Registra metadados da auditoria
-        registrar_execucao_auditoria(
+        total_registros = len(fichas) + len(execucoes)
+        registrar_auditoria_execucoes(
+            total_protocolos=total_registros,
             data_inicial=data_inicial,
-            data_final=data_final,
-            total_protocolos=len(fichas),
-            total_divergencias=0
+            data_final=data_final
         )
 
         return True
@@ -327,6 +323,38 @@ def realizar_auditoria_fichas_execucoes(
         logging.error(f"Erro durante auditoria: {str(e)}")
         logging.error(traceback.format_exc())
         raise e
+
+
+@router.get("/divergencias")
+def listar_divergencias_route(
+    page: int = 1,
+    per_page: int = 10,
+    data_inicio: Optional[str] = None,
+    data_fim: Optional[str] = None,
+    status: Optional[str] = None,
+    tipo_divergencia: Optional[str] = None,
+    prioridade: Optional[str] = None,
+):
+    """
+    Lista as divergências encontradas na auditoria
+    """
+    try:
+        return listar_divergencias(
+            page=page,
+            per_page=per_page,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            status=status,
+            tipo_divergencia=tipo_divergencia,
+            prioridade=prioridade
+        )
+    except Exception as e:
+        logging.error(f"Erro ao listar divergências: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao listar divergências: {str(e)}"
+        )
 
 
 if __name__ == "__main__":
