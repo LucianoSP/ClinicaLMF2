@@ -1,0 +1,17 @@
+## 1. Visão Geral do Projeto
+
+### 1.1 Objetivo
+Desenvolver um sistema de agendamento especializado para clínica de execucao a crianças autistas, com foco em gestão eficiente de horários, profissionais e salas.
+
+### 1.2 Stack Tecnológica
+- **Frontend**: Next.js 14 com App Router + Shadcn/UI + TailwindCSS
+- **Backend**: FastAPI (Python) + SQLAlchemy 
+- **Banco de Dados**: PostgreSQL (Supabase)
+- **Autenticação**: Supabase Auth
+- **Deploy**: Vercel (Frontend) , Replit (Backend) (https://fde1cb19-4f63-43d4-a9b7-a3d808e8d2b7-00-3cdk7z76k6er0.kirk.replit.dev)
+
+
+## Abaixo os links para os principais documentos do projeto:
+
+instrucoes\plano_implementacao_auditoria.md
+instrucoes\visao_geral_do_sistema.md

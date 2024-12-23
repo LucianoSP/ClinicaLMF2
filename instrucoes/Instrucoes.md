@@ -13,3 +13,9 @@ Vamos iniciar essas migraçoes de forma passo a passo, uma coisa por vez. Não p
 
 Servidor Replit
 https://fde1cb19-4f63-43d4-a9b7-a3d808e8d2b7-00-3cdk7z76k6er0.kirk.replit.dev/
+
+
+git status
+git restore .
+git clean -fd
+git pull origin auditoria
