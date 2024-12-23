@@ -208,6 +208,32 @@ class FichaPresencaUpdate(FichaPresenca):
     pass
 
 
+class DivergenciaResponse(BaseModel):
+    """Modelo para resposta de divergências com informações detalhadas"""
+    id: str
+    tipo_divergencia: str
+    prioridade: str
+    descricao: str
+    status: str
+    data_identificacao: str
+    data_resolucao: str | None = None
+    resolvido_por: str | None = None
+    observacoes: str | None = None
+    numero_guia: str
+    data_execucao: str
+    codigo_ficha: str
+    paciente_nome: str
+    detalhes: dict | None = None
+
+class DivergenciasListResponse(BaseModel):
+    """Modelo para resposta da listagem de divergências"""
+    success: bool
+    divergencias: list[DivergenciaResponse]
+    total: int
+    paginas: int
+    resumo: dict[str, int]  # Contagem por tipo e prioridade
+
+
 async def extract_info_from_pdf(pdf_path: str):
     if not os.path.isfile(pdf_path):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
@@ -559,37 +585,28 @@ async def get_guia(numero_guia: str):
     return execucaos
 
 
-@app.get("/excel/")
-async def list_excel(
+@app.get("/excel")
+def list_excel(
     page: int = Query(1, description="Página atual"),
     per_page: int = Query(10, description="Itens por página"),
     paciente_nome: str = Query(None, description="Filtrar por nome do beneficiário"),
 ):
     """Lista os dados importados do Excel com suporte a paginação e filtro"""
     try:
+        # Calcula o offset baseado na página atual
         offset = (page - 1) * per_page
 
-        print(
-            f"Buscando dados com: page={page}, per_page={per_page}, paciente_nome={paciente_nome}"
-        )
+        # Busca os dados no banco
         resultado = listar_dados_excel(
-            limit=per_page, offset=offset, paciente_nome=paciente_nome
+            limit=per_page,
+            offset=offset,
+            paciente_nome=paciente_nome
         )
 
-        return {
-            "success": True,
-            "data": {
-                "registros": resultado["registros"],
-                "pagination": {
-                    "total": resultado["total"],
-                    "total_pages": resultado["total_pages"],
-                    "current_page": page,
-                    "per_page": per_page,
-                },
-            },
-        }
+        # Retorna o resultado diretamente, pois já está no formato esperado
+        return resultado
+
     except Exception as e:
-        print(f"Erro ao listar dados do Excel: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -638,13 +655,15 @@ async def clear_execucoes():
         )
 
 
-@app.get("/auditoria/divergencias")
+@app.get("/auditoria/divergencias", response_model=DivergenciasListResponse)
 async def get_divergencias(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
     data_inicio: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
     status: Optional[str] = Query(None, description="Status da divergência"),
+    tipo: Optional[str] = Query(None, description="Tipo de divergência"),
+    prioridade: Optional[str] = Query(None, description="Prioridade (ALTA/MEDIA)"),
 ):
     """Lista as divergências encontradas na auditoria com suporte a paginação e filtros"""
     try:
@@ -652,21 +671,50 @@ async def get_divergencias(
             f"Buscando divergências - página: {page}, por página: {per_page}, "
             f"data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
         )
+        
+        # Busca as divergências com os filtros aplicados
         resultado = listar_divergencias(
             data_inicio=data_inicio,
             data_fim=data_fim,
             status=status,
+            tipo=tipo,
+            prioridade=prioridade,
             limit=per_page,
             offset=(page - 1) * per_page,
         )
+        
         if resultado is None:
             raise HTTPException(status_code=500, detail="Erro ao buscar divergências")
+            
+        # Calcula resumo por tipo e prioridade
+        resumo = {
+            "total": resultado["total"],
+            "por_tipo": {},
+            "por_prioridade": {"ALTA": 0, "MEDIA": 0},
+            "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0}
+        }
+        
+        # Processa cada divergência
+        for div in resultado["divergencias"]:
+            tipo = div["tipo_divergencia"]
+            if tipo not in resumo["por_tipo"]:
+                resumo["por_tipo"][tipo] = 0
+            resumo["por_tipo"][tipo] += 1
+            
+            prioridade = div.get("prioridade", "MEDIA")
+            resumo["por_prioridade"][prioridade] += 1
+            
+            status = div.get("status", "pendente")
+            resumo["por_status"][status] += 1
+        
         return {
             "success": True,
             "divergencias": resultado["divergencias"],
             "total": resultado["total"],
             "paginas": resultado["paginas"],
+            "resumo": resumo
         }
+        
     except Exception as e:
         logger.error(f"Erro ao buscar divergências: {e}")
         raise HTTPException(status_code=500, detail=str(e))

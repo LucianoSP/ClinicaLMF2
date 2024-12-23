@@ -8,8 +8,9 @@ import { DetalheDivergencia } from './DetalheDivergencia';
 
 interface Divergencia {
   id: string;
-  guia_id: string;
+  numero_guia: string;
   data_execucao: string;
+  data_atendimento: string;
   data_registro: string;
   codigo_ficha: string;
   paciente_nome: string;
@@ -19,8 +20,6 @@ interface Divergencia {
   possui_assinatura: boolean;
   arquivo_digitalizado?: string;
   observacoes?: string;
-  quantidade_autorizada?: number;
-  quantidade_executada?: number;
 }
 
 interface TabelaDivergenciasProps {
@@ -99,7 +98,7 @@ export const TabelaDivergencias = ({
     if (aValue === null || aValue === undefined) return 1;
     if (bValue === null || bValue === undefined) return -1;
 
-    if (sortConfig.key === 'data_execucao' || sortConfig.key === 'data_registro') {
+    if (sortConfig.key === 'data_execucao' || sortConfig.key === 'data_registro' || sortConfig.key === 'data_atendimento') {
       const aDate = new Date(aValue);
       const bDate = new Date(bValue);
       return sortConfig.direction === 'asc' ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime();
@@ -153,13 +152,12 @@ export const TabelaDivergencias = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <SortableHeader sortKey="guia_id">Guia</SortableHeader>
-            <SortableHeader sortKey="data_registro">Data do Atendimento</SortableHeader>
+            <SortableHeader sortKey="numero_guia">Guia</SortableHeader>
+            <SortableHeader sortKey="data_atendimento">Data do Atendimento</SortableHeader>
             <SortableHeader sortKey="data_execucao">Data Execução</SortableHeader>
             <SortableHeader sortKey="tipo_divergencia">Tipo</SortableHeader>
             <SortableHeader sortKey="paciente_nome">Paciente</SortableHeader>
             <SortableHeader sortKey="paciente_carteirinha">Carteirinha</SortableHeader>
-            <SortableHeader sortKey="quantidade_executada">Qtd.</SortableHeader>
             <SortableHeader sortKey="possui_assinatura">Assinatura</SortableHeader>
             <SortableHeader sortKey="status">Status</SortableHeader>
             <TableHead className="text-xs">Ações</TableHead>
@@ -174,12 +172,12 @@ export const TabelaDivergencias = ({
             >
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
-                  {divergencia.guia_id}
+                  {divergencia.numero_guia}
                 </span>
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
-                  {divergencia.data_registro ? formatarData(new Date(divergencia.data_registro), false) : '-'}
+                  {divergencia.data_atendimento ? formatarData(new Date(divergencia.data_atendimento), false) : '-'}
                 </span>
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">
@@ -200,13 +198,6 @@ export const TabelaDivergencias = ({
               <TableCell className="px-4 py-2 text-xs text-gray-900">
                 <span className="block w-full">
                   {divergencia.paciente_carteirinha}
-                </span>
-              </TableCell>
-              <TableCell className="px-4 py-2 text-xs text-gray-900">
-                <span className="block w-full">
-                  {divergencia.quantidade_executada !== undefined ? 
-                    `${divergencia.quantidade_executada}/${divergencia.quantidade_autorizada}` : 
-                    '-'}
                 </span>
               </TableCell>
               <TableCell className="px-4 py-2 text-xs text-gray-900">

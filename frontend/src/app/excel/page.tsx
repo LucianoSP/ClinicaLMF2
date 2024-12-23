@@ -13,13 +13,16 @@ import { useToast } from '@/hooks/use-toast';
 
 // 1. Atualizar interface
 interface ExcelData {
-  id: number;
+  id: string;
   guia_id: string;
   paciente_nome: string;
   data_execucao: string;
   paciente_carteirinha: string;
   paciente_id: string;
+  codigo_ficha: string | null;
+  usuario_executante: string | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 export default function ExcelPage() {

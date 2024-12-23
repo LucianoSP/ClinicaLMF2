@@ -63,8 +63,8 @@ const ExecucoesList = () => {
       console.log('Resultado da busca:', result);
 
       if (result.success) {
-        console.log('Execuções recebidas:', result.data.execucoes);
-        const formattedExecucoes = (result.data.execucoes || []).map((execucao: Execucao) => ({
+        console.log('Execuções recebidas:', result.data.registros);
+        const formattedExecucoes = (result.data.registros || []).map((execucao: Execucao) => ({
           ...execucao,
           data_execucao: formatDate(execucao.data_execucao.split('T')[0])
         }));
