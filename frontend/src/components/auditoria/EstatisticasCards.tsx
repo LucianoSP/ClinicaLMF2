@@ -31,7 +31,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Guias</CardTitle>
-            <Files className="h-4 w-4 text-blue-600" />
+            <Files className="h-6 w-6 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resultadoAuditoria.total_protocolos}</div>
@@ -44,7 +44,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Fichas</CardTitle>
-            <FileCheck2 className="h-4 w-4 text-green-600" />
+            <FileCheck2 className="h-6 w-6 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resultadoAuditoria.total_fichas}</div>
@@ -57,7 +57,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Divergências</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTriangle className="h-6 w-6 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resultadoAuditoria.total_divergencias}</div>
@@ -70,7 +70,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Resolvidas</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-6 w-6 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -89,7 +89,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Execuções sem Ficha</CardTitle>
-            <FileWarning className="h-4 w-4 text-yellow-600" />
+            <FileWarning className="h-6 w-6 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resultadoAuditoria.total_execucoes_sem_ficha}</div>
@@ -102,7 +102,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Fichas sem Execução</CardTitle>
-            <FileX className="h-4 w-4 text-red-600" />
+            <FileX className="h-6 w-6 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resultadoAuditoria.total_fichas_sem_execucao}</div>
@@ -115,7 +115,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Datas Divergentes</CardTitle>
-            <Calendar className="h-4 w-4 text-orange-600" />
+            <Calendar className="h-6 w-6 text-orange-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resultadoAuditoria.total_datas_divergentes}</div>
@@ -128,7 +128,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Última Execução</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
+            <Clock className="h-6 w-6 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
