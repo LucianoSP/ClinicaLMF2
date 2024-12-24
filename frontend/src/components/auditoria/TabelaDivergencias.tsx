@@ -52,8 +52,8 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
             <TableRow key={divergencia.id}>
               <TableCell>{divergencia.numero_guia}</TableCell>
               <TableCell>{divergencia.paciente_nome}</TableCell>
-              <TableCell>{formatarData(new Date(divergencia.data_atendimento))}</TableCell>
-              <TableCell>{formatarData(new Date(divergencia.data_execucao))}</TableCell>
+              <TableCell>{divergencia.data_atendimento ? formatarData(new Date(divergencia.data_atendimento)) : '-'}</TableCell>
+              <TableCell>{divergencia.data_execucao ? formatarData(new Date(divergencia.data_execucao)) : '-'}</TableCell>
               <TableCell>
                 <BadgeStatus value={divergencia.tipo_divergencia} />
               </TableCell>

@@ -300,6 +300,7 @@ def realizar_auditoria_fichas_execucoes(
                     {
                         "numero_guia": execucao["numero_guia"],
                         "data_execucao": execucao["data_execucao"],
+                        "data_atendimento": execucao["data_execucao"],  # Usando a mesma data da execução como data de atendimento
                         "codigo_ficha": execucao.get("codigo_ficha"),
                         "tipo_divergencia": "execucao_sem_ficha",
                         "descricao": "Execução sem ficha de presença correspondente",
