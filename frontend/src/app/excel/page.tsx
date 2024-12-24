@@ -220,32 +220,32 @@ export default function ExcelPage() {
     {
       key: 'numero_guia',
       label: 'Guia',
-      render: (item: ExcelData) => item.numero_guia
+      render: (value) => value
     },
     {
       key: 'paciente_nome',
       label: 'Paciente',
-      render: (item: ExcelData) => item.paciente_nome
+      render: (value) => value
     },
     {
       key: 'data_execucao',
       label: 'Data',
-      render: (item: ExcelData) => item.data_execucao
+      render: (value) => value
     },
     {
       key: 'paciente_carteirinha',
       label: 'Carteirinha',
-      render: (item: ExcelData) => item.paciente_carteirinha
+      render: (value) => value
     },
     {
       key: 'paciente_id',
       label: 'Id paciente',
-      render: (item: ExcelData) => item.paciente_id
+      render: (value) => value
     },
     {
       key: 'created_at',
       label: 'Data importação',
-      render: (item: ExcelData) => item.created_at
+      render: (value) => value
     },
   ];
 
