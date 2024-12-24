@@ -11,7 +11,21 @@ import { format } from 'date-fns';
 import { SortableTable, Column } from './SortableTable';
 import { useDebounce } from '../hooks/useDebounce';
 import { API_URL } from '../config/api';
-import { Execucao } from '@/types/execucoes';
+import { Button } from '@/components/ui/button';
+
+interface Execucao {
+  id: number;
+  numero_guia: string;
+  paciente_nome: string;
+  data_execucao: string;
+  paciente_carteirinha: string;
+  paciente_id: string;
+  quantidade_sessoes: number;
+  created_at: string;
+  guia_id?: string;
+  possui_assinatura?: boolean;
+  codigo_ficha?: string;
+}
 
 interface Registro {
   data_execucao: string;
@@ -309,29 +323,29 @@ const ProcessedFiles = () => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Arquivos Processados</h2>
         <div className="flex space-x-4">
-          <button
+          <Button
             onClick={handleExportExcel}
             disabled={loading || execucoes.length === 0}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
             Exportar Excel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSync}
             disabled={loading || syncing}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
             <FiTrash2 className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
             Limpar Tabela
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => fetchProcessedFiles()}
             disabled={loading}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
             <FiRotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -394,7 +408,7 @@ const ProcessedFiles = () => {
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             const pageNum = i + 1;
             return (
-              <button
+              <Button
                 key={pageNum}
                 onClick={() => handlePageChange(pageNum)}
                 className={`px-3 py-1 rounded-lg ${page === pageNum
@@ -403,14 +417,14 @@ const ProcessedFiles = () => {
                   }`}
               >
                 {pageNum}
-              </button>
+              </Button>
             );
           })}
           {totalPages > 5 && (
             <>
 
               <span className="px-2 text-gray-500">...</span>
-              <button
+              <Button
                 onClick={() => handlePageChange(totalPages)}
                 className={`px-3 py-1 rounded-lg ${page === totalPages
                   ? 'bg-[#b49d6b] text-white'
@@ -418,7 +432,7 @@ const ProcessedFiles = () => {
                   }`}
               >
                 {totalPages}
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -456,18 +470,18 @@ const ProcessedFiles = () => {
               Esta ação não pode ser desfeita.
             </p>
             <div className="mt-6 flex justify-end space-x-3">
-              <button
+              <Button
                 onClick={() => setShowDeleteModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleConfirmDelete}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
               >
                 Excluir
-              </button>
+              </Button>
             </div>
           </div>
         </div>
