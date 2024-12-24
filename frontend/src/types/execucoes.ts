@@ -1,5 +1,5 @@
 export interface Execucao {
-  id: string;
+  id: number;
   numero_guia: string;
   paciente_nome: string;
   data_execucao: string;
@@ -7,4 +7,7 @@ export interface Execucao {
   paciente_id: string;
   quantidade_sessoes: number;
   created_at: string;
+  guia_id?: string;
+  possui_assinatura?: boolean;
+  codigo_ficha?: string;
 }
