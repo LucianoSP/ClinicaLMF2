@@ -26,6 +26,16 @@ interface Execucao {
   created_at: string;
 }
 
+interface Execucao {
+  data_execucao: string;
+  paciente_carteirinha: string;
+  paciente_nome: string;
+  paciente_id: string;
+  numero_guia: string;
+  id: string;
+  quantidade_sessoes: number;
+}
+
 const ExecucoesList = () => {
   const [execucoes, setExecucoes] = useState<Execucao[]>([]);
   const [loading, setLoading] = useState(false);
@@ -158,7 +168,7 @@ const ExecucoesList = () => {
     }
   };
 
-  const columns: Column[] = [
+  const columns: Column<Execucao>[] = [
     { key: 'data_execucao', label: 'Data' },
     { key: 'paciente_carteirinha', label: 'Carteirinha' },
     { key: 'paciente_nome', label: 'Paciente' },
