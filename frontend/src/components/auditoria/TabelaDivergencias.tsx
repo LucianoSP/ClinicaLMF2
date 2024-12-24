@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Check, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { DetalheDivergencia } from "./DetalheDivergencia";
-import { DivergenciaBadge } from "../ui/divergencia-badge";
-import { StatusBadge } from "../ui/status-badge";
-import { Badge } from "../ui/badge";
+import { BadgeStatus } from "@/components/ui/badge-status";
 
 interface Divergencia {
   id: string;
@@ -57,10 +55,10 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
               <TableCell>{formatarData(new Date(divergencia.data_atendimento))}</TableCell>
               <TableCell>{formatarData(new Date(divergencia.data_execucao))}</TableCell>
               <TableCell>
-                <DivergenciaBadge tipo={divergencia.tipo_divergencia} />
+                <BadgeStatus value={divergencia.tipo_divergencia} />
               </TableCell>
               <TableCell>
-                <StatusBadge status={divergencia.status} />
+                <BadgeStatus value={divergencia.status} />
               </TableCell>
               <TableCell>
                 <div className="flex gap-2">
