@@ -12,20 +12,7 @@ import { API_URL } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-// 1. Atualizar interface
-interface ExcelData {
-  id: string;
-  numero_guia: string;
-  paciente_nome: string;
-  data_execucao: string;
-  paciente_carteirinha: string;
-  paciente_id: string;
-  codigo_ficha: string | null;
-  usuario_executante: string | null;
-  created_at: string;
-  updated_at: string | null;
-}
+import { ExcelData } from '@/types/excel';
 
 export default function ExcelPage() {
   const { toast } = useToast();
@@ -218,30 +205,30 @@ export default function ExcelPage() {
 
   const columns: Column<ExcelData>[] = [
     {
-      key: 'numero_guia' as keyof ExcelData,
+      key: 'numero_guia',
       label: 'Guia'
     },
     {
-      key: 'paciente_nome' as keyof ExcelData,
+      key: 'paciente_nome',
       label: 'Paciente'
     },
     {
-      key: 'data_execucao' as keyof ExcelData,
+      key: 'data_execucao',
       label: 'Data'
     },
     {
-      key: 'paciente_carteirinha' as keyof ExcelData,
+      key: 'paciente_carteirinha',
       label: 'Carteirinha'
     },
     {
-      key: 'paciente_id' as keyof ExcelData,
+      key: 'paciente_id',
       label: 'Id paciente'
     },
     {
-      key: 'created_at' as keyof ExcelData,
+      key: 'created_at',
       label: 'Data importação'
     }
-  ];
+  ] satisfies Column<ExcelData>[];
 
   if (loading) {
     return (
