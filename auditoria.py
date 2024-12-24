@@ -92,12 +92,16 @@ def verificar_quantidade_autorizada(guia: Dict) -> bool:
         return False
 
 
-def realizar_auditoria(data_inicial: Optional[str] = None, data_final: Optional[str] = None) -> bool:
+def realizar_auditoria(
+    data_inicial: Optional[str] = None, data_final: Optional[str] = None
+) -> bool:
     """
     Realiza a auditoria das fichas vs execuções
     """
     try:
-        logging.info(f"Iniciando auditoria com data_inicial={data_inicial}, data_final={data_final}")
+        logging.info(
+            f"Iniciando auditoria com data_inicial={data_inicial}, data_final={data_final}"
+        )
         logging.info("Iniciando processo de auditoria de fichas vs execuções...")
 
         # Limpa divergências antigas
@@ -130,7 +134,7 @@ def realizar_auditoria(data_inicial: Optional[str] = None, data_final: Optional[
                     descricao="Execução sem ficha de presença correspondente",
                     paciente_nome=execucao.get("paciente_nome"),
                     carteirinha=execucao.get("carteirinha"),
-                    prioridade="ALTA"
+                    prioridade="ALTA",
                 )
 
         # Verifica fichas sem execução
@@ -145,7 +149,7 @@ def realizar_auditoria(data_inicial: Optional[str] = None, data_final: Optional[
                     descricao="Ficha sem execução correspondente",
                     paciente_nome=ficha.get("paciente_nome"),
                     carteirinha=ficha.get("carteirinha"),
-                    prioridade="ALTA"
+                    prioridade="ALTA",
                 )
 
         # Registra metadados da auditoria
@@ -153,7 +157,7 @@ def realizar_auditoria(data_inicial: Optional[str] = None, data_final: Optional[
         registrar_auditoria_execucoes(
             total_protocolos=total_registros,
             data_inicial=data_inicial,
-            data_final=data_final
+            data_final=data_final,
         )
 
         return True
@@ -177,20 +181,20 @@ def registrar_divergencia_detalhada(divergencia: Dict) -> bool:
             "paciente_nome": divergencia["paciente_nome"],
             "prioridade": divergencia["prioridade"],
         }
-        
+
         # Adiciona campos opcionais se existirem
         campos_opcionais = [
             "data_execucao",
             "data_atendimento",
             "codigo_ficha",
             "carteirinha",
-            "detalhes"
+            "detalhes",
         ]
-        
+
         for campo in campos_opcionais:
             if campo in divergencia:
                 dados[campo] = divergencia[campo]
-                
+
         # Registra a divergência
         return registrar_divergencia(**dados)
 
@@ -230,7 +234,7 @@ def realizar_auditoria_fichas_execucoes(
 
         # Criar um dicionário para mapear código_ficha -> ficha
         mapa_fichas = {f["codigo_ficha"]: f for f in fichas}
-        
+
         # Criar um dicionário para mapear código_ficha -> execucoes
         mapa_execucoes = {}
         for execucao in execucoes:
@@ -250,7 +254,7 @@ def realizar_auditoria_fichas_execucoes(
         for ficha in fichas:
             codigo_ficha = ficha["codigo_ficha"]
             execucoes_da_ficha = mapa_execucoes.get(codigo_ficha, [])
-            
+
             # Se não houver nenhuma execução
             if not execucoes_da_ficha:
                 divergencias_encontradas += 1
@@ -263,7 +267,7 @@ def realizar_auditoria_fichas_execucoes(
                         "descricao": "Ficha de presença sem execução correspondente",
                         "paciente_nome": ficha["paciente_nome"],
                         "carteirinha": ficha["paciente_carteirinha"],
-                        "prioridade": "ALTA"
+                        "prioridade": "ALTA",
                     }
                 )
             else:
@@ -281,13 +285,16 @@ def realizar_auditoria_fichas_execucoes(
                                 "descricao": f'Data da ficha ({ficha["data_atendimento"]}) diferente da execução ({execucao["data_execucao"]})',
                                 "paciente_nome": execucao["paciente_nome"],
                                 "carteirinha": execucao["paciente_carteirinha"],
-                                "prioridade": "MEDIA"
+                                "prioridade": "MEDIA",
                             }
                         )
-        
+
         # 2. Para cada execução, verifica se existe a ficha correspondente
         for execucao in execucoes:
-            if not execucao["codigo_ficha"] or execucao["codigo_ficha"] not in mapa_fichas:
+            if (
+                not execucao["codigo_ficha"]
+                or execucao["codigo_ficha"] not in mapa_fichas
+            ):
                 divergencias_encontradas += 1
                 registrar_divergencia_detalhada(
                     {
@@ -298,7 +305,7 @@ def realizar_auditoria_fichas_execucoes(
                         "descricao": "Execução sem ficha de presença correspondente",
                         "paciente_nome": execucao["paciente_nome"],
                         "carteirinha": execucao["paciente_carteirinha"],
-                        "prioridade": "ALTA"
+                        "prioridade": "ALTA",
                     }
                 )
 
@@ -313,10 +320,12 @@ def realizar_auditoria_fichas_execucoes(
                 "total_resolvidas": 0,
                 "total_pendentes": divergencias_encontradas,
                 "total_fichas_sem_assinatura": 0,
-                "total_execucoes_sem_ficha": len([e for e in execucoes if not e.get("codigo_ficha")]),
+                "total_execucoes_sem_ficha": len(
+                    [e for e in execucoes if not e.get("codigo_ficha")]
+                ),
                 "data_execucao": end_time.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
-                "tempo_execucao": tempo_execucao
-            }
+                "tempo_execucao": tempo_execucao,
+            },
         }
 
     except Exception as e:
@@ -346,14 +355,13 @@ def listar_divergencias_route(
             data_fim=data_fim,
             status=status,
             tipo_divergencia=tipo_divergencia,
-            prioridade=prioridade
+            prioridade=prioridade,
         )
     except Exception as e:
         logging.error(f"Erro ao listar divergências: {str(e)}")
         logging.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao listar divergências: {str(e)}"
+            status_code=500, detail=f"Erro ao listar divergências: {str(e)}"
         )
 
 

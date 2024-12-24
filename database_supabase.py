@@ -305,18 +305,22 @@ def listar_guias(
                 "total": total,
                 "por_tipo": {},
                 "por_prioridade": {"ALTA": 0, "MEDIA": 0},
-                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0}
-            }
+                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0},
+            },
         }
-        
+
     except Exception as e:
         print(f"Erro ao listar guias: {e}")
-        return {"execucaos": [], "total": 0, "resumo": {
+        return {
+            "execucaos": [],
+            "total": 0,
+            "resumo": {
                 "total": 0,
                 "por_tipo": {},
                 "por_prioridade": {"ALTA": 0, "MEDIA": 0},
-                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0}
-            }}
+                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0},
+            },
+        }
 
 
 def buscar_guia(guia_id: str) -> List[Dict]:
@@ -348,10 +352,11 @@ def buscar_guia(guia_id: str) -> List[Dict]:
         return []
 
 
+# Limpar tabela de execucoes
 def limpar_banco() -> None:
-    """Limpa a tabela de execucaos"""
+    """Limpa a tabela de execucoes"""
     try:
-        supabase.table("execucaos").delete().neq("id", 0).execute()
+        supabase.table("execucoes").delete().neq("id", 0).execute()
     except Exception as e:
         print(f"Erro ao limpar banco: {e}")
 
@@ -384,8 +389,8 @@ def registrar_divergencia(
             "id": divergencia_id,
             "numero_guia": numero_guia,
             "data_execucao": data_execucao,
-            "data_atendimento": data_atendimento
-            or data_execucao,  # Se não tiver data_atendimento, usa data_execucao
+            "data_atendimento": data_atendimento,
+            # or data_execucao,  # Se não tiver data_atendimento, usa data_execucao
             "codigo_ficha": codigo_ficha,
             "tipo_divergencia": tipo_divergencia,
             "descricao": descricao,
@@ -429,59 +434,71 @@ def buscar_divergencias(
     data_fim: Optional[str] = None,
     status: Optional[str] = None,
     tipo_divergencia: Optional[str] = None,
-    prioridade: Optional[str] = None
+    prioridade: Optional[str] = None,
 ) -> Dict:
     """
     Busca divergências com paginação e filtros
     """
     try:
-        logging.info(f"Buscando divergências - página: {page}, por página: {per_page}, data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}")
-        print(f"Buscando divergências - página: {page}, por página: {per_page}, data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}")
+        logging.info(
+            f"Buscando divergências - página: {page}, por página: {per_page}, data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
+        )
+        print(
+            f"Buscando divergências - página: {page}, por página: {per_page}, data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
+        )
 
         # Calcula offset para paginação
         offset = (page - 1) * per_page
 
         # Busca registros com paginação e ordenação
-        query = supabase.table("divergencias").select("*").order("data_identificacao", desc=True)
+        query = (
+            supabase.table("divergencias")
+            .select("*")
+            .order("data_identificacao", desc=True)
+        )
 
         # Aplica filtros se fornecidos
         if status and status.lower() != "todos":
             query = query.eq("status", status.lower())
-            
+
         if tipo_divergencia and tipo_divergencia.lower() != "todos":
             query = query.eq("tipo_divergencia", tipo_divergencia)
 
         # Aplica paginação
         query = query.range(offset, offset + per_page - 1)
-        
+
         # Executa a query
         response = query.execute()
         divergencias = response.data if response.data else []
-        
+
         # Busca total de registros
         total_query = supabase.table("divergencias").select("id", count="exact")
         if status and status.lower() != "todos":
             total_query = total_query.eq("status", status.lower())
         if tipo_divergencia and tipo_divergencia.lower() != "todos":
             total_query = total_query.eq("tipo_divergencia", tipo_divergencia)
-        
+
         total_response = total_query.execute()
-        total_registros = total_response.count if total_response.count is not None else 0
-        
+        total_registros = (
+            total_response.count if total_response.count is not None else 0
+        )
+
         return {
             "divergencias": divergencias,
             "total": total_registros,
             "pagina_atual": page,
-            "total_paginas": ceil(total_registros / per_page) if total_registros > 0 else 0,
+            "total_paginas": (
+                ceil(total_registros / per_page) if total_registros > 0 else 0
+            ),
             "por_pagina": per_page,
             "resumo": {
                 "total": total_registros,
                 "por_tipo": {},
                 "por_prioridade": {"ALTA": 0, "MEDIA": 0},
-                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0}
-            }
+                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0},
+            },
         }
-        
+
     except Exception as e:
         logging.error(f"Erro ao buscar divergências: {str(e)}")
         logging.error(traceback.format_exc())
@@ -495,8 +512,8 @@ def buscar_divergencias(
                 "total": 0,
                 "por_tipo": {},
                 "por_prioridade": {"ALTA": 0, "MEDIA": 0},
-                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0}
-            }
+                "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0},
+            },
         }
 
 
@@ -519,7 +536,7 @@ def listar_divergencias(
         data_fim=data_fim,
         status=status,
         tipo_divergencia=tipo_divergencia,
-        prioridade=prioridade
+        prioridade=prioridade,
     )
 
 
@@ -1267,7 +1284,7 @@ def listar_divergencias(
         data_fim=data_fim,
         status=status,
         tipo_divergencia=tipo_divergencia,
-        prioridade=prioridade
+        prioridade=prioridade,
     )
 
 
@@ -1287,16 +1304,16 @@ def registrar_auditoria_execucoes(
             "data_inicial": data_inicial,
             "data_final": data_final,
         }
-        
+
         response = supabase.table("auditoria_execucoes").insert(dados).execute()
-        
+
         if response.data:
             logging.info(f"Metadados da auditoria registrados com sucesso")
             return True
         else:
             logging.error("Erro ao registrar metadados da auditoria: resposta vazia")
             return False
-            
+
     except Exception as e:
         logging.error(f"Erro ao registrar metadados da auditoria: {str(e)}")
         logging.error(traceback.format_exc())

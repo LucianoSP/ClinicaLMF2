@@ -103,12 +103,12 @@ export default function AuditoriaPage() {
       if (dataInicial) params.append('data_inicio', formatarData(dataInicial));
       if (dataFinal) params.append('data_fim', formatarData(dataFinal));
       if (statusFiltro !== 'todos') params.append('status', statusFiltro);
-      if (tipoDivergencia !== 'todos') params.append('tipo', tipoDivergencia);
+      if (tipoDivergencia !== 'todos') params.append('tipo_divergencia', tipoDivergencia);
       params.append('page', page.toString());
       params.append('per_page', perPage.toString());
 
       const response = await fetch(`${API_URL}/auditoria/divergencias?${params.toString()}`);
-      
+
       if (!response.ok) {
         throw new Error('Falha ao buscar divergências');
       }
@@ -180,7 +180,7 @@ export default function AuditoriaPage() {
       }
 
       await buscarDivergencias();
-      
+
       toast({
         title: "Sucesso",
         description: "Divergência marcada como resolvida",
@@ -221,10 +221,10 @@ export default function AuditoriaPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AuditoriaHeader />
-      
+
       <main className="container mx-auto px-4 py-8">
         <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
-        
+
         <FiltrosAuditoria
           dataInicial={dataInicial}
           setDataInicial={setDataInicial}
@@ -235,7 +235,7 @@ export default function AuditoriaPage() {
           tipoDivergencia={tipoDivergencia}
           setTipoDivergencia={setTipoDivergencia}
         />
-        
+
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-600">Itens por página:</label>
@@ -252,7 +252,7 @@ export default function AuditoriaPage() {
               <option value={50}>50</option>
             </select>
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               variant="outline"
