@@ -213,7 +213,7 @@ export default function ExcelPage() {
     event.target.value = '';
   };
 
-  const columns: Column[] = [
+  const columns: Column<ExcelData>[] = [
     {
       key: 'guia_id',
       label: 'Guia',
