@@ -4,7 +4,7 @@ import { Badge } from "../ui/badge";
 import { DivergenciaBadge } from "../ui/divergencia-badge";
 import { StatusBadge } from "../ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Divergencia } from '@/types/divergencia';
+import { Divergencia } from '@/types';
 
 interface DetalheDivergenciaProps {
   divergencia: Divergencia | null;

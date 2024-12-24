@@ -5,7 +5,7 @@ import { Check, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { DetalheDivergencia } from "./DetalheDivergencia";
 import { BadgeStatus } from "@/components/ui/badge-status";
-import { Divergencia } from '@/types/divergencia';
+import { Divergencia } from '@/types';
 
 interface TabelaDivergenciasProps {
   divergencias: Divergencia[];

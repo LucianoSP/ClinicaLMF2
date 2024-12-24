@@ -10,22 +10,7 @@ import { FileDown, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { API_URL } from '@/config/api';
-import { Divergencia } from '@/types/divergencia';
-
-interface AuditoriaResultado {
-  total_protocolos: number;
-  total_divergencias: number;
-  total_resolvidas: number;
-  total_pendentes: number;
-  total_fichas_sem_assinatura: number;
-  total_execucoes_sem_ficha: number;
-  total_fichas_sem_execucao: number;
-  total_datas_divergentes: number;
-  total_fichas: number;
-  data_execucao: string;
-  data_inicial: string;
-  data_final: string;
-}
+import { AuditoriaResultado, Divergencia } from '@/types';
 
 export default function AuditoriaPage() {
   const [dataInicial, setDataInicial] = useState<Date | null>(null);
