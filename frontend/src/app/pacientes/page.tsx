@@ -2,24 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Check, ChevronsUpDown, PlusIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { PlusIcon, SearchIcon } from 'lucide-react'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { PatientForm } from './components/patient-form'
+import { PatientDetails } from '@/components/PatientDetails'
+import { formatarData } from '@/lib/utils'
 import { API_URL } from '@/config/api'
 
 interface Patient {
@@ -38,6 +37,12 @@ interface Patient {
     titular: boolean
     nome_titular: string
   }
+  data_nascimento?: string
+  cpf?: string
+  rg?: string
+  nome_mae?: string
+  nome_pai?: string
+  telefone?: string
 }
 
 interface Guide {
@@ -53,35 +58,36 @@ interface Guide {
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
-  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>()
   const [patientGuides, setPatientGuides] = useState<Guide[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [showTable, setShowTable] = useState(false)
+  const [open, setOpen] = useState(false)
 
   // Carregar pacientes
-  const loadPatients = useCallback(async () => {
+  const loadPatients = useCallback(async (term: string) => {
+    if (!term.trim()) {
+      setPatients([])
+      return
+    }
+
     try {
       setIsLoading(true)
       const params = new URLSearchParams()
-      if (searchTerm.trim()) {
-        params.append('paciente_nome', searchTerm.trim())
-      }
+      params.append('paciente_nome', term.trim())
 
       const response = await fetch(`${API_URL}/pacientes?${params.toString()}`)
       if (!response.ok) throw new Error('Falha ao carregar pacientes')
       const data = await response.json()
       setPatients(data.items || [])
-      setFilteredPatients(data.items || [])
-      setShowTable(true)
     } catch (error) {
       console.error('Erro ao carregar pacientes:', error)
+      setPatients([])
     } finally {
       setIsLoading(false)
     }
-  }, [searchTerm])
+  }, [])
 
   // Carregar guias do paciente
   const loadPatientGuides = useCallback(async (patientId: string) => {
@@ -96,27 +102,14 @@ export default function PatientsPage() {
     }
   }, [])
 
-  // Função de busca
-  const handleSearch = useCallback((term: string) => {
-    setSearchTerm(term)
-    if (!term.trim()) {
-      setShowTable(false)
-      setPatients([])
-      setFilteredPatients([])
-      return
-    }
-
-    loadPatients()
-  }, [loadPatients])
-
   // Efeito para atualizar a busca quando o termo muda
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      handleSearch(searchTerm)
-    }, 300) // Debounce de 300ms
+      loadPatients(searchTerm)
+    }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, handleSearch])
+  }, [searchTerm, loadPatients])
 
   // Efeito para carregar guias quando um paciente é selecionado
   useEffect(() => {
@@ -132,10 +125,17 @@ export default function PatientsPage() {
     setIsFormOpen(true)
   }
 
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient)
+    setOpen(false)
+    setSearchTerm('')
+    setPatients([])
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
-        <div className="p-6 flex flex-col gap-8">
+        <div className="p-6 flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Gerenciamento de Pacientes</h2>
             <Button 
@@ -148,177 +148,129 @@ export default function PatientsPage() {
             </Button>
           </div>
 
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Input
-                  placeholder="Buscar por nome ou carteirinha..."
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-[300px] justify-between"
+              >
+                {selectedPatient
+                  ? selectedPatient.nome
+                  : "Selecione um paciente..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <Command shouldFilter={false}>
+                <CommandInput 
+                  placeholder="Buscar paciente..." 
                   value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-8 w-[300px]"
+                  onValueChange={setSearchTerm}
                 />
-                <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-          </div>
-
-          {showTable && (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Carteirinha</TableHead>
-                    <TableHead>Data de Cadastro</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8f732b]"></div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredPatients.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        Nenhum paciente encontrado para esta busca
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredPatients.map((patient) => (
-                      <TableRow 
-                        key={patient.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedPatient(patient)}
-                      >
-                        <TableCell>{patient.nome}</TableCell>
-                        <TableCell>{patient.carteirinha}</TableCell>
-                        <TableCell>
-                          {new Date(patient.created_at).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleEditPatient(patient)
-                            }}
-                          >
-                            Editar
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {selectedPatient && (
-        <div className="grid grid-cols-1 gap-6">
-          <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
-            <div className="p-6 flex flex-col gap-4">
-              <h3 className="text-lg font-semibold">Informações do Paciente</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">Dados Pessoais</h4>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="text-muted-foreground">Nome:</span> {selectedPatient.nome}</p>
-                    <p><span className="text-muted-foreground">Carteirinha:</span> {selectedPatient.carteirinha}</p>
-                    <p><span className="text-muted-foreground">Data de Cadastro:</span> {new Date(selectedPatient.created_at).toLocaleDateString('pt-BR')}</p>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8f732b]"></div>
                   </div>
-                </div>
-                {selectedPatient.carteirinha_info && (
+                ) : patients.length === 0 ? (
+                  <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
+                ) : (
+                  <CommandGroup>
+                    {patients.map((patient) => (
+                      <button
+                        key={patient.id}
+                        onClick={() => handleSelectPatient(patient)}
+                        className="w-full flex items-start gap-2 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm relative select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 outline-none"
+                      >
+                        <Check
+                          className={cn(
+                            "h-4 w-4 mt-1",
+                            selectedPatient?.id === patient.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{patient.nome}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Carteirinha: {patient.carteirinha}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </CommandGroup>
+                )}
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {selectedPatient && (
+            <div className="mt-6 space-y-6">
+              <div className="rounded-lg border bg-card p-6">
+                <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-medium mb-2">Informações da Carteirinha</h4>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="text-muted-foreground">Número:</span> {selectedPatient.carteirinha_info.numero_carteirinha}</p>
-                      <p><span className="text-muted-foreground">Validade:</span> {new Date(selectedPatient.carteirinha_info.data_validade).toLocaleDateString('pt-BR')}</p>
-                      <p><span className="text-muted-foreground">Titular:</span> {selectedPatient.carteirinha_info.titular ? 'Sim' : 'Não'}</p>
-                      {!selectedPatient.carteirinha_info.titular && (
-                        <p><span className="text-muted-foreground">Nome do Titular:</span> {selectedPatient.carteirinha_info.nome_titular}</p>
-                      )}
+                    <h3 className="text-2xl font-semibold text-[#8B4513] mb-1">{selectedPatient.nome}</h3>
+                    <p className="text-muted-foreground">Carteirinha: {selectedPatient.carteirinha}</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleEditPatient(selectedPatient)}
+                    className="gap-2"
+                  >
+                    Editar Paciente
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 mt-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Data de Nascimento</h4>
+                      <p className="text-lg">{formatarData(selectedPatient.data_nascimento)}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">CPF</h4>
+                      <p className="text-lg">{selectedPatient.cpf}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">RG</h4>
+                      <p className="text-lg">{selectedPatient.rg}</p>
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
-            <div className="p-6 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">Guias do Paciente</h3>
-                  <p className="text-sm text-muted-foreground">Histórico de guias e saldos disponíveis</p>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Nome da Mãe</h4>
+                      <p className="text-lg">{selectedPatient.nome_mae}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Nome do Pai</h4>
+                      <p className="text-lg">{selectedPatient.nome_pai}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Telefone</h4>
+                      <p className="text-lg">{selectedPatient.telefone}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Número da Guia</TableHead>
-                      <TableHead>Procedimento</TableHead>
-                      <TableHead>Validade</TableHead>
-                      <TableHead>Autorizadas</TableHead>
-                      <TableHead>Utilizadas</TableHead>
-                      <TableHead>Saldo</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {patientGuides.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground">
-                          Nenhuma guia encontrada para este paciente
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      patientGuides.map((guide) => (
-                        <TableRow key={guide.id}>
-                          <TableCell>{guide.numero_guia}</TableCell>
-                          <TableCell>{guide.procedimento_nome}</TableCell>
-                          <TableCell>{new Date(guide.data_validade).toLocaleDateString('pt-BR')}</TableCell>
-                          <TableCell>{guide.quantidade_autorizada}</TableCell>
-                          <TableCell>{guide.quantidade_executada}</TableCell>
-                          <TableCell>{guide.quantidade_autorizada - guide.quantidade_executada}</TableCell>
-                          <TableCell>
-                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                              guide.status === 'ativa' 
-                                ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20'
-                                : 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
-                            }`}>
-                              {guide.status}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+              <div className="rounded-lg border bg-card">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-[#8B4513] mb-4">Guias do Paciente</h3>
+                  <PatientDetails patient={selectedPatient} guides={patientGuides} />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      <PatientForm
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false)
-          setSelectedPatient(undefined)
-        }}
-        patient={selectedPatient}
-      />
+          <PatientForm
+            isOpen={isFormOpen}
+            onClose={() => {
+              setIsFormOpen(false)
+              setSelectedPatient(undefined)
+            }}
+            patient={selectedPatient}
+          />
+        </div>
+      </div>
     </div>
   )
 }
