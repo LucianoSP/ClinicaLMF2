@@ -11,6 +11,7 @@ from database_supabase import (
     registrar_auditoria_execucoes,
     limpar_divergencias_db,
     listar_divergencias,
+    registrar_execucao_auditoria
 )
 
 # Configuração de logging
@@ -223,6 +224,12 @@ def realizar_auditoria_fichas_execucoes(
         limpar_divergencias_db()
         logging.info("Divergências antigas removidas com sucesso")
 
+        # Converte datas para formato ISO se necessário
+        if data_inicial and "/" in data_inicial:
+            data_inicial = datetime.strptime(data_inicial, "%d/%m/%Y").strftime("%Y-%m-%d")
+        if data_final and "/" in data_final:
+            data_final = datetime.strptime(data_final, "%d/%m/%Y").strftime("%Y-%m-%d")
+
         # Busca todas as fichas de presença e execuções
         fichas = listar_fichas_presenca(limit=0)
         execucoes = listar_execucoes(limit=0)
@@ -232,16 +239,29 @@ def realizar_auditoria_fichas_execucoes(
         if not isinstance(execucoes, list):
             execucoes = []
 
+        # Filtra por data se necessário
+        if data_inicial:
+            fichas = [f for f in fichas if f["data_atendimento"] >= data_inicial]
+            execucoes = [e for e in execucoes if e["data_execucao"] >= data_inicial]
+        if data_final:
+            fichas = [f for f in fichas if f["data_atendimento"] <= data_final]
+            execucoes = [e for e in execucoes if e["data_execucao"] <= data_final]
+
         # Criar um dicionário para mapear código_ficha -> ficha
         mapa_fichas = {f["codigo_ficha"]: f for f in fichas}
 
         # Criar um dicionário para mapear código_ficha -> execucoes
         mapa_execucoes = {}
+        execucoes_sem_ficha = []
+        
         for execucao in execucoes:
-            if execucao["codigo_ficha"]:
-                if execucao["codigo_ficha"] not in mapa_execucoes:
-                    mapa_execucoes[execucao["codigo_ficha"]] = []
-                mapa_execucoes[execucao["codigo_ficha"]].append(execucao)
+            codigo_ficha = execucao.get("codigo_ficha")
+            if codigo_ficha:
+                if codigo_ficha not in mapa_execucoes:
+                    mapa_execucoes[codigo_ficha] = []
+                mapa_execucoes[codigo_ficha].append(execucao)
+            else:
+                execucoes_sem_ficha.append(execucao)
 
         total_fichas = len(fichas)
         total_execucoes = len(execucoes)
@@ -250,7 +270,24 @@ def realizar_auditoria_fichas_execucoes(
 
         divergencias_encontradas = 0
 
-        # 1. Para cada ficha, verifica as execuções correspondentes
+        # 1. Registra execuções sem ficha
+        for execucao in execucoes_sem_ficha:
+            divergencias_encontradas += 1
+            registrar_divergencia_detalhada(
+                {
+                    "numero_guia": execucao["numero_guia"],
+                    "data_execucao": execucao["data_execucao"],
+                    "data_atendimento": execucao["data_execucao"],  # Usando a mesma data da execução como data de atendimento
+                    "codigo_ficha": execucao.get("codigo_ficha"),
+                    "tipo_divergencia": "execucao_sem_ficha",
+                    "descricao": "Execução sem ficha de presença correspondente",
+                    "paciente_nome": execucao["paciente_nome"],
+                    "carteirinha": execucao["paciente_carteirinha"],
+                    "prioridade": "ALTA",
+                }
+            )
+
+        # 2. Para cada ficha, verifica as execuções correspondentes
         for ficha in fichas:
             codigo_ficha = ficha["codigo_ficha"]
             execucoes_da_ficha = mapa_execucoes.get(codigo_ficha, [])
@@ -289,29 +326,21 @@ def realizar_auditoria_fichas_execucoes(
                             }
                         )
 
-        # 2. Para cada execução, verifica se existe a ficha correspondente
-        for execucao in execucoes:
-            if (
-                not execucao["codigo_ficha"]
-                or execucao["codigo_ficha"] not in mapa_fichas
-            ):
-                divergencias_encontradas += 1
-                registrar_divergencia_detalhada(
-                    {
-                        "numero_guia": execucao["numero_guia"],
-                        "data_execucao": execucao["data_execucao"],
-                        "data_atendimento": execucao["data_execucao"],  # Usando a mesma data da execução como data de atendimento
-                        "codigo_ficha": execucao.get("codigo_ficha"),
-                        "tipo_divergencia": "execucao_sem_ficha",
-                        "descricao": "Execução sem ficha de presença correspondente",
-                        "paciente_nome": execucao["paciente_nome"],
-                        "carteirinha": execucao["paciente_carteirinha"],
-                        "prioridade": "ALTA",
-                    }
-                )
-
         end_time = datetime.now()
         tempo_execucao = str(end_time - start_time)
+
+        # Registra os metadados da auditoria
+        registrar_execucao_auditoria(
+            data_inicial=data_inicial,
+            data_final=data_final,
+            total_protocolos=total_fichas + total_execucoes,
+            total_divergencias=divergencias_encontradas,
+            divergencias_por_tipo={
+                "execucao_sem_ficha": len(execucoes_sem_ficha),
+                "ficha_sem_execucao": len([f for f in fichas if not mapa_execucoes.get(f["codigo_ficha"])]),
+                "data_divergente": divergencias_encontradas - len(execucoes_sem_ficha) - len([f for f in fichas if not mapa_execucoes.get(f["codigo_ficha"])])
+            }
+        )
 
         return {
             "message": "Auditoria realizada com sucesso",
@@ -321,9 +350,7 @@ def realizar_auditoria_fichas_execucoes(
                 "total_resolvidas": 0,
                 "total_pendentes": divergencias_encontradas,
                 "total_fichas_sem_assinatura": 0,
-                "total_execucoes_sem_ficha": len(
-                    [e for e in execucoes if not e.get("codigo_ficha")]
-                ),
+                "total_execucoes_sem_ficha": len(execucoes_sem_ficha),
                 "data_execucao": end_time.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
                 "tempo_execucao": tempo_execucao,
             },

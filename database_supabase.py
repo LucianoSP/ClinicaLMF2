@@ -464,6 +464,15 @@ def buscar_divergencias(
         if tipo_divergencia and tipo_divergencia.lower() != "todos":
             query = query.eq("tipo_divergencia", tipo_divergencia)
 
+        if prioridade and prioridade.lower() != "todos":
+            query = query.eq("prioridade", prioridade.upper())
+
+        # Aplica filtros de data
+        if data_inicio:
+            query = query.gte("data_execucao", data_inicio)
+        if data_fim:
+            query = query.lte("data_execucao", data_fim)
+
         # Aplica paginação
         query = query.range(offset, offset + per_page - 1)
 
@@ -477,6 +486,12 @@ def buscar_divergencias(
             total_query = total_query.eq("status", status.lower())
         if tipo_divergencia and tipo_divergencia.lower() != "todos":
             total_query = total_query.eq("tipo_divergencia", tipo_divergencia)
+        if prioridade and prioridade.lower() != "todos":
+            total_query = total_query.eq("prioridade", prioridade.upper())
+        if data_inicio:
+            total_query = total_query.gte("data_execucao", data_inicio)
+        if data_fim:
+            total_query = total_query.lte("data_execucao", data_fim)
 
         total_response = total_query.execute()
         total_registros = (
@@ -840,6 +855,12 @@ def listar_fichas_presenca(
                 except ValueError:
                     pass  # Mantém o formato original se não conseguir converter
 
+        # Se limit = 0, retorna todas as fichas como lista
+        if limit == 0:
+            return fichas
+
+        # Se limit > 0, retorna com paginação
+        total = len(supabase.table("fichas_presenca").select("id").execute().data)
         return {
             "fichas": fichas,
             "total": total,
@@ -849,7 +870,7 @@ def listar_fichas_presenca(
     except Exception as e:
         print(f"Erro ao listar fichas de presença: {e}")
         traceback.print_exc()  # Isso imprimirá o traceback completo
-        return {"fichas": [], "total": 0, "total_pages": 1}
+        return [] if limit == 0 else {"fichas": [], "total": 0, "total_pages": 1}
 
 
 def buscar_ficha_presenca(

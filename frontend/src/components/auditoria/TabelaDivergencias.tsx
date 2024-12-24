@@ -39,6 +39,7 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
         <TableHeader>
           <TableRow>
             <TableHead>Guia</TableHead>
+            <TableHead>Código Ficha</TableHead>
             <TableHead>Paciente</TableHead>
             <TableHead>Data Atendimento</TableHead>
             <TableHead>Data Execução</TableHead>
@@ -51,6 +52,7 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
           {divergencias.map((divergencia) => (
             <TableRow key={divergencia.id}>
               <TableCell>{divergencia.numero_guia}</TableCell>
+              <TableCell>{divergencia.codigo_ficha || '-'}</TableCell>
               <TableCell>{divergencia.paciente_nome}</TableCell>
               <TableCell>{divergencia.data_atendimento ? formatarData(new Date(divergencia.data_atendimento)) : '-'}</TableCell>
               <TableCell>{divergencia.data_execucao ? formatarData(new Date(divergencia.data_execucao)) : '-'}</TableCell>
