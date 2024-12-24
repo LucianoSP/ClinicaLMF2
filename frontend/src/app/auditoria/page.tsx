@@ -10,6 +10,7 @@ import { FileDown, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { API_URL } from '@/config/api';
+import { Divergencia } from '@/types/divergencia';
 
 interface AuditoriaResultado {
   total_protocolos: number;
@@ -24,24 +25,6 @@ interface AuditoriaResultado {
   data_execucao: string;
   data_inicial: string;
   data_final: string;
-}
-
-interface Divergencia {
-  id: string;
-  guia_id: string;
-  data_execucao: string;
-  codigo_ficha: string;
-  descricao_divergencia: string;
-  paciente_nome: string;
-  paciente_carteirinha: string;
-  status: string;
-  data_registro: string;
-  tipo_divergencia?: string;
-  possui_assinatura: boolean;
-  arquivo_digitalizado?: string;
-  observacoes?: string;
-  quantidade_autorizada?: number;
-  quantidade_executada?: number;
 }
 
 export default function AuditoriaPage() {

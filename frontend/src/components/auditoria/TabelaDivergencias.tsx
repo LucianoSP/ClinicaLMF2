@@ -5,24 +5,7 @@ import { Check, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { DetalheDivergencia } from "./DetalheDivergencia";
 import { BadgeStatus } from "@/components/ui/badge-status";
-
-interface Divergencia {
-  id: string;
-  numero_guia: string;
-  data_execucao: string;
-  data_atendimento: string;
-  data_identificacao: string;
-  codigo_ficha: string;
-  paciente_nome: string;
-  carteirinha: string;
-  status: string;
-  tipo_divergencia: string;
-  descricao: string;
-  observacoes?: string;
-  resolvido_por?: string;
-  data_resolucao?: string;
-  detalhes: Record<string, any>;
-}
+import { Divergencia } from '@/types/divergencia';
 
 interface TabelaDivergenciasProps {
   divergencias: Divergencia[];

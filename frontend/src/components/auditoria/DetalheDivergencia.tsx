@@ -4,27 +4,13 @@ import { Badge } from "../ui/badge";
 import { DivergenciaBadge } from "../ui/divergencia-badge";
 import { StatusBadge } from "../ui/status-badge";
 import { Button } from "@/components/ui/button";
+import { Divergencia } from '@/types/divergencia';
 
 interface DetalheDivergenciaProps {
-  divergencia: {
-    id: string;
-    numero_guia: string;
-    data_execucao: string;
-    data_atendimento: string;
-    data_identificacao: string;
-    codigo_ficha: string;
-    paciente_nome: string;
-    carteirinha: string;
-    status: string;
-    tipo_divergencia: string;
-    descricao: string;
-    observacoes?: string;
-    resolvido_por?: string;
-    data_resolucao?: string;
-  } | null;
+  divergencia: Divergencia | null;
   open: boolean;
   onClose: () => void;
-  onResolverClick: (divergencia: { id: string }) => void;
+  onResolverClick: () => void;
 }
 
 export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick }: DetalheDivergenciaProps) {
@@ -105,7 +91,7 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
           {divergencia.status !== 'resolvido' && (
             <div className="flex justify-end pt-4">
               <Button 
-                onClick={() => onResolverClick(divergencia)}
+                onClick={() => onResolverClick()}
                 variant="default"
                 size="lg"
               >
