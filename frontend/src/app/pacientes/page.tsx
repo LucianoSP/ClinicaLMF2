@@ -198,40 +198,19 @@ export default function PatientsPage() {
 
           {selectedPatient && (
             <div className="mt-6 space-y-6">
-              <div className="rounded-lg border bg-card p-6">
-                <div className="flex justify-between items-start">
+              <div className="rounded-lg border p-6">
+                <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3 className="text-2xl font-semibold text-[#8B4513] mb-1">{selectedPatient.nome}</h3>
+                    <h2 className="text-2xl font-semibold text-brown-800">{selectedPatient.nome}</h2>
                     <p className="text-muted-foreground">Carteirinha: {selectedPatient.carteirinha}</p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleEditPatient(selectedPatient)}
-                    className="gap-2"
-                  >
+                  <Button variant="outline" onClick={() => handleEditPatient(selectedPatient)}>
                     Editar Paciente
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 mt-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Nome</h4>
-                      <p className="text-lg">{selectedPatient.nome}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Carteirinha</h4>
-                      <p className="text-lg">{selectedPatient.carteirinha}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border bg-card">
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-[#8B4513] mb-4">Guias do Paciente</h3>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Guias do Paciente</h3>
                   <PatientDetails patient={selectedPatient} guides={patientGuides} />
                 </div>
               </div>
