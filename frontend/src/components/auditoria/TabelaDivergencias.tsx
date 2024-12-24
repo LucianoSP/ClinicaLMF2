@@ -39,28 +39,28 @@ export function TabelaDivergencias({ divergencias, onResolverClick }: TabelaDive
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Status</TableHead>
-            <TableHead>Tipo</TableHead>
             <TableHead>Guia</TableHead>
             <TableHead>Paciente</TableHead>
+            <TableHead>Data Atendimento</TableHead>
             <TableHead>Data Execução</TableHead>
-            <TableHead>Descrição</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {divergencias.map((divergencia) => (
             <TableRow key={divergencia.id} onClick={() => setSelectedDivergencia(divergencia)}>
-              <TableCell>
-                <StatusBadge status={divergencia.status} />
-              </TableCell>
+              <TableCell>{divergencia.numero_guia}</TableCell>
+              <TableCell>{divergencia.paciente_nome}</TableCell>
+              <TableCell>{formatarData(new Date(divergencia.data_atendimento))}</TableCell>
+              <TableCell>{formatarData(new Date(divergencia.data_execucao))}</TableCell>
               <TableCell>
                 <DivergenciaBadge tipo={divergencia.tipo_divergencia} />
               </TableCell>
-              <TableCell>{divergencia.numero_guia}</TableCell>
-              <TableCell>{divergencia.paciente_nome}</TableCell>
-              <TableCell>{divergencia.data_execucao}</TableCell>
-              <TableCell>{divergencia.descricao}</TableCell>
+              <TableCell>
+                <StatusBadge status={divergencia.status} />
+              </TableCell>
               <TableCell>
                 <Button
                   variant="outline"
