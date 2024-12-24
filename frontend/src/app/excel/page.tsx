@@ -72,11 +72,14 @@ export default function ExcelPage() {
       const result = await response.json();
 
       if (result.success) {
-        const formattedData = result.data.registros.map((item: ExcelData) => ({
+        console.log('Dados da API:', result.data.registros);
+        const formattedData = result.data.registros.map((item: any) => ({
           ...item,
+          numero_guia: item.guia_id, // Mapear guia_id para numero_guia
           data_execucao: formatDate(item.data_execucao),
           created_at: formatDate(item.created_at)
         }));
+        console.log('Dados formatados:', formattedData);
         setData(formattedData);
         setTotalPages(result.data.pagination.total_pages);
         setTotalRecords(result.data.pagination.total);
