@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { SortableTable, Column } from './SortableTable';
 import { useDebounce } from '../hooks/useDebounce';
 import { API_URL } from '../config/api';
+import { Execucao } from '@/types/execucoes';
 
 interface Registro {
   data_execucao: string;
@@ -24,16 +25,6 @@ interface Registro {
 interface DadosGuia {
   codigo_ficha: string;
   registros: Execucao[];
-}
-
-
-interface Execucao {
-  data_execucao: string;
-  paciente_carteirinha: string;
-  paciente_nome: string;
-  guia_id: string;
-  possui_assinatura: boolean;
-  codigo_ficha: string;
 }
 
 const ProcessedFiles = () => {
@@ -50,11 +41,11 @@ const ProcessedFiles = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedexecucao, setEditedexecucao] = useState<execucao | null>(null);
+  const [editedexecucao, setEditedexecucao] = useState<Execucao | null>(null);
   const [originalCodigoFicha, setOriginalCodigoFicha] = useState<string | null>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [execucaoToDelete, setexecucaoToDelete] = useState<execucao | null>(null);
+  const [execucaoToDelete, setexecucaoToDelete] = useState<Execucao | null>(null);
 
   const fetchProcessedFiles = async () => {
     setLoading(true);
@@ -152,7 +143,7 @@ const ProcessedFiles = () => {
   const handleExportExcel = () => {
     try {
       // Preparar os dados para exportação
-      const exportData = execucaos.map(item => ({
+      const exportData = execucoes.map(item => ({
         'DATA': item.data_execucao,
         'CARTEIRINHA': item.paciente_carteirinha,
         'PACIENTE': item.paciente_nome,
@@ -164,10 +155,10 @@ const ProcessedFiles = () => {
       // Criar uma nova planilha
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'execucaos');
+      XLSX.utils.book_append_sheet(wb, ws, 'execucoes');
 
       // Gerar o arquivo e fazer o download
-      const fileName = `execucaos_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
+      const fileName = `execucoes_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
       XLSX.writeFile(wb, fileName);
     } catch (err) {
       console.error('Erro ao exportar:', err);
@@ -175,13 +166,13 @@ const ProcessedFiles = () => {
     }
   };
 
-  const handleEdit = (execucao: execucao) => {
+  const handleEdit = (execucao: Execucao) => {
     setEditingId(execucao.codigo_ficha);
     setEditedexecucao({ ...execucao });
     setOriginalCodigoFicha(execucao.codigo_ficha);
   };
 
-  const handleCellEdit = (item: execucao, key: keyof execucao, value: any) => {
+  const handleCellEdit = (item: Execucao, key: keyof Execucao, value: any) => {
     if (editedexecucao && item.codigo_ficha === editingId) {
       const updatedexecucao = { ...editedexecucao, [key]: value };
       setEditedexecucao(updatedexecucao);
@@ -192,13 +183,13 @@ const ProcessedFiles = () => {
       }
 
       // Update the local state to reflect changes immediately
-      setexecucaos(execucaos.map(a =>
+      setExecucoes(execucoes.map(a =>
         a.codigo_ficha === (originalCodigoFicha || editingId) ? updatedexecucao : a
       ));
     }
   };
 
-  const handleSave = async (item: execucao) => {
+  const handleSave = async (item: Execucao) => {
     if (!editedexecucao || !originalCodigoFicha) return;
 
     try {
@@ -251,7 +242,7 @@ const ProcessedFiles = () => {
       };
 
       // Update local state with the new data
-      setexecucaos(execucaos.map(a =>
+      setExecucoes(execucoes.map(a =>
         a.codigo_ficha === originalCodigoFicha ? updatedexecucao : a
       ));
 
@@ -274,7 +265,7 @@ const ProcessedFiles = () => {
     fetchProcessedFiles();
   };
 
-  const handleDelete = (execucao: execucao) => {
+  const handleDelete = (execucao: Execucao) => {
     setexecucaoToDelete(execucao);
     setShowDeleteModal(true);
   };
@@ -295,7 +286,7 @@ const ProcessedFiles = () => {
       }
 
       // Atualiza o estado local removendo o item excluído
-      setexecucaos(execucaos.filter(a => a.codigo_ficha !== execucaoToDelete.codigo_ficha));
+      setExecucoes(execucoes.filter(a => a.codigo_ficha !== execucaoToDelete.codigo_ficha));
       setShowDeleteModal(false);
       setexecucaoToDelete(null);
     } catch (error) {
@@ -304,7 +295,7 @@ const ProcessedFiles = () => {
     }
   };
 
-  const columns: Column<execucao>[] = [
+  const columns: Column<Execucao>[] = [
     { key: 'data_execucao', label: 'Data', editable: true },
     { key: 'paciente_carteirinha', label: 'Carteira', editable: true },
     { key: 'paciente_nome', label: 'Paciente', editable: true },
@@ -320,7 +311,7 @@ const ProcessedFiles = () => {
         <div className="flex space-x-4">
           <button
             onClick={handleExportExcel}
-            disabled={loading || execucaos.length === 0}
+            disabled={loading || execucoes.length === 0}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
           >
             Exportar Excel
@@ -378,7 +369,7 @@ const ProcessedFiles = () => {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <SortableTable
-            data={execucaos.map(execucao =>
+            data={execucoes.map(execucao =>
               execucao.codigo_ficha === editingId && editedexecucao
                 ? editedexecucao
                 : execucao
@@ -397,7 +388,7 @@ const ProcessedFiles = () => {
       {/* Paginação */}
       <div className="mt-6 flex flex-col items-center justify-center gap-4">
         <div className="text-sm text-gray-600">
-          Mostrando {execucaos.length} de {totalRecords} registros
+          Mostrando {execucoes.length} de {totalRecords} registros
         </div>
         <div className="flex items-center space-x-1">
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -417,6 +408,7 @@ const ProcessedFiles = () => {
           })}
           {totalPages > 5 && (
             <>
+
               <span className="px-2 text-gray-500">...</span>
               <button
                 onClick={() => handlePageChange(totalPages)}
@@ -447,7 +439,7 @@ const ProcessedFiles = () => {
         </div>
       )}
 
-      {execucaos.length === 0 && !error && !loading && (
+      {execucoes.length === 0 && !error && !loading && (
         <div className="text-center py-8 text-gray-500">
           Nenhum arquivo processado encontrado
         </div>
