@@ -12,7 +12,7 @@ export interface Column<T> {
   key: keyof T;
   label: string;
   editable?: boolean;
-  type?: 'boolean' | 'text';
+  type?: 'boolean' | 'text' | 'string' | 'date';
   render?: (value: any, item: T) => React.ReactNode;
 }
 

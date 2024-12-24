@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 // 1. Atualizar interface
 interface ExcelData {
   id: string;
-  guia_id: string;
+  numero_guia: string;
   paciente_nome: string;
   data_execucao: string;
   paciente_carteirinha: string;
@@ -124,7 +124,7 @@ export default function ExcelPage() {
     try {
       // Preparar os dados para exportação
       const exportData = data.map(item => ({
-        'Guia': item.guia_id,
+        'Guia': item.numero_guia,
         'Paciente': item.paciente_nome,
         'Data': item.data_execucao,
         'Número da carteirinha': item.paciente_carteirinha,
@@ -215,28 +215,34 @@ export default function ExcelPage() {
 
   const columns: Column<ExcelData>[] = [
     {
-      key: 'guia_id',
+      key: 'numero_guia',
       label: 'Guia',
+      type: 'text'
     },
     {
       key: 'paciente_nome',
       label: 'Paciente',
+      type: 'text'
     },
     {
       key: 'data_execucao',
       label: 'Data',
+      type: 'text'
     },
     {
       key: 'paciente_carteirinha',
       label: 'Carteirinha',
+      type: 'text'
     },
     {
       key: 'paciente_id',
       label: 'Id paciente',
+      type: 'text'
     },
     {
       key: 'created_at',
       label: 'Data importação',
+      type: 'text'
     },
   ];
 
