@@ -216,33 +216,27 @@ export default function ExcelPage() {
   const columns: Column<ExcelData>[] = [
     {
       key: 'numero_guia',
-      label: 'Guia',
-      type: 'text'
+      label: 'Guia'
     },
     {
       key: 'paciente_nome',
-      label: 'Paciente',
-      type: 'text'
+      label: 'Paciente'
     },
     {
       key: 'data_execucao',
-      label: 'Data',
-      type: 'text'
+      label: 'Data'
     },
     {
       key: 'paciente_carteirinha',
-      label: 'Carteirinha',
-      type: 'text'
+      label: 'Carteirinha'
     },
     {
       key: 'paciente_id',
-      label: 'Id paciente',
-      type: 'text'
+      label: 'Id paciente'
     },
     {
       key: 'created_at',
-      label: 'Data importação',
-      type: 'text'
+      label: 'Data importação'
     },
   ];
 
