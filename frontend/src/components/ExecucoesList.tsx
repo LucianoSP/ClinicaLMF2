@@ -14,17 +14,7 @@ import { SortableTable, Column } from './SortableTable';
 import { useDebounce } from '../hooks/useDebounce';
 import { API_URL } from '../config/api';
 import { Button } from '@/components/ui/button';
-
-interface Execucao {
-  id: string;
-  numero_guia: string;
-  paciente_nome: string;
-  data_execucao: string;
-  paciente_carteirinha: string;
-  paciente_id: string;
-  quantidade_sessoes: number;
-  created_at: string;
-}
+import { Execucao } from '@/types/execucoes';
 
 const ExecucoesList = () => {
   const [execucoes, setExecucoes] = useState<Execucao[]>([]);
