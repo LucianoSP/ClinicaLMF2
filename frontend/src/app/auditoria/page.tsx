@@ -18,6 +18,9 @@ interface AuditoriaResultado {
   total_pendentes: number;
   total_fichas_sem_assinatura: number;
   total_execucoes_sem_ficha: number;
+  total_fichas_sem_execucao: number;
+  total_datas_divergentes: number;
+  total_fichas: number;
   data_execucao: string;
   data_inicial: string;
   data_final: string;

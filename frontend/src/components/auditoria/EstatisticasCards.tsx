@@ -12,9 +12,9 @@ interface EstatisticasProps {
     total_pendentes: number;
     total_fichas_sem_assinatura: number;
     total_execucoes_sem_ficha: number;
-    total_fichas_sem_execucao: number;
-    total_datas_divergentes: number;
-    total_fichas: number;
+    total_fichas_sem_execucao?: number;
+    total_datas_divergentes?: number;
+    total_fichas?: number;
     data_execucao: string;
     tempo_execucao?: string;
   };
@@ -24,6 +24,13 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
   if (!resultadoAuditoria) {
     return null;
   }
+
+  // Valores padrão para propriedades opcionais
+  const {
+    total_fichas_sem_execucao = 0,
+    total_datas_divergentes = 0,
+    total_fichas = resultadoAuditoria.total_protocolos || 0,
+  } = resultadoAuditoria;
 
   return (
     <div>
@@ -47,7 +54,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
             <FileCheck2 className="h-6 w-6 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resultadoAuditoria.total_fichas}</div>
+            <div className="text-2xl font-bold">{total_fichas}</div>
             <p className="text-xs text-muted-foreground">
               Fichas verificadas
             </p>
@@ -105,7 +112,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
             <FileX className="h-6 w-6 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resultadoAuditoria.total_fichas_sem_execucao}</div>
+            <div className="text-2xl font-bold">{total_fichas_sem_execucao}</div>
             <p className="text-xs text-muted-foreground">
               Execuções não encontradas
             </p>
@@ -118,7 +125,7 @@ export function EstatisticasCards({ resultadoAuditoria }: EstatisticasProps) {
             <Calendar className="h-6 w-6 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resultadoAuditoria.total_datas_divergentes}</div>
+            <div className="text-2xl font-bold">{total_datas_divergentes}</div>
             <p className="text-xs text-muted-foreground">
               Datas não correspondem
             </p>
