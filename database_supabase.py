@@ -1221,13 +1221,28 @@ def listar_pacientes(
 def listar_guias_paciente(paciente_id: str) -> Dict:
     """
     Retorna todas as guias de um paciente específico.
+    Primeiro busca a carteirinha do paciente pelo ID, depois busca as guias pela carteirinha.
     """
     try:
-        # Executa a query
+        # Primeiro busca a carteirinha do paciente
+        paciente = (
+            supabase.table("pacientes")
+            .select("carteirinha")
+            .eq("id", paciente_id)
+            .execute()
+        )
+
+        if not paciente.data:
+            print(f"Paciente não encontrado: {paciente_id}")
+            return {"items": [], "total": 0}
+
+        carteirinha = paciente.data[0]["carteirinha"]
+
+        # Depois busca as guias usando a carteirinha
         response = (
             supabase.table("guias")
             .select("*")
-            .eq("paciente_id", paciente_id)
+            .eq("paciente_carteirinha", carteirinha)
             .order("created_at", desc=True)
             .execute()
         )

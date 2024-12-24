@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { PatientForm } from './components/patient-form'
-import { PatientDetails } from '@/components/PatientDetails'
+import PatientDetails from '@/components/PatientDetails'
 import { formatarData } from '@/lib/utils'
 import { API_URL } from '@/config/api'
 
@@ -25,24 +25,6 @@ interface Patient {
   id: string
   nome: string
   carteirinha: string
-  created_at: string
-  updated_at: string
-  plano_saude?: {
-    nome: string
-    codigo: string
-  }
-  carteirinha_info?: {
-    numero_carteirinha: string
-    data_validade: string
-    titular: boolean
-    nome_titular: string
-  }
-  data_nascimento?: string
-  cpf?: string
-  rg?: string
-  nome_mae?: string
-  nome_pai?: string
-  telefone?: string
 }
 
 interface Guide {
@@ -50,10 +32,19 @@ interface Guide {
   numero_guia: string
   data_emissao: string
   data_validade: string
+  tipo: string
+  status: string
+  paciente_carteirinha: string
+  paciente_nome: string
   quantidade_autorizada: number
   quantidade_executada: number
-  procedimento_nome: string
-  status: string
+  procedimento_codigo?: string
+  procedimento_nome?: string
+  profissional_solicitante?: string
+  profissional_executante?: string
+  observacoes?: string
+  created_at: string
+  updated_at: string
 }
 
 export default function PatientsPage() {
@@ -92,9 +83,11 @@ export default function PatientsPage() {
   // Carregar guias do paciente
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
+      console.log('Carregando guias para o paciente:', patientId)
       const response = await fetch(`${API_URL}/pacientes/${patientId}/guias`)
       if (!response.ok) throw new Error('Falha ao carregar guias')
       const data = await response.json()
+      console.log('Guias recebidas:', data)
       setPatientGuides(data.items || [])
     } catch (error) {
       console.error('Erro ao carregar guias:', error)
@@ -223,30 +216,14 @@ export default function PatientsPage() {
                 <div className="grid grid-cols-2 gap-6 mt-6">
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Data de Nascimento</h4>
-                      <p className="text-lg">{formatarData(selectedPatient.data_nascimento)}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">CPF</h4>
-                      <p className="text-lg">{selectedPatient.cpf}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">RG</h4>
-                      <p className="text-lg">{selectedPatient.rg}</p>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Nome</h4>
+                      <p className="text-lg">{selectedPatient.nome}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Nome da Mãe</h4>
-                      <p className="text-lg">{selectedPatient.nome_mae}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Nome do Pai</h4>
-                      <p className="text-lg">{selectedPatient.nome_pai}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Telefone</h4>
-                      <p className="text-lg">{selectedPatient.telefone}</p>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Carteirinha</h4>
+                      <p className="text-lg">{selectedPatient.carteirinha}</p>
                     </div>
                   </div>
                 </div>
