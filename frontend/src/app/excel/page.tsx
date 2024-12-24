@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
-import { FiDownload, FiUpload } from 'react-icons/fi';
+import { FiDownload, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { SortableTable, Column } from '@/components/SortableTable';
 import { useDebounce } from '@/hooks/useDebounce';
 import Pagination from '@/components/Pagination';
 import { API_URL } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 // 1. Atualizar interface
 interface ExcelData {
@@ -257,68 +259,72 @@ export default function ExcelPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-[#8B4513]">Dados Importados do Excel</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={handleClearData}
-            disabled={data.length === 0}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
-          >
-            Limpar Tabela
-          </button>
-          <div className="relative">
-            <input
-              type="file"
-              id="excelFileInput"
-              className="hidden"
-              onChange={handleFileUpload}
-              accept=".xlsx,.xls"
-            />
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
-              onClick={() => document.getElementById('excelFileInput')?.click()}
-            >
-              <FiUpload className="w-4 h-4" />
-              Upload Excel
-            </button>
-          </div>
-          <button
-            onClick={handleExportExcel}
-            disabled={data.length === 0}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
-          >
-            <FiDownload className="w-4 h-4" />
-            Exportar Excel
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg">
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <div className="relative flex items-center">
+    <div className="flex flex-col gap-6">
+      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
+        <div className="p-6 flex flex-col gap-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Dados Importados do Excel</h2>
+            <div className="flex gap-2">
               <input
-                type="text"
-                placeholder="Buscar por nome do paciente..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="w-[300px] pl-8"
+                type="file"
+                id="excelFileInput"
+                className="hidden"
+                onChange={handleFileUpload}
+                accept=".xlsx,.xls"
               />
-              <MagnifyingGlassIcon className="absolute left-2 h-4 w-4 text-gray-500" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Itens por página:</span>
-              <select
-                value={perPage}
-                onChange={handlePerPageChange}
-                className="border rounded p-1"
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('excelFileInput')?.click()}
+                className="gap-2"
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
+                <FiUpload className="h-4 w-4" />
+                Upload Excel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                disabled={data.length === 0}
+                className="gap-2"
+              >
+                <FiDownload className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClearData}
+                disabled={data.length === 0}
+                className="gap-2"
+              >
+                <FiTrash2 className="h-4 w-4" />
+                Limpar Tabela
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Buscar por nome do paciente..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="pl-8 w-[300px]"
+                />
+                <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Itens por página:</span>
+                <select
+                  value={perPage}
+                  onChange={handlePerPageChange}
+                  className="h-10 rounded-md border border-input bg-background px-3 py-2"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -330,18 +336,18 @@ export default function ExcelPage() {
           </div>
 
           {data.length === 0 && !error && !loading && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               Nenhum registro encontrado
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 p-4 rounded-md mt-4">
-              <p className="text-red-700">{error}</p>
+            <div className="bg-destructive/10 p-4 rounded-md text-destructive">
+              {error}
             </div>
           )}
 
-          <div className="mt-4 flex justify-center">
+          <div className="flex justify-center">
             <Pagination
               currentPage={page}
               totalPages={totalPages}

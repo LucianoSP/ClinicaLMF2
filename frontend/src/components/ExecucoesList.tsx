@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { SortableTable, Column } from './SortableTable';
 import { useDebounce } from '../hooks/useDebounce';
 import { API_URL } from '../config/api';
+import { Button } from '@/components/ui/button';
 
 interface Execucao {
   id: number;
@@ -174,67 +175,83 @@ const ExecucoesList = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           <div className="relative">
             <input
               type="text"
               placeholder="Buscar por nome..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#b49d6b]"
+              className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <FiSearch className="absolute left-2 top-3 text-gray-400" />
+            <FiSearch className="absolute left-2 top-3 text-muted-foreground" />
           </div>
           <select
             value={perPage}
             onChange={handlePerPageChange}
-            className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#b49d6b]"
+            className="h-10 rounded-md border border-input bg-background px-3 py-2"
           >
             <option value="10">10 por página</option>
             <option value="25">25 por página</option>
             <option value="50">50 por página</option>
           </select>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
             onClick={handleExportExcel}
-            className="flex items-center space-x-1 px-3 py-2 bg-[#b49d6b] text-white rounded-lg hover:bg-[#a08b5f] transition-colors"
-            disabled={loading || execucoes.length === 0}
+            className="gap-2"
           >
-            <FiDownload />
-            <span>Exportar Excel</span>
-          </button>
-          <button
+            <FiDownload className="h-4 w-4" />
+            Exportar Excel
+          </Button>
+          <Button
+            variant="outline"
             onClick={handleClear}
-            className="flex items-center space-x-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            disabled={loading || execucoes.length === 0}
+            className="gap-2"
           >
-            <FiTrash2 />
-            <span>Limpar Dados</span>
-          </button>
+            <FiTrash2 className="h-4 w-4" />
+            Limpar Tabela
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => fetchExecucoes()}
+            className="gap-2"
+          >
+            <FiRotateCw className="h-4 w-4" />
+            Atualizar
+          </Button>
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 text-red-500 p-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="rounded-md border">
         <SortableTable
           data={execucoes}
           columns={columns}
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          loading={loading}
         />
       </div>
 
-      {totalRecords > 0 && (
-        <div className="text-sm text-gray-500">
-          Total de registros: {totalRecords}
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(Math.max(1, page - 1))}
+              disabled={page === 1 || loading}
+            >
+              Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages || loading}
+            >
+              Próxima
+            </Button>
+          </div>
         </div>
       )}
     </div>

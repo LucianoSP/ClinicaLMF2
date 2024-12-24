@@ -133,146 +133,135 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-[22px] font-semibold text-[#6b342f] mb-6">Gerenciamento de Pacientes</h1>
-      
-      <div className="grid grid-cols-1 gap-6 mb-6">
-        {/* Card de Busca de Pacientes */}
-        <Card className="bg-white">
-          <CardHeader>
-            <CardDescription>
-              Busque e cadastre pacientes da clínica
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex gap-2 items-center w-1/2">
+    <div className="flex flex-col gap-6">
+      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
+        <div className="p-6 flex flex-col gap-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Gerenciamento de Pacientes</h2>
+            <Button 
+              variant="outline"
+              onClick={() => setIsFormOpen(true)}
+              className="gap-2"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Novo Paciente
+            </Button>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="relative">
                 <Input
                   placeholder="Buscar por nome ou carteirinha..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="max-w-sm"
+                  className="pl-8 w-[300px]"
                 />
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => handleSearch(searchTerm)}
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200"
-                >
-                  <SearchIcon className="h-4 w-4" />
-                </Button>
+                <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
-              <Button 
-                onClick={() => setIsFormOpen(true)}
-                className="px-4 py-2 rounded-lg font-medium bg-[#C5A880] text-white hover:bg-[#C5A880]/90"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Novo Paciente
-              </Button>
             </div>
+          </div>
 
-            {showTable && (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
+          {showTable && (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Carteirinha</TableHead>
+                    <TableHead>Data de Cadastro</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Carteirinha</TableHead>
-                      <TableHead>Data de Cadastro</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableCell colSpan={4} className="text-center py-8">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8f732b]"></div>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8">
-                          <div className="flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8f732b]"></div>
-                          </div>
+                  ) : filteredPatients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground">
+                        Nenhum paciente encontrado para esta busca
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredPatients.map((patient) => (
+                      <TableRow 
+                        key={patient.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSelectedPatient(patient)}
+                      >
+                        <TableCell>{patient.nome}</TableCell>
+                        <TableCell>{patient.carteirinha}</TableCell>
+                        <TableCell>
+                          {new Date(patient.created_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditPatient(patient)
+                            }}
+                          >
+                            Editar
+                          </Button>
                         </TableCell>
                       </TableRow>
-                    ) : filteredPatients.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center">
-                          Nenhum paciente encontrado para esta busca
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredPatients.map((patient) => (
-                        <TableRow 
-                          key={patient.id}
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => setSelectedPatient(patient)}
-                        >
-                          <TableCell>{patient.nome}</TableCell>
-                          <TableCell>{patient.carteirinha}</TableCell>
-                          <TableCell>
-                            {new Date(patient.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEditPatient(patient)
-                              }}
-                            >
-                              Editar
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </div>
 
-        {/* Card de Informações do Paciente */}
-        {selectedPatient && (
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle>Informações do Paciente</CardTitle>
-            </CardHeader>
-            <CardContent>
+      {selectedPatient && (
+        <div className="grid grid-cols-1 gap-6">
+          <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
+            <div className="p-6 flex flex-col gap-4">
+              <h3 className="text-lg font-semibold">Informações do Paciente</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-semibold mb-2">Dados Pessoais</h3>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Nome:</span> {selectedPatient.nome}</p>
-                    <p><span className="font-medium">Carteirinha:</span> {selectedPatient.carteirinha}</p>
-                    <p><span className="font-medium">Data de Cadastro:</span> {new Date(selectedPatient.created_at).toLocaleDateString('pt-BR')}</p>
+                  <h4 className="font-medium mb-2">Dados Pessoais</h4>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="text-muted-foreground">Nome:</span> {selectedPatient.nome}</p>
+                    <p><span className="text-muted-foreground">Carteirinha:</span> {selectedPatient.carteirinha}</p>
+                    <p><span className="text-muted-foreground">Data de Cadastro:</span> {new Date(selectedPatient.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                 </div>
                 {selectedPatient.carteirinha_info && (
                   <div>
-                    <h3 className="font-semibold mb-2">Informações da Carteirinha</h3>
-                    <div className="space-y-2">
-                      <p><span className="font-medium">Número:</span> {selectedPatient.carteirinha_info.numero_carteirinha}</p>
-                      <p><span className="font-medium">Validade:</span> {new Date(selectedPatient.carteirinha_info.data_validade).toLocaleDateString('pt-BR')}</p>
-                      <p><span className="font-medium">Titular:</span> {selectedPatient.carteirinha_info.titular ? 'Sim' : 'Não'}</p>
+                    <h4 className="font-medium mb-2">Informações da Carteirinha</h4>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="text-muted-foreground">Número:</span> {selectedPatient.carteirinha_info.numero_carteirinha}</p>
+                      <p><span className="text-muted-foreground">Validade:</span> {new Date(selectedPatient.carteirinha_info.data_validade).toLocaleDateString('pt-BR')}</p>
+                      <p><span className="text-muted-foreground">Titular:</span> {selectedPatient.carteirinha_info.titular ? 'Sim' : 'Não'}</p>
                       {!selectedPatient.carteirinha_info.titular && (
-                        <p><span className="font-medium">Nome do Titular:</span> {selectedPatient.carteirinha_info.nome_titular}</p>
+                        <p><span className="text-muted-foreground">Nome do Titular:</span> {selectedPatient.carteirinha_info.nome_titular}</p>
                       )}
                     </div>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </div>
 
-        {/* Card de Guias do Paciente */}
-        {selectedPatient && (
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle>Guias do Paciente</CardTitle>
-              <CardDescription>Histórico de guias e saldos disponíveis</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Guias do Paciente</h3>
+                  <p className="text-sm text-muted-foreground">Histórico de guias e saldos disponíveis</p>
+                </div>
+              </div>
+
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -289,7 +278,7 @@ export default function PatientsPage() {
                   <TableBody>
                     {patientGuides.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                           Nenhuma guia encontrada para este paciente
                         </TableCell>
                       </TableRow>
@@ -303,10 +292,10 @@ export default function PatientsPage() {
                           <TableCell>{guide.quantidade_executada}</TableCell>
                           <TableCell>{guide.quantidade_autorizada - guide.quantidade_executada}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
+                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                               guide.status === 'ativa' 
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
+                                ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20'
+                                : 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
                             }`}>
                               {guide.status}
                             </span>
@@ -317,10 +306,10 @@ export default function PatientsPage() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <PatientForm
         isOpen={isFormOpen}

@@ -281,7 +281,7 @@ export default function FichasPresenca() {
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
-        <div className="p-6 flex flex-col gap-4">
+        <div className="p-6 flex flex-col gap-8">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Fichas de Presença</h2>
             <div className="flex gap-2">
