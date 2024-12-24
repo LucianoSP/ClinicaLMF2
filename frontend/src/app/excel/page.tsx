@@ -329,7 +329,7 @@ export default function ExcelPage() {
           </div>
 
           <div className="rounded-md border">
-            <SortableTable
+            <SortableTable<ExcelData>
               data={data}
               columns={columns}
             />
