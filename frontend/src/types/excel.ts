@@ -1,5 +1,5 @@
 export interface ExcelData {
-  id: string;
+  id: number;
   numero_guia: string;
   paciente_nome: string;
   data_execucao: string;

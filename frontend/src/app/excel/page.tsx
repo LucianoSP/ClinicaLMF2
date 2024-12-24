@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface ExcelData {
-  id: string;
+  id: number;
   numero_guia: string;
   paciente_nome: string;
   data_execucao: string;
