@@ -1151,7 +1151,7 @@ def obter_ultima_auditoria() -> Dict:
         response = (
             supabase.table("auditoria_execucoes")
             .select("*")
-            .order("data_execucao", desc=True)
+            .order("created_at", desc=True)
             .limit(1)
             .execute()
         )
@@ -1160,6 +1160,7 @@ def obter_ultima_auditoria() -> Dict:
             return None
 
         ultima_auditoria = response.data[0]
+        divergencias_por_tipo = ultima_auditoria.get("divergencias_por_tipo", {})
 
         # Calcula estatísticas das divergências
         estatisticas = calcular_estatisticas_divergencias()
@@ -1167,11 +1168,14 @@ def obter_ultima_auditoria() -> Dict:
         return {
             "total_protocolos": ultima_auditoria.get("total_protocolos", 0),
             "total_divergencias": estatisticas["total"],
-            "total_resolvidas": estatisticas["por_status"]["resolvida"],
-            "total_pendentes": estatisticas["por_status"]["pendente"],
+            "total_resolvidas": estatisticas["por_status"].get("resolvida", 0),
+            "total_pendentes": estatisticas["por_status"].get("pendente", 0),
             "total_fichas_sem_assinatura": 0,  # TODO: Implementar
-            "total_execucoes_sem_ficha": 0,  # TODO: Implementar
-            "data_execucao": ultima_auditoria.get("data_execucao"),
+            "total_execucoes_sem_ficha": divergencias_por_tipo.get("execucao_sem_ficha", 0),
+            "total_fichas_sem_execucao": divergencias_por_tipo.get("ficha_sem_execucao", 0),
+            "total_datas_divergentes": divergencias_por_tipo.get("data_divergente", 0),
+            "total_fichas": ultima_auditoria.get("total_fichas", 0),
+            "data_execucao": ultima_auditoria.get("created_at"),
             "tempo_execucao": "Tempo não disponível",  # TODO: Calcular tempo de execução se necessário
         }
 

@@ -269,6 +269,9 @@ def realizar_auditoria_fichas_execucoes(
         logging.info(f"Total de execuções a serem auditadas: {total_execucoes}")
 
         divergencias_encontradas = 0
+        total_execucoes_sem_ficha = len(execucoes_sem_ficha)
+        total_fichas_sem_execucao = 0
+        total_datas_divergentes = 0
 
         # 1. Registra execuções sem ficha
         for execucao in execucoes_sem_ficha:
@@ -295,6 +298,7 @@ def realizar_auditoria_fichas_execucoes(
             # Se não houver nenhuma execução
             if not execucoes_da_ficha:
                 divergencias_encontradas += 1
+                total_fichas_sem_execucao += 1
                 registrar_divergencia_detalhada(
                     {
                         "numero_guia": ficha["numero_guia"],
@@ -310,8 +314,13 @@ def realizar_auditoria_fichas_execucoes(
             else:
                 # Para cada execução desta ficha, verifica se a data bate
                 for execucao in execucoes_da_ficha:
-                    if execucao["data_execucao"] != ficha["data_atendimento"]:
+                    # Compara apenas a data, ignorando a hora
+                    data_execucao = datetime.strptime(execucao["data_execucao"], "%Y-%m-%d").date()
+                    data_atendimento = datetime.strptime(ficha["data_atendimento"], "%Y-%m-%d").date()
+                    
+                    if data_execucao != data_atendimento:
                         divergencias_encontradas += 1
+                        total_datas_divergentes += 1
                         registrar_divergencia_detalhada(
                             {
                                 "numero_guia": execucao["numero_guia"],
@@ -336,21 +345,24 @@ def realizar_auditoria_fichas_execucoes(
             total_protocolos=total_fichas + total_execucoes,
             total_divergencias=divergencias_encontradas,
             divergencias_por_tipo={
-                "execucao_sem_ficha": len(execucoes_sem_ficha),
-                "ficha_sem_execucao": len([f for f in fichas if not mapa_execucoes.get(f["codigo_ficha"])]),
-                "data_divergente": divergencias_encontradas - len(execucoes_sem_ficha) - len([f for f in fichas if not mapa_execucoes.get(f["codigo_ficha"])])
+                "execucao_sem_ficha": total_execucoes_sem_ficha,
+                "ficha_sem_execucao": total_fichas_sem_execucao,
+                "data_divergente": total_datas_divergentes
             }
         )
 
         return {
             "message": "Auditoria realizada com sucesso",
             "data": {
-                "total_protocolos": total_fichas + total_execucoes,
+                "total_protocolos": total_execucoes,
                 "total_divergencias": divergencias_encontradas,
                 "total_resolvidas": 0,
                 "total_pendentes": divergencias_encontradas,
                 "total_fichas_sem_assinatura": 0,
-                "total_execucoes_sem_ficha": len(execucoes_sem_ficha),
+                "total_execucoes_sem_ficha": total_execucoes_sem_ficha,
+                "total_fichas_sem_execucao": total_fichas_sem_execucao,
+                "total_datas_divergentes": total_datas_divergentes,
+                "total_fichas": total_fichas,
                 "data_execucao": end_time.strftime("%Y-%m-%dT%H:%M:%S.%f%z"),
                 "tempo_execucao": tempo_execucao,
             },
