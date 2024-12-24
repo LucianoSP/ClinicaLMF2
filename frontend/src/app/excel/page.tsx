@@ -12,7 +12,19 @@ import { API_URL } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ExcelData } from '@/types/excel';
+
+interface ExcelData {
+  id: string;
+  numero_guia: string;
+  paciente_nome: string;
+  data_execucao: string;
+  paciente_carteirinha: string;
+  paciente_id: string;
+  codigo_ficha: string | null;
+  usuario_executante: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
 
 export default function ExcelPage() {
   const { toast } = useToast();
@@ -36,8 +48,6 @@ export default function ExcelPage() {
 
       // Construir a URL base
       const baseUrl = `${API_URL}/excel`;
-
-      // Construir os parâmetros
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('per_page', perPage.toString());
@@ -59,14 +69,12 @@ export default function ExcelPage() {
       const result = await response.json();
 
       if (result.success) {
-        console.log('Dados da API:', result.data.registros);
         const formattedData = result.data.registros.map((item: any) => ({
           ...item,
-          numero_guia: item.guia_id, // Mapear guia_id para numero_guia
+          numero_guia: item.guia_id,
           data_execucao: formatDate(item.data_execucao),
           created_at: formatDate(item.created_at)
         }));
-        console.log('Dados formatados:', formattedData);
         setData(formattedData);
         setTotalPages(result.data.pagination.total_pages);
         setTotalRecords(result.data.pagination.total);
@@ -140,7 +148,9 @@ export default function ExcelPage() {
     if (window.confirm('Tem certeza que deseja limpar todos os dados da tabela?')) {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/clear-execucoes`, {  // Mudou de /clear-excel-data para /clear-execucoes
+        setError(null);
+
+        const response = await fetch(`${API_URL}/excel/limpar`, {
           method: 'POST',
         });
 
@@ -149,17 +159,26 @@ export default function ExcelPage() {
         }
 
         const result = await response.json();
+
         if (result.success) {
           setData([]);
           setTotalRecords(0);
           setTotalPages(1);
           setPage(1);
+          toast({
+            title: "Sucesso",
+            description: "Dados limpos com sucesso!",
+          });
         } else {
-          throw new Error(result.message || 'Erro ao limpar dados');
+          throw new Error(result.detail || 'Erro ao limpar dados');
         }
-      } catch (err) {
-        console.error('Erro:', err);
-        alert('Erro ao limpar os dados. Por favor, tente novamente.');
+      } catch (error) {
+        console.error('Erro ao limpar:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao limpar os dados. Tente novamente.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -170,21 +189,21 @@ export default function ExcelPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await fetch(`${API_URL}/upload/excel`, {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_URL}/excel/upload`, {
         method: 'POST',
         body: formData,
       });
 
       const result = await response.json();
 
-      if (result.message) {
+      if (result.success) {
         toast({
-          title: "Sucesso!",
-          description: result.message,
+          title: "Sucesso",
+          description: "Arquivo Excel importado com sucesso!",
         });
         fetchData(); // Recarrega os dados
       } else {
@@ -228,7 +247,7 @@ export default function ExcelPage() {
       key: 'created_at',
       label: 'Data importação'
     }
-  ] satisfies Column<ExcelData>[];
+  ];
 
   if (loading) {
     return (
@@ -238,114 +257,91 @@ export default function ExcelPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-4">
-        <div className="bg-red-50 p-4 rounded-lg text-red-700">
-          {error}
+  return (
+    <div className="space-y-4 bg-white p-6 rounded-lg shadow">
+      <h1 className="text-2xl font-semibold text-[#6b342f]">Dados Importados do Excel</h1>
+
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar por nome do paciente..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <MagnifyingGlassIcon className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+          </div>
+
+          <select
+            value={perPage}
+            onChange={handlePerPageChange}
+            className="h-10 rounded-md border border-input bg-background px-3 py-2"
+          >
+            <option value="10">10 por página</option>
+            <option value="25">25 por página</option>
+            <option value="50">50 por página</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => document.getElementById('fileInput')?.click()}
+            className="gap-2"
+          >
+            <FiUpload className="h-4 w-4" />
+            Upload Excel
+          </Button>
+          <input
+            id="fileInput"
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            className="gap-2"
+          >
+            <FiDownload className="h-4 w-4" />
+            Exportar Excel
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleClearData}
+            className="gap-2"
+          >
+            <FiTrash2 className="h-4 w-4" />
+            Limpar Tabela
+          </Button>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
-        <div className="p-6 flex flex-col gap-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Dados Importados do Excel</h2>
-            <div className="flex gap-2">
-              <input
-                type="file"
-                id="excelFileInput"
-                className="hidden"
-                onChange={handleFileUpload}
-                accept=".xlsx,.xls"
-              />
-              <Button
-                variant="outline"
-                onClick={() => document.getElementById('excelFileInput')?.click()}
-                className="gap-2"
-              >
-                <FiUpload className="h-4 w-4" />
-                Upload Excel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleExportExcel}
-                disabled={data.length === 0}
-                className="gap-2"
-              >
-                <FiDownload className="h-4 w-4" />
-                Exportar Excel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleClearData}
-                disabled={data.length === 0}
-                className="gap-2"
-              >
-                <FiTrash2 className="h-4 w-4" />
-                Limpar Tabela
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Buscar por nome do paciente..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="pl-8 w-[300px]"
-                />
-                <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Itens por página:</span>
-                <select
-                  value={perPage}
-                  onChange={handlePerPageChange}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
+      {error ? (
+        <div className="text-red-500">{error}</div>
+      ) : (
+        <>
           <div className="rounded-md border">
-            <SortableTable<ExcelData>
+            <SortableTable
               data={data}
               columns={columns}
             />
           </div>
 
-          {data.length === 0 && !error && !loading && (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum registro encontrado
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-destructive/10 p-4 rounded-md text-destructive">
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-center">
+          {totalPages > 1 && (
             <Pagination
               currentPage={page}
               totalPages={totalPages}
               onPageChange={handlePageChange}
             />
-          </div>
-        </div>
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
