@@ -16,7 +16,7 @@ import { API_URL } from '../config/api';
 import { Button } from '@/components/ui/button';
 
 interface Execucao {
-  id: number;
+  id: string;
   numero_guia: string;
   paciente_nome: string;
   data_execucao: string;
@@ -24,16 +24,6 @@ interface Execucao {
   paciente_id: string;
   quantidade_sessoes: number;
   created_at: string;
-}
-
-interface Execucao {
-  data_execucao: string;
-  paciente_carteirinha: string;
-  paciente_nome: string;
-  paciente_id: string;
-  numero_guia: string;
-  id: string;
-  quantidade_sessoes: number;
 }
 
 const ExecucoesList = () => {
