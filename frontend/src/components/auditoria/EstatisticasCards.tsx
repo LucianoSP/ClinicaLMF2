@@ -3,7 +3,7 @@ import { ClipboardList, AlertCircle, CheckCircle2, FileSignature, FileWarning, C
 import { format } from 'date-fns';
 import { formatarData } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AuditoriaResultado } from '@/types';
+import { AuditoriaResultado } from "@/app/auditoria/page";
 
 interface EstatisticasProps {
   resultadoAuditoria?: AuditoriaResultado;

@@ -1,10 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatarData } from "@/lib/utils";
-import { Badge } from "../ui/badge";
 import { DivergenciaBadge } from "../ui/divergencia-badge";
 import { StatusBadge } from "../ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Divergencia } from '@/types';
+import { Divergencia } from "@/app/auditoria/page";
 
 interface DetalheDivergenciaProps {
   divergencia: Divergencia | null;

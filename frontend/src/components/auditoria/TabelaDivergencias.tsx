@@ -1,11 +1,11 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatarData } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowUpDown } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useState } from "react";
 import { DetalheDivergencia } from "./DetalheDivergencia";
 import { BadgeStatus } from "@/components/ui/badge-status";
-import { Divergencia } from '@/types';
+import { Divergencia } from "@/app/auditoria/page";
 
 interface TabelaDivergenciasProps {
   divergencias: Divergencia[];
