@@ -218,27 +218,27 @@ export default function ExcelPage() {
 
   const columns: Column<ExcelData>[] = [
     {
-      key: 'numero_guia',
+      key: 'numero_guia' as keyof ExcelData,
       label: 'Guia'
     },
     {
-      key: 'paciente_nome',
+      key: 'paciente_nome' as keyof ExcelData,
       label: 'Paciente'
     },
     {
-      key: 'data_execucao',
+      key: 'data_execucao' as keyof ExcelData,
       label: 'Data'
     },
     {
-      key: 'paciente_carteirinha',
+      key: 'paciente_carteirinha' as keyof ExcelData,
       label: 'Carteirinha'
     },
     {
-      key: 'paciente_id',
+      key: 'paciente_id' as keyof ExcelData,
       label: 'Id paciente'
     },
     {
-      key: 'created_at',
+      key: 'created_at' as keyof ExcelData,
       label: 'Data importação'
     }
   ];
