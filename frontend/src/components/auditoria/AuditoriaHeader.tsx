@@ -1,9 +1,9 @@
 // components/auditoria/AuditoriaHeader.tsx
 export const AuditoriaHeader = () => {
     return (
-        <div className="flex justify-between items-center p-6 border-b">
+        <div className="flex justify-between items-center p-6">
             <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-semibold text-[#6b342f]">
+                <h1 className="text-2xl font-semibold text-[#8B4513]">
                     Auditoria de Execuções
                 </h1>
             </div>

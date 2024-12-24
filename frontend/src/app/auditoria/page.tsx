@@ -219,89 +219,93 @@ export default function AuditoriaPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AuditoriaHeader />
+    <div className="flex flex-col gap-6">
+      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
+        <AuditoriaHeader />
 
-      <main className="container mx-auto px-4 py-8">
-        <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
+        <div className="p-6 flex flex-col gap-4">
+          <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
 
-        <FiltrosAuditoria
-          dataInicial={dataInicial}
-          setDataInicial={setDataInicial}
-          dataFinal={dataFinal}
-          setDataFinal={setDataFinal}
-          statusFiltro={statusFiltro}
-          setStatusFiltro={setStatusFiltro}
-          tipoDivergencia={tipoDivergencia}
-          setTipoDivergencia={setTipoDivergencia}
-        />
+          <FiltrosAuditoria
+            dataInicial={dataInicial}
+            setDataInicial={setDataInicial}
+            dataFinal={dataFinal}
+            setDataFinal={setDataFinal}
+            statusFiltro={statusFiltro}
+            setStatusFiltro={setStatusFiltro}
+            tipoDivergencia={tipoDivergencia}
+            setTipoDivergencia={setTipoDivergencia}
+          />
 
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Itens por página:</label>
-            <select
-              value={perPage}
-              onChange={(e) => {
-                setPerPage(Number(e.target.value));
-                setPage(1);
-              }}
-              className="text-sm border rounded px-2 py-1"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={gerarRelatorio}
-              disabled={loading}
-            >
-              <FileDown className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
-            <Button
-              onClick={handleAuditoria}
-              disabled={loading}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar Auditoria
-            </Button>
-          </div>
-        </div>
-
-        <TabelaDivergencias
-          divergencias={divergencias}
-          onResolve={marcarResolvido}
-          loading={loading}
-        />
-
-        {totalPages > 1 && (
-          <div className="mt-4 flex justify-center">
+          <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Itens por página:</span>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || loading}
+                onClick={gerarRelatorio}
+                disabled={loading}
               >
-                Anterior
+                <FileDown className="w-4 h-4 mr-2" />
+                Exportar
               </Button>
-              <span className="text-sm text-gray-600">
-                Página {page} de {totalPages}
-              </span>
               <Button
-                variant="outline"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages || loading}
+                onClick={handleAuditoria}
+                disabled={loading}
               >
-                Próxima
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Atualizar Auditoria
               </Button>
             </div>
           </div>
-        )}
-      </main>
+
+          <div className="rounded-md border">
+            <TabelaDivergencias
+              divergencias={divergencias}
+              onResolve={marcarResolvido}
+              loading={loading}
+            />
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex justify-center">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Página {page} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || loading}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

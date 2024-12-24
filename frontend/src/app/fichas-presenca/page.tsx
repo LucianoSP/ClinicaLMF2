@@ -279,124 +279,103 @@ export default function FichasPresenca() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-[#8B4513]">Fichas de Presença</h1>
-        <div className="flex gap-2">
-          <input
-            type="file"
-            id="fileInput"
-            className="hidden"
-            onChange={handleFileUpload}
-            accept=".pdf"
-          />
-          <button
-            className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
-            onClick={() => document.getElementById('fileInput')?.click()}
-          >
-            <FiUpload className="w-4 h-4" />
-            Upload PDF
-          </button>
-          <button
-            onClick={handleExportExcel}
-            disabled={fichas.length === 0}
-            className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
-          >
-            <FiDownload className="w-4 h-4" />
-            Exportar Excel
-          </button>
-          <button
-            onClick={() => setShowClearDialog(true)}
-            className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors"
-          >
-            <FiTrash2 className="w-4 h-4" />
-            <span>Limpar Fichas</span>
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
+        <div className="p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Fichas de Presença</h2>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="gap-2" 
+                onClick={() => handleFileUpload}
+              >
+                <FiUpload className="h-4 w-4" />
+                Upload PDF
+              </Button>
+              <Button 
+                variant="outline" 
+                className="gap-2" 
+                onClick={handleExportExcel}
+              >
+                <FiDownload className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button 
+                variant="outline" 
+                className="gap-2" 
+                onClick={() => setShowClearDialog(true)}
+              >
+                <TrashIcon className="h-4 w-4" />
+                Limpar Fichas
+              </Button>
+            </div>
+          </div>
 
-      <div className="bg-white rounded-lg">
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <div className="relative flex items-center">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                type="text"
                 placeholder="Buscar por nome do paciente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-[300px] pl-8"
+                className="pl-8"
               />
-              <MagnifyingGlassIcon className="absolute left-2 h-4 w-4 text-gray-500" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Itens por página:</span>
+              <span className="text-sm text-muted-foreground">Itens por página:</span>
               <select
                 value={perPage}
                 onChange={(e) => setPerPage(Number(e.target.value))}
-                className="border rounded p-1"
+                className="h-10 rounded-md border border-input bg-background px-3 py-2"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
+                <option value={30}>30</option>
                 <option value={50}>50</option>
               </select>
             </div>
           </div>
 
-          <SortableTable
-            data={fichas}
-            columns={columns}
-          />
+          <div className="rounded-md border">
+            <SortableTable
+              data={fichas}
+              columns={columns}
+            />
+          </div>
 
-          <div className="flex justify-between items-center mt-4">
-            <div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
               Total: {totalRecords} registros
-            </div>
+            </p>
             <div className="flex gap-2">
-              <button
-                className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+              <Button
+                variant="outline"
+                onClick={() => setPage(page - 1)}
                 disabled={page === 1}
               >
                 Anterior
-              </button>
-              <button
-                className="flex items-center gap-1 px-3 py-1.5 text-[14px] bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= totalPages}
               >
                 Próxima
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modal de Exclusão */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir esta ficha de presença?
-              Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Modal de Edição */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Ficha</DialogTitle>
+            <DialogTitle>Editar Ficha de Presença</DialogTitle>
+            <DialogDescription>
+              Faça as alterações necessárias nos campos abaixo.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -482,27 +461,40 @@ export default function FichasPresenca() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal de Exclusão */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Ficha de Presença</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir esta ficha de presença? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Clear Dialog */}
       <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <DialogContent className="bg-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Limpar Fichas de Presença</DialogTitle>
-            <DialogDescription className="text-gray-700">
+            <DialogDescription>
               Tem certeza que deseja excluir todas as fichas de presença? Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowClearDialog(false)}
-              className="bg-white hover:bg-gray-100"
-            >
+            <Button variant="outline" onClick={() => setShowClearDialog(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleClear}
-              className="bg-[#C5A880] text-white hover:bg-[#b49d6b]"
-            >
+            <Button variant="destructive" onClick={handleClear}>
               Limpar
             </Button>
           </DialogFooter>
