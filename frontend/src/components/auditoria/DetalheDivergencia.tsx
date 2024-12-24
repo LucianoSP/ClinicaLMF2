@@ -3,34 +3,31 @@ import { formatarData } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { DivergenciaBadge } from "../ui/divergencia-badge";
 import { StatusBadge } from "../ui/status-badge";
+import { Button } from "@/components/ui/button";
 
 interface DetalheDivergenciaProps {
   divergencia: {
     id: string;
     numero_guia: string;
-    data_execucao: string | null;
-    data_atendimento: string | null;
+    data_execucao: string;
+    data_atendimento: string;
     data_identificacao: string;
-    codigo_ficha: string | null;
-    paciente_nome: string | null;
-    carteirinha: string | null;
+    codigo_ficha: string;
+    paciente_nome: string;
+    carteirinha: string;
     status: string;
     tipo_divergencia: string;
-    prioridade: string;
-    descricao: string | null;
-    possui_assinatura: boolean;
-    arquivo_digitalizado: string | null;
-    observacoes: string | null;
-    resolvido_por: string | null;
-    data_resolucao: string | null;
-    quantidade_autorizada: number | null;
-    quantidade_executada: number | null;
+    descricao: string;
+    observacoes?: string;
+    resolvido_por?: string;
+    data_resolucao?: string;
   } | null;
   open: boolean;
   onClose: () => void;
+  onResolverClick: (divergencia: { id: string }) => void;
 }
 
-export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDivergenciaProps) {
+export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick }: DetalheDivergenciaProps) {
   if (!divergencia) return null;
 
   return (
@@ -61,19 +58,19 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
               <h4 className="text-sm font-medium text-gray-500">Data do Atendimento</h4>
               <p className="mt-1 text-gray-800 font-medium">
-                {divergencia.data_atendimento ? formatarData(new Date(divergencia.data_atendimento)) : '-'}
+                {formatarData(new Date(divergencia.data_atendimento))}
               </p>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
               <h4 className="text-sm font-medium text-gray-500">Data da Execução</h4>
               <p className="mt-1 text-gray-800 font-medium">
-                {divergencia.data_execucao ? formatarData(new Date(divergencia.data_execucao)) : '-'}
+                {formatarData(new Date(divergencia.data_execucao))}
               </p>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
               <h4 className="text-sm font-medium text-gray-500">Data de Identificação</h4>
               <p className="mt-1 text-gray-800 font-medium">
-                {divergencia.data_identificacao ? formatarData(new Date(divergencia.data_identificacao)) : '-'}
+                {formatarData(new Date(divergencia.data_identificacao))}
               </p>
             </div>
           </div>
@@ -93,25 +90,10 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
             </div>
           </div>
 
-          {(divergencia.quantidade_autorizada !== null || divergencia.quantidade_executada !== null) && (
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <h4 className="text-sm font-medium text-gray-500">Quantidade Autorizada</h4>
-                <p className="mt-1 text-gray-800 font-medium">{divergencia.quantidade_autorizada || '-'}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <h4 className="text-sm font-medium text-gray-500">Quantidade Executada</h4>
-                <p className="mt-1 text-gray-800 font-medium">{divergencia.quantidade_executada || '-'}</p>
-              </div>
-            </div>
-          )}
-
-          {divergencia.descricao && (
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-              <h4 className="text-sm font-medium text-gray-500">Descrição</h4>
-              <p className="mt-1 text-gray-800">{divergencia.descricao}</p>
-            </div>
-          )}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <h4 className="text-sm font-medium text-gray-500">Descrição</h4>
+            <p className="mt-1 text-gray-800">{divergencia.descricao || '-'}</p>
+          </div>
 
           {divergencia.observacoes && (
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
@@ -120,32 +102,15 @@ export function DetalheDivergencia({ divergencia, open, onClose }: DetalheDiverg
             </div>
           )}
 
-          {divergencia.arquivo_digitalizado && (
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-              <h4 className="text-sm font-medium text-gray-500">Arquivo Digitalizado</h4>
-              <a
-                href={divergencia.arquivo_digitalizado}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 text-blue-600 hover:text-blue-800 font-medium"
+          {divergencia.status !== 'resolvido' && (
+            <div className="flex justify-end pt-4">
+              <Button 
+                onClick={() => onResolverClick(divergencia)}
+                variant="default"
+                size="lg"
               >
-                Visualizar Arquivo
-              </a>
-            </div>
-          )}
-
-          {divergencia.status === 'resolvida' && (
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <h4 className="text-sm font-medium text-gray-500">Resolvido Por</h4>
-                <p className="mt-1 text-gray-800 font-medium">{divergencia.resolvido_por || '-'}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <h4 className="text-sm font-medium text-gray-500">Data de Resolução</h4>
-                <p className="mt-1 text-gray-800 font-medium">
-                  {divergencia.data_resolucao ? formatarData(new Date(divergencia.data_resolucao)) : '-'}
-                </p>
-              </div>
+                Marcar como Resolvida
+              </Button>
             </div>
           )}
         </div>

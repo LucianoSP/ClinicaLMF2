@@ -545,11 +545,7 @@ def atualizar_status_divergencia(
 ) -> bool:
     """Atualiza o status de uma divergência"""
     try:
-
         print(f"Tentando atualizar divergência {id} para status: {novo_status}")
-
-        # Converte o ID para inteiro
-        id_numerico = int(id)
 
         dados = {
             "status": novo_status,

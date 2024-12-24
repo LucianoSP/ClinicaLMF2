@@ -20,18 +20,19 @@ interface Divergencia {
   status: string;
   tipo_divergencia: string;
   descricao: string;
-  observacoes: string;
-  resolvido_por: string;
-  data_resolucao: string;
+  observacoes?: string;
+  resolvido_por?: string;
+  data_resolucao?: string;
   detalhes: Record<string, any>;
 }
 
 interface TabelaDivergenciasProps {
   divergencias: Divergencia[];
-  onResolverClick: (divergencia: Divergencia) => void;
+  onResolve: (id: string) => void;
+  loading?: boolean;
 }
 
-export function TabelaDivergencias({ divergencias, onResolverClick }: TabelaDivergenciasProps) {
+export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaDivergenciasProps) {
   const [selectedDivergencia, setSelectedDivergencia] = useState<Divergencia | null>(null);
 
   return (
@@ -50,7 +51,7 @@ export function TabelaDivergencias({ divergencias, onResolverClick }: TabelaDive
         </TableHeader>
         <TableBody>
           {divergencias.map((divergencia) => (
-            <TableRow key={divergencia.id} onClick={() => setSelectedDivergencia(divergencia)}>
+            <TableRow key={divergencia.id}>
               <TableCell>{divergencia.numero_guia}</TableCell>
               <TableCell>{divergencia.paciente_nome}</TableCell>
               <TableCell>{formatarData(new Date(divergencia.data_atendimento))}</TableCell>
@@ -62,13 +63,15 @@ export function TabelaDivergencias({ divergencias, onResolverClick }: TabelaDive
                 <StatusBadge status={divergencia.status} />
               </TableCell>
               <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onResolverClick(divergencia)}
-                >
-                  Resolver
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedDivergencia(divergencia)}
+                  >
+                    Detalhes
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -79,6 +82,10 @@ export function TabelaDivergencias({ divergencias, onResolverClick }: TabelaDive
         divergencia={selectedDivergencia}
         open={!!selectedDivergencia}
         onClose={() => setSelectedDivergencia(null)}
+        onResolverClick={(divergencia) => {
+          onResolve(divergencia.id);
+          setSelectedDivergencia(null);
+        }}
       />
     </div>
   );
