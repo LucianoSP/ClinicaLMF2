@@ -195,7 +195,6 @@ class ExecucaoUpdate(BaseModel):
 
 
 class FichaPresenca(BaseModel):
-    data_execucao: str
     paciente_carteirinha: str
     paciente_nome: str
     numero_guia: str
@@ -204,8 +203,14 @@ class FichaPresenca(BaseModel):
     arquivo_digitalizado: Optional[str] = None
 
 
-class FichaPresencaUpdate(FichaPresenca):
-    pass
+class FichaPresencaUpdate(BaseModel):
+    data_atendimento: str
+    paciente_carteirinha: str
+    paciente_nome: str
+    numero_guia: str
+    codigo_ficha: str
+    possui_assinatura: bool = False
+    arquivo_digitalizado: Optional[str] = None
 
 
 class DivergenciaResponse(BaseModel):

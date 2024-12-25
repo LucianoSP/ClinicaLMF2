@@ -113,28 +113,51 @@ export default function FichasPresenca() {
     if (!selectedFicha || !editedFicha) return;
 
     try {
+      // Converter a data do formato YYYY-MM-DD para DD/MM/YYYY
+      const [ano, mes, dia] = editedFicha.data_atendimento.split('-');
+      const dataFormatada = `${dia}/${mes}/${ano}`;
+
+      // Construindo o payload com a data no formato correto
+      const payload = JSON.stringify({
+        data_atendimento: dataFormatada,
+        paciente_carteirinha: editedFicha.paciente_carteirinha,
+        paciente_nome: editedFicha.paciente_nome,
+        numero_guia: editedFicha.numero_guia,
+        codigo_ficha: editedFicha.codigo_ficha,
+        possui_assinatura: editedFicha.possui_assinatura,
+        arquivo_digitalizado: editedFicha.arquivo_digitalizado || null
+      });
+
+      console.log('Data original:', editedFicha.data_atendimento);
+      console.log('Data formatada:', dataFormatada);
+      console.log('Payload a ser enviado:', JSON.parse(payload));
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${selectedFicha.id}`, {
         method: 'PUT',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editedFicha),
+        body: payload,
       });
 
-      if (response.ok) {
-        toast({
-          title: "Sucesso",
-          description: "Ficha atualizada com sucesso",
-        });
-        fetchFichas();
-      } else {
-        const data = await response.json();
-        throw new Error(data.detail || 'Falha ao atualizar ficha');
+      const responseData = await response.json();
+      console.log('Resposta do servidor:', responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.detail || 'Falha ao atualizar ficha');
       }
+
+      toast({
+        title: "Sucesso",
+        description: "Ficha atualizada com sucesso",
+      });
+      fetchFichas();
     } catch (error) {
+      console.error('Erro completo:', error);
       toast({
         title: "Erro",
-        description: "Falha ao atualizar a ficha",
+        description: error.message || "Falha ao atualizar a ficha",
         variant: "destructive",
       });
     } finally {
@@ -268,6 +291,71 @@ export default function FichasPresenca() {
     { key: 'numero_guia', label: 'Guia' },
     { key: 'codigo_ficha', label: 'Código Ficha' },
     { key: 'possui_assinatura', label: 'Assinatura', type: 'boolean' },
+    {
+      key: 'acoes',
+      label: 'Ações',
+      render: (_, ficha) => (
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedFicha(ficha);
+
+              // Formatar a data corretamente
+              let dataAtendimento = '';
+              if (ficha.data_atendimento) {
+                try {
+                  // Se a data vier como DD/MM/YYYY
+                  if (ficha.data_atendimento.includes('/')) {
+                    const [dia, mes, ano] = ficha.data_atendimento.split('/');
+                    // Garantir que dia e mês tenham 2 dígitos
+                    const diaFormatado = dia.padStart(2, '0');
+                    const mesFormatado = mes.padStart(2, '0');
+                    dataAtendimento = `${ano}-${mesFormatado}-${diaFormatado}`;
+                  } else {
+                    // Se a data vier em outro formato, tentar converter
+                    const data = new Date(ficha.data_atendimento);
+                    if (isNaN(data.getTime())) {
+                      throw new Error('Data inválida');
+                    }
+                    dataAtendimento = format(data, 'yyyy-MM-dd');
+                  }
+                } catch (error) {
+                  console.error('Erro ao formatar data:', error, ficha.data_atendimento);
+                  dataAtendimento = new Date().toISOString().split('T')[0];
+                }
+              }
+
+              console.log('Data original:', ficha.data_atendimento);
+              console.log('Data formatada:', dataAtendimento);
+
+              setEditedFicha({
+                data_atendimento: dataAtendimento,
+                paciente_nome: ficha.paciente_nome,
+                paciente_carteirinha: ficha.paciente_carteirinha,
+                numero_guia: ficha.numero_guia,
+                codigo_ficha: ficha.codigo_ficha,
+                possui_assinatura: ficha.possui_assinatura
+              });
+              setShowEditDialog(true);
+            }}
+          >
+            <PencilIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedFicha(ficha);
+              setShowDeleteDialog(true);
+            }}
+          >
+            <TrashIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    }
   ];
 
   if (loading) {
@@ -370,7 +458,7 @@ export default function FichasPresenca() {
 
       {/* Modal de Edição */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>Editar Ficha de Presença</DialogTitle>
             <DialogDescription>
@@ -380,12 +468,12 @@ export default function FichasPresenca() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="data" className="text-right">
-                Data
+                Data Atendimento
               </Label>
               <Input
                 id="data"
                 type="date"
-                value={editedFicha.data_atendimento}
+                value={editedFicha.data_atendimento || ''}
                 onChange={(e) => setEditedFicha({
                   ...editedFicha,
                   data_atendimento: e.target.value
@@ -449,6 +537,23 @@ export default function FichasPresenca() {
                 className="col-span-3"
               />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="assinatura" className="text-right">
+                Assinatura
+              </Label>
+              <div className="col-span-3 flex items-center">
+                <input
+                  type="checkbox"
+                  id="assinatura"
+                  checked={editedFicha.possui_assinatura}
+                  onChange={(e) => setEditedFicha({
+                    ...editedFicha,
+                    possui_assinatura: e.target.checked
+                  })}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
@@ -463,7 +568,7 @@ export default function FichasPresenca() {
 
       {/* Modal de Exclusão */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>Excluir Ficha de Presença</DialogTitle>
             <DialogDescription>
@@ -483,7 +588,7 @@ export default function FichasPresenca() {
 
       {/* Clear Dialog */}
       <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>Limpar Fichas de Presença</DialogTitle>
             <DialogDescription>
