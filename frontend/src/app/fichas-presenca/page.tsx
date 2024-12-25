@@ -30,6 +30,7 @@ interface FichaPresenca {
 export default function FichasPresenca() {
   const [fichas, setFichas] = useState<FichaPresenca[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -183,6 +184,7 @@ export default function FichasPresenca() {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    setUploading(true);
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
       formData.append('files', files[i]);
@@ -210,6 +212,10 @@ export default function FichasPresenca() {
         description: "Falha ao enviar os arquivos",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
+      // Limpar o input para permitir upload do mesmo arquivo novamente
+      event.target.value = '';
     }
   };
 
@@ -380,14 +386,25 @@ export default function FichasPresenca() {
                   multiple
                   onChange={handleFileUpload}
                   className="hidden"
+                  disabled={uploading}
                 />
                 <Button
                   variant="outline"
                   className="gap-2"
                   onClick={(e) => e.currentTarget.previousElementSibling?.click()}
+                  disabled={uploading}
                 >
-                  <FiUpload className="h-4 w-4" />
-                  Upload PDF
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#6b342f]"></div>
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiUpload className="h-4 w-4" />
+                      <span>Upload PDF</span>
+                    </>
+                  )}
                 </Button>
               </label>
               <Button
