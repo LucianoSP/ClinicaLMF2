@@ -105,18 +105,18 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
 
   const tableColumns: Column<StorageFile>[] = [
     {
-      key: 'nome',
+      key: 'nome' as const,
       label: 'Nome'
     },
     {
-      key: 'size',
+      key: 'size' as const,
       label: 'Tamanho',
-      render: (row) => formatFileSize(row.size)
+      render: (row: StorageFile) => formatFileSize(row.size)
     },
     {
-      key: 'created_at',
+      key: 'created_at' as const,
       label: 'Data',
-      render: (row) => new Date(row.created_at).toLocaleDateString()
+      render: (row: StorageFile) => new Date(row.created_at).toLocaleDateString()
     }
   ];
 
