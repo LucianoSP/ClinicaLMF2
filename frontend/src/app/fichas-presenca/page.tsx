@@ -326,7 +326,10 @@ export default function FichasPresenca() {
                 <Button
                   variant="outline"
                   className="gap-2"
-                  onClick={(e) => e.currentTarget.previousElementSibling?.click()}
+                  onClick={(e) => {
+                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                    if (input) input.click();
+                  }}
                   disabled={uploading}
                 >
                   {uploading ? (
