@@ -279,24 +279,49 @@ export default function FichasPresenca() {
 
   const columns: Column<FichaPresenca>[] = [
     {
+      key: 'codigo_ficha',
+      label: 'Código Ficha'
+    },
+    {
+      key: 'paciente_nome',
+      label: 'Paciente'
+    },
+    {
+      key: 'paciente_carteirinha',
+      label: 'Carteirinha'
+    },
+    {
       key: 'data_atendimento',
       label: 'Data',
       render: (value) => {
-        if (!value) return '-';
+        if (!value) return '';
         try {
-          const [dia, mes, ano] = value.split('/');
-          return `${dia}/${mes}/${ano}`;
+          // Se a data vier como DD/MM/YYYY
+          if (value.includes('/')) {
+            const [dia, mes, ano] = value.split('/');
+            return `${dia}/${mes}/${ano}`;
+          }
+          // Se a data vier em outro formato
+          const data = new Date(value);
+          if (isNaN(data.getTime())) {
+            throw new Error('Data inválida');
+          }
+          return format(data, 'dd/MM/yyyy');
         } catch (error) {
-          console.error('Erro ao formatar data:', value);
-          return value || '-';
+          console.error('Erro ao formatar data:', error, value);
+          return value;
         }
       }
     },
-    { key: 'paciente_carteirinha', label: 'Carteirinha' },
-    { key: 'paciente_nome', label: 'Paciente' },
-    { key: 'numero_guia', label: 'Guia' },
-    { key: 'codigo_ficha', label: 'Código Ficha' },
-    { key: 'possui_assinatura', label: 'Assinatura', type: 'boolean' }
+    {
+      key: 'numero_guia',
+      label: 'Guia'
+    },
+    {
+      key: 'possui_assinatura',
+      label: 'Assinado',
+      type: 'boolean'
+    }
   ];
 
   if (loading) {
@@ -392,7 +417,52 @@ export default function FichasPresenca() {
           <div className="rounded-md border">
             <SortableTable
               data={fichas}
-              columns={columns}
+              columns={[
+                {
+                  key: 'codigo_ficha',
+                  label: 'Código Ficha'
+                },
+                {
+                  key: 'paciente_nome',
+                  label: 'Paciente'
+                },
+                {
+                  key: 'paciente_carteirinha',
+                  label: 'Carteirinha'
+                },
+                {
+                  key: 'data_atendimento',
+                  label: 'Data',
+                  render: (value) => {
+                    if (!value) return '';
+                    try {
+                      // Se a data vier como DD/MM/YYYY
+                      if (value.includes('/')) {
+                        const [dia, mes, ano] = value.split('/');
+                        return `${dia}/${mes}/${ano}`;
+                      }
+                      // Se a data vier em outro formato
+                      const data = new Date(value);
+                      if (isNaN(data.getTime())) {
+                        throw new Error('Data inválida');
+                      }
+                      return format(data, 'dd/MM/yyyy');
+                    } catch (error) {
+                      console.error('Erro ao formatar data:', error, value);
+                      return value;
+                    }
+                  }
+                },
+                {
+                  key: 'numero_guia',
+                  label: 'Guia'
+                },
+                {
+                  key: 'possui_assinatura',
+                  label: 'Assinado',
+                  type: 'boolean'
+                }
+              ]}
               actions={(ficha) => (
                 <div className="flex gap-2">
                   <Button

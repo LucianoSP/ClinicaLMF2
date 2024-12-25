@@ -1,34 +1,35 @@
 // components/StorageFileList.tsx
 'use client';
 
-import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import { FiDownload } from 'react-icons/fi';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { FiTrash2, FiDownload } from 'react-icons/fi';
+import { Button } from './ui/button';
 import { API_URL } from '../config/api';
-import { StorageFile, Column, StorageFileListRef } from '../types/storage';
-import { StorageTable } from './StorageTable';
+import { StorageFile, StorageFileListRef } from '../types/storage';
+import SortableTable, { Column } from './SortableTable';
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
 const columns: Column<StorageFile>[] = [
   {
     key: 'nome',
-    label: 'Nome'
+    label: 'Nome do Arquivo'
   },
   {
     key: 'size',
     label: 'Tamanho',
-    render: (row: StorageFile) => formatFileSize(row.size)
+    render: (value) => formatFileSize(value)
   },
   {
     key: 'created_at',
-    label: 'Data',
-    render: (row: StorageFile) => new Date(row.created_at).toLocaleDateString()
+    label: 'Data de Criação',
+    render: (value) => new Date(value).toLocaleString()
   }
 ];
 
@@ -102,7 +103,7 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
         <div className="text-gray-500 text-center py-4">Nenhum arquivo encontrado</div>
       ) : (
         <div className="overflow-x-auto">
-          <StorageTable<StorageFile>
+          <SortableTable
             data={files}
             columns={columns}
           />

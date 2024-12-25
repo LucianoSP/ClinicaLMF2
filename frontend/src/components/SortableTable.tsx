@@ -83,10 +83,10 @@ export default function SortableTable<T>({
               <th
                 key={String(column.key)}
                 onClick={() => handleSort(column.key)}
-                className="px-4 py-2 text-left cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-600"
+                className="px-3 py-1.5 text-left cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-600"
                 style={{ whiteSpace: 'nowrap' }}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {column.label}
                   <span className="text-gray-400">
                     {sortKey === column.key ? (
@@ -103,7 +103,7 @@ export default function SortableTable<T>({
               </th>
             ))}
             {(onEdit || onDelete || onSave || actions) && (
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600">
+              <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-600">
                 Ações
               </th>
             )}
@@ -113,12 +113,12 @@ export default function SortableTable<T>({
           {sortedData.map((item, index) => (
             <tr
               key={index}
-              className={`border-t border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+              className={`border-t border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
             >
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className="px-4 py-2 text-xs text-gray-900"
+                  className="px-3 py-1.5 text-xs text-gray-900"
                 >
                   {column.editable && editingId === (item as any).codigo_ficha ? (
                     column.type === 'boolean' ? (
@@ -139,7 +139,6 @@ export default function SortableTable<T>({
                           onCellEdit?.(item, column.key, e.target.value);
                         }}
                         onBlur={(e) => {
-                          // Prevent immediate save when editing codigo_ficha
                           if (column.key === 'codigo_ficha') {
                             e.stopPropagation();
                           }
@@ -153,8 +152,8 @@ export default function SortableTable<T>({
                       {column.render ? (
                         column.render(item[column.key], item)
                       ) : column.type === 'boolean' ? (
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${item[column.key] === true || String(item[column.key]) === 'true'
+                        <div className="flex items-center">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${item[column.key] === true || String(item[column.key]) === 'true'
                             ? 'bg-[#dcfce7] text-[#15803d]'
                             : 'bg-[#fef9c3] text-[#854d0e]'
                             }`}>
@@ -171,36 +170,16 @@ export default function SortableTable<T>({
                 </td>
               ))}
               {(onEdit || onDelete || onSave || actions) && (
-                <td className="px-4 py-2 text-xs text-gray-900">
-                  <div className="flex gap-2">
-                    {onEdit && editingId !== (item as any).codigo_ficha && (
-                      <button
-                        onClick={() => onEdit(item)}
-                        className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors duration-200"
-                        title="Editar"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-5 h-5"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                    {onSave && editingId === (item as any).codigo_ficha && (
-                      <>
+                <td className="px-3 py-1.5 text-xs text-gray-900">
+                  {actions ? (
+                    actions(item)
+                  ) : (
+                    <div className="flex gap-2">
+                      {onEdit && editingId !== (item as any).codigo_ficha && (
                         <button
-                          onClick={() => onSave(item)}
-                          className="text-green-600 hover:text-green-700 transition-colors duration-200"
-                          title="Salvar"
+                          onClick={() => onEdit(item)}
+                          className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors duration-200"
+                          title="Editar"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -208,19 +187,39 @@ export default function SortableTable<T>({
                             viewBox="0 0 24 24"
                             strokeWidth={1.5}
                             stroke="currentColor"
-                            className="w-5 h-5"
+                            className="w-4 h-4"
                           >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              d="M4.5 12.75l6 6 9-13.5"
+                              d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
                             />
                           </svg>
                         </button>
+                      )}
+                      {onSave && editingId === (item as any).codigo_ficha && (
+                        <>
+                          <button
+                            onClick={() => onSave(item)}
+                            className="text-green-600 hover:text-green-700 transition-colors duration-200"
+                            title="Salvar"
+                          >
+                            <BsCheckLg className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={onCancelEdit}
+                            className="text-red-600 hover:text-red-700 transition-colors duration-200"
+                            title="Cancelar"
+                          >
+                            <IoClose className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {onDelete && !editingId && (
                         <button
-                          onClick={onCancelEdit}
+                          onClick={() => onDelete(item)}
                           className="text-red-600 hover:text-red-700 transition-colors duration-200"
-                          title="Cancelar"
+                          title="Excluir"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -228,45 +227,18 @@ export default function SortableTable<T>({
                             viewBox="0 0 24 24"
                             strokeWidth={1.5}
                             stroke="currentColor"
-                            className="w-5 h-5"
+                            className="w-4 h-4"
                           >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              d="M6 18L18 6M6 6l12 12"
+                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
                             />
                           </svg>
                         </button>
-                      </>
-                    )}
-                    {onDelete && !editingId && (
-                      <button
-                        onClick={() => onDelete(item)}
-                        className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors duration-200"
-                        title="Excluir"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-5 h-5"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                    {actions && (
-                      <td className="px-4 py-2">
-                        {actions(item)}
-                      </td>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </td>
               )}
             </tr>
@@ -275,7 +247,7 @@ export default function SortableTable<T>({
             <tr>
               <td
                 colSpan={columns.length + ((onEdit || onDelete || onSave || actions) ? 1 : 0)}
-                className="px-4 py-2 text-center text-xs text-gray-500"
+                className="px-3 py-1.5 text-center text-xs text-gray-500"
               >
                 Nenhum registro encontrado
               </td>
