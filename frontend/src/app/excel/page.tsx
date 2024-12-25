@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { FiDownload, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import SortableTable from '@/components/SortableTable';
+import SortableTable, { Column } from '@/components/SortableTable';
 import { useDebounce } from '@/hooks/useDebounce';
 import Pagination from '@/components/Pagination';
 import { API_URL } from '@/config/api';
