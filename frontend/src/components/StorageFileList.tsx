@@ -1,60 +1,11 @@
+// components/StorageFileList.tsx
 'use client';
 
 import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { FiDownload } from 'react-icons/fi';
 import { API_URL } from '../config/api';
-
-interface StorageFile {
-  nome: string;
-  url: string;
-  created_at: string;
-  size: number;
-}
-
-interface Column<T> {
-  key: keyof T;
-  label: string;
-  render?: (row: T) => React.ReactNode;
-}
-
-interface TableProps<T> {
-  data: T[];
-  columns: Column<T>[];
-}
-
-const StorageTable = <T extends StorageFile>({ data, columns }: TableProps<T>) => (
-  <table className="w-full">
-    <thead>
-      <tr>
-        {columns.map(col => (
-          <th key={String(col.key)} className="text-left p-2">{col.label}</th>
-        ))}
-        <th className="text-right p-2">Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {data.map((item, index) => (
-        <tr key={index} className="border-t">
-          {columns.map(col => (
-            <td key={String(col.key)} className="p-2">
-              {col.render ? col.render(item) : String(item[col.key])}
-            </td>
-          ))}
-          <td className="p-2 text-right">
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#C5A880] hover:text-[#B39770] transition-colors"
-            >
-              <FiDownload size={20} />
-            </a>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-);
+import { StorageFile, Column, StorageFileListRef } from '../types/storage';
+import { StorageTable } from './StorageTable';
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
@@ -66,24 +17,20 @@ const formatFileSize = (bytes: number): string => {
 
 const columns: Column<StorageFile>[] = [
   {
-    key: 'nome' as keyof StorageFile,
+    key: 'nome',
     label: 'Nome'
   },
   {
-    key: 'size' as keyof StorageFile,
+    key: 'size',
     label: 'Tamanho',
-    render: (row) => formatFileSize(row.size)
+    render: (row: StorageFile) => formatFileSize(row.size)
   },
   {
-    key: 'created_at' as keyof StorageFile,
+    key: 'created_at',
     label: 'Data',
-    render: (row) => new Date(row.created_at).toLocaleDateString()
+    render: (row: StorageFile) => new Date(row.created_at).toLocaleDateString()
   }
 ];
-
-export interface StorageFileListRef {
-  fetchFiles: () => Promise<void>;
-}
 
 const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
@@ -133,11 +80,11 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
     fetchFiles();
   }, []);
 
-  if (isLoading) return <div className="mt-4 text-gray-600">Carregando arquivos...</div>;
+  if (isLoading) return <div className="text-gray-600">Carregando arquivos...</div>;
 
   return (
-    <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
+    <>
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-800">Arquivos no Storage</h2>
         <button
           onClick={downloadAllFiles}
@@ -150,9 +97,9 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
       </div>
 
       {error && <div className="text-red-500 mb-4">{error}</div>}
-
+      
       {files.length === 0 ? (
-        <div className="text-gray-500">Nenhum arquivo encontrado</div>
+        <div className="text-gray-500 text-center py-4">Nenhum arquivo encontrado</div>
       ) : (
         <div className="overflow-x-auto">
           <StorageTable<StorageFile>
@@ -161,7 +108,7 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
           />
         </div>
       )}
-    </div>
+    </>
   );
 });
 

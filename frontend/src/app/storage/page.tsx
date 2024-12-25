@@ -23,20 +23,20 @@ export default function StoragePage() {
 
       // Get the blob from the response
       const blob = await response.blob();
-      
+
       // Create a URL for the blob
       const url = window.URL.createObjectURL(blob);
-      
+
       // Create a temporary link element
       const a = document.createElement('a');
       a.href = url;
       a.download = `todos_arquivos_${new Date().toISOString().split('T')[0]}.zip`;
-      
+
       // Append to body, click and remove
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      
+
       // Clean up the URL
       window.URL.revokeObjectURL(url);
 
@@ -91,9 +91,9 @@ export default function StoragePage() {
   };
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
+    <div className="container mx-auto p-4">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-[#8B4513]">Gerenciamento de Arquivos</h1>
           <div className="flex gap-2">
             <button
@@ -114,7 +114,7 @@ export default function StoragePage() {
             </button>
           </div>
         </div>
-        
+
         <StorageFiles />
       </div>
     </div>

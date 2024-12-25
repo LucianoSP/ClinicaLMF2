@@ -16,8 +16,8 @@ export interface Column<T> {
   render?: (value: any, item: T) => React.ReactNode;
 }
 
-export function SortableTable<T>({ 
-  data, 
+export default function SortableTable<T>({
+  data,
   columns,
   onEdit,
   onDelete,
@@ -26,8 +26,8 @@ export function SortableTable<T>({
   onCancelEdit,
   onCellEdit,
   actions
-}: { 
-  data: T[]; 
+}: {
+  data: T[];
   columns: Column<T>[];
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
@@ -64,7 +64,7 @@ export function SortableTable<T>({
     if (bValue === null || bValue === undefined) return -1;
 
     if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
+      return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue);
     }
@@ -111,7 +111,7 @@ export function SortableTable<T>({
         </thead>
         <tbody>
           {sortedData.map((item, index) => (
-            <tr 
+            <tr
               key={index}
               className={`border-t border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
             >
@@ -154,11 +154,10 @@ export function SortableTable<T>({
                         column.render(item[column.key], item)
                       ) : column.type === 'boolean' ? (
                         <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${
-                            item[column.key] === true || String(item[column.key]) === 'true'
-                              ? 'bg-[#dcfce7] text-[#15803d]'
-                              : 'bg-[#fef9c3] text-[#854d0e]'
-                          }`}>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium ${item[column.key] === true || String(item[column.key]) === 'true'
+                            ? 'bg-[#dcfce7] text-[#15803d]'
+                            : 'bg-[#fef9c3] text-[#854d0e]'
+                            }`}>
                             {item[column.key] === true || String(item[column.key]) === 'true' ? (
                               <><FiCheck className="w-3 h-3" />Sim</>
                             ) : (
@@ -274,8 +273,8 @@ export function SortableTable<T>({
           ))}
           {sortedData.length === 0 && (
             <tr>
-              <td 
-                colSpan={columns.length + ((onEdit || onDelete || onSave || actions) ? 1 : 0)} 
+              <td
+                colSpan={columns.length + ((onEdit || onDelete || onSave || actions) ? 1 : 0)}
                 className="px-4 py-2 text-center text-xs text-gray-500"
               >
                 Nenhum registro encontrado

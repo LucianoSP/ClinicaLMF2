@@ -1,108 +1,38 @@
-'use client';
+// components/StorageTable.tsx
+import React from 'react';
+import { FiDownload } from 'react-icons/fi';
+import { TableProps } from '../types/storage';
 
-import { useState } from 'react';
-import { BiSortAlt2, BiSortUp, BiSortDown } from 'react-icons/bi';
-
-type SortDirection = 'asc' | 'desc' | null;
-
-export interface Column<T> {
-  key: keyof T;
-  label: string;
-  render?: (item: T) => React.ReactNode;
-}
-
-export function StorageTable<T>({ 
-  data, 
-  columns,
-}: { 
-  data: T[]; 
-  columns: Column<T>[];
-}) {
-  const [sortKey, setSortKey] = useState<keyof T | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-
-  const handleSort = (key: keyof T) => {
-    if (sortKey === key) {
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        setSortDirection(null);
-        setSortKey(null);
-      }
-    } else {
-      setSortKey(key);
-      setSortDirection('asc');
-    }
-  };
-
-  const sortedData = [...data].sort((a, b) => {
-    if (!sortKey || !sortDirection) return 0;
-
-    const aValue = a[sortKey];
-    const bValue = b[sortKey];
-
-    if (aValue === null || aValue === undefined) return 1;
-    if (bValue === null || bValue === undefined) return -1;
-
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    }
-
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full">
-        <thead>
-          <tr className="bg-gray-50">
-            {columns.map((column) => (
-              <th
-                key={String(column.key)}
-                onClick={() => handleSort(column.key)}
-                className="px-4 py-2 text-left cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-600"
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                <div className="flex items-center gap-2">
-                  {column.label}
-                  <span className="text-gray-400">
-                    {sortKey === column.key ? (
-                      sortDirection === 'asc' ? (
-                        <BiSortUp className="w-3 h-3" />
-                      ) : (
-                        <BiSortDown className="w-3 h-3" />
-                      )
-                    ) : (
-                      <BiSortAlt2 className="w-3 h-3" />
-                    )}
-                  </span>
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedData.map((item, index) => (
-            <tr 
-              key={index}
-              className={`border-t border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-            >
-              {columns.map((column) => (
-                <td
-                  key={String(column.key)}
-                  className="px-4 py-2 text-xs text-gray-900"
-                >
-                  {column.render ? column.render(item) : String(item[column.key] || '')}
-                </td>
-              ))}
-            </tr>
+export const StorageTable = <T extends { url: string }>({ data, columns }: TableProps<T>) => (
+  <table className="w-full">
+    <thead>
+      <tr className="bg-gray-50">
+        {columns.map(col => (
+          <th key={String(col.key)} className="text-left p-4 text-sm font-medium text-gray-600">{col.label}</th>
+        ))}
+        <th className="text-right p-4 text-sm font-medium text-gray-600">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {data.map((item, index) => (
+        <tr key={index} className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+          {columns.map(col => (
+            <td key={String(col.key)} className="p-4 text-sm text-gray-900">
+              {col.render ? col.render(item) : String(item[col.key])}
+            </td>
           ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+          <td className="p-4 text-right">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#C5A880] hover:text-[#B39770] transition-colors inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100"
+            >
+              <FiDownload size={20} />
+            </a>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
