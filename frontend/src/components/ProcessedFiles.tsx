@@ -8,7 +8,8 @@ import {
 } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import { SortableTable, Column } from './SortableTable';
+import SortableTable from './SortableTable';
+import type { Column } from './SortableTable';
 import { useDebounce } from '../hooks/useDebounce';
 import { API_URL } from '../config/api';
 import { Button } from '@/components/ui/button';
