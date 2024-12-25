@@ -296,72 +296,7 @@ export default function FichasPresenca() {
     { key: 'paciente_nome', label: 'Paciente' },
     { key: 'numero_guia', label: 'Guia' },
     { key: 'codigo_ficha', label: 'Código Ficha' },
-    { key: 'possui_assinatura', label: 'Assinatura', type: 'boolean' },
-    {
-      key: 'acoes',
-      label: 'Ações',
-      render: (_, ficha) => (
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSelectedFicha(ficha);
-
-              // Formatar a data corretamente
-              let dataAtendimento = '';
-              if (ficha.data_atendimento) {
-                try {
-                  // Se a data vier como DD/MM/YYYY
-                  if (ficha.data_atendimento.includes('/')) {
-                    const [dia, mes, ano] = ficha.data_atendimento.split('/');
-                    // Garantir que dia e mês tenham 2 dígitos
-                    const diaFormatado = dia.padStart(2, '0');
-                    const mesFormatado = mes.padStart(2, '0');
-                    dataAtendimento = `${ano}-${mesFormatado}-${diaFormatado}`;
-                  } else {
-                    // Se a data vier em outro formato, tentar converter
-                    const data = new Date(ficha.data_atendimento);
-                    if (isNaN(data.getTime())) {
-                      throw new Error('Data inválida');
-                    }
-                    dataAtendimento = format(data, 'yyyy-MM-dd');
-                  }
-                } catch (error) {
-                  console.error('Erro ao formatar data:', error, ficha.data_atendimento);
-                  dataAtendimento = new Date().toISOString().split('T')[0];
-                }
-              }
-
-              console.log('Data original:', ficha.data_atendimento);
-              console.log('Data formatada:', dataAtendimento);
-
-              setEditedFicha({
-                data_atendimento: dataAtendimento,
-                paciente_nome: ficha.paciente_nome,
-                paciente_carteirinha: ficha.paciente_carteirinha,
-                numero_guia: ficha.numero_guia,
-                codigo_ficha: ficha.codigo_ficha,
-                possui_assinatura: ficha.possui_assinatura
-              });
-              setShowEditDialog(true);
-            }}
-          >
-            <PencilIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSelectedFicha(ficha);
-              setShowDeleteDialog(true);
-            }}
-          >
-            <TrashIcon className="h-4 w-4" />
-          </Button>
-        </div>
-      )
-    }
+    { key: 'possui_assinatura', label: 'Assinatura', type: 'boolean' }
   ];
 
   if (loading) {
@@ -455,6 +390,67 @@ export default function FichasPresenca() {
             <SortableTable
               data={fichas}
               columns={columns}
+              actions={(ficha) => (
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedFicha(ficha);
+
+                      // Formatar a data corretamente
+                      let dataAtendimento = '';
+                      if (ficha.data_atendimento) {
+                        try {
+                          // Se a data vier como DD/MM/YYYY
+                          if (ficha.data_atendimento.includes('/')) {
+                            const [dia, mes, ano] = ficha.data_atendimento.split('/');
+                            // Garantir que dia e mês tenham 2 dígitos
+                            const diaFormatado = dia.padStart(2, '0');
+                            const mesFormatado = mes.padStart(2, '0');
+                            dataAtendimento = `${ano}-${mesFormatado}-${diaFormatado}`;
+                          } else {
+                            // Se a data vier em outro formato, tentar converter
+                            const data = new Date(ficha.data_atendimento);
+                            if (isNaN(data.getTime())) {
+                              throw new Error('Data inválida');
+                            }
+                            dataAtendimento = format(data, 'yyyy-MM-dd');
+                          }
+                        } catch (error) {
+                          console.error('Erro ao formatar data:', error, ficha.data_atendimento);
+                          dataAtendimento = new Date().toISOString().split('T')[0];
+                        }
+                      }
+
+                      console.log('Data original:', ficha.data_atendimento);
+                      console.log('Data formatada:', dataAtendimento);
+
+                      setEditedFicha({
+                        data_atendimento: dataAtendimento,
+                        paciente_nome: ficha.paciente_nome,
+                        paciente_carteirinha: ficha.paciente_carteirinha,
+                        numero_guia: ficha.numero_guia,
+                        codigo_ficha: ficha.codigo_ficha,
+                        possui_assinatura: ficha.possui_assinatura
+                      });
+                      setShowEditDialog(true);
+                    }}
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedFicha(ficha);
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             />
           </div>
 
