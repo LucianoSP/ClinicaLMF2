@@ -1,29 +1,27 @@
 'use client';
 
-import React, { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { TrashIcon } from './TrashIcon';
 import { API_URL } from '../config/api';
 import { FiDownload } from 'react-icons/fi';
 
-interface StorageFile {
+type StorageFile = {
   nome: string;
   url: string;
   created_at: string;
   size: number;
   mime_type?: string;
-}
+};
 
-type StorageFileTableKey = 'nome' | 'size' | 'created_at';
-
-type Column = {
-  key: StorageFileTableKey;
+type TableColumn = {
+  key: keyof StorageFile;
   label: string;
   render?: (row: StorageFile) => React.ReactNode;
 };
 
-interface StorageTableProps {
+interface TableProps {
   data: StorageFile[];
-  columns: Column[];
+  columns: TableColumn[];
 }
 
 export interface StorageFileListRef {
@@ -38,7 +36,7 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const StorageTable: React.FC<StorageTableProps> = ({ data, columns }) => {
+const StorageTable = ({ data, columns }: TableProps) => {
   const isValidUrl = (url: string): boolean => {
     try {
       new URL(url);
@@ -53,7 +51,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ data, columns }) => {
       <thead>
         <tr>
           {columns.map(column => (
-            <th key={column.key} className="px-4 py-2 text-left">{column.label}</th>
+            <th key={String(column.key)} className="px-4 py-2 text-left">{column.label}</th>
           ))}
           <th className="px-4 py-2 text-right">Ações</th>
         </tr>
@@ -62,7 +60,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ data, columns }) => {
         {data.map((row, i) => (
           <tr key={i} className="border-t">
             {columns.map(column => (
-              <td key={column.key} className="px-4 py-2">
+              <td key={String(column.key)} className="px-4 py-2">
                 {column.render ? column.render(row) : String(row[column.key])}
               </td>
             ))}
@@ -74,12 +72,6 @@ const StorageTable: React.FC<StorageTableProps> = ({ data, columns }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#C5A880] hover:text-[#B39770] transition-colors"
-                    onClick={(e) => {
-                      if (row.mime_type && !row.mime_type.startsWith('application/')) {
-                        e.preventDefault();
-                        alert('Tipo de arquivo não suportado');
-                      }
-                    }}
                   >
                     <FiDownload size={20} />
                   </a>
@@ -102,50 +94,32 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [processing, setProcessing] = useState<Set<string>>(new Set());
 
-  const columns: Column[] = [
-    {
-      key: 'nome',
-      label: 'Nome'
-    },
-    {
-      key: 'size',
-      label: 'Tamanho',
-      render: (row) => formatFileSize(row.size)
-    },
-    {
-      key: 'created_at',
-      label: 'Data',
-      render: (row) => new Date(row.created_at).toLocaleDateString()
-    }
+  const columns: TableColumn[] = [
+    { key: 'nome', label: 'Nome' },
+    { key: 'size', label: 'Tamanho', render: (row) => formatFileSize(row.size) },
+    { key: 'created_at', label: 'Data', render: (row) => new Date(row.created_at).toLocaleDateString() }
   ];
 
-  const fetchFiles = useCallback(async (retryCount = 3) => {
+  const fetchFiles = async () => {
     setIsLoading(true);
     setError(null);
+    try {
+      const response = await fetch(`${API_URL}/storage-files/`);
+      if (!response.ok) throw new Error('Erro ao buscar arquivos');
 
-    for (let i = 0; i < retryCount; i++) {
-      try {
-        const response = await fetch(`${API_URL}/storage-files/`);
-        if (!response.ok) throw new Error('Erro ao buscar arquivos');
-
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setFiles(data);
-          break;
-        } else {
-          throw new Error('Formato de resposta inválido');
-        }
-      } catch (err) {
-        if (i === retryCount - 1) {
-          console.error('Erro ao buscar arquivos:', err);
-          setError(err instanceof Error ? err.message : 'Erro ao buscar arquivos');
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        }
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setFiles(data);
+      } else {
+        throw new Error('Formato de resposta inválido');
       }
+    } catch (err) {
+      console.error('Erro ao buscar arquivos:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao buscar arquivos');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, []);
+  };
 
   const downloadAllFiles = async () => {
     let blobUrl: string | null = null;
@@ -153,11 +127,6 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
       setDownloadingAll(true);
       const response = await fetch(`${API_URL}/download-all-files`);
       if (!response.ok) throw new Error('Erro ao baixar arquivos');
-
-      const contentType = response.headers.get('Content-Type');
-      if (!contentType?.includes('application/zip')) {
-        throw new Error('Formato de arquivo inválido');
-      }
 
       const blob = await response.blob();
       blobUrl = window.URL.createObjectURL(blob);
@@ -181,10 +150,8 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
   }));
 
   useEffect(() => {
-    const controller = new AbortController();
     fetchFiles();
-    return () => controller.abort();
-  }, [fetchFiles]);
+  }, []);
 
   if (isLoading) {
     return <div className="mt-4 text-gray-600">Carregando arquivos...</div>;
