@@ -24,7 +24,11 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const StorageFileList = forwardRef<StorageTableRef>((props, ref) => {
+export interface StorageFileListRef {
+  fetchFiles: () => Promise<void>;
+}
+
+const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +71,7 @@ const StorageFileList = forwardRef<StorageTableRef>((props, ref) => {
       <div className="mt-8 bg-white rounded-lg shadow-md p-6">
         {/* ... other UI elements ... */}
         <StorageTable
-          data={files}
+          data={files} s
           columns={columns}
         />
       </div>
