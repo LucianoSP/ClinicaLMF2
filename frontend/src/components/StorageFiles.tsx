@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { FiTrash2, FiDownload } from 'react-icons/fi';
-import { StorageTable, Column } from './StorageTable';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import SortableTable, { Column } from './SortableTable';
 import { API_URL } from '../config/api';
 import { formatFileSize } from '../utils/format';
+import { Input } from './ui/input';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface StorageFile {
   nome: string;
@@ -17,6 +20,8 @@ const StorageFiles = () => {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const fetchFiles = async () => {
     setLoading(true);
@@ -64,54 +69,77 @@ const StorageFiles = () => {
   const columns: Column<StorageFile>[] = [
     {
       key: 'nome',
-      label: 'Nome do Arquivo',
+      label: 'Nome do Arquivo'
     },
     {
       key: 'size',
       label: 'Tamanho',
-      render: (row: StorageFile) => formatFileSize(row.size)
+      render: (value) => formatFileSize(value)
     },
     {
       key: 'created_at',
       label: 'Data de Criação',
-      render: (row: StorageFile) => new Date(row.created_at).toLocaleString()
-    },
-    {
-      key: 'url',
-      label: 'Ações',
-      render: (row: StorageFile) => (
-        <div className="flex gap-2">
-          <a
-            href={row.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors duration-200"
-            title="Download"
-          >
-            <FiDownload className="w-4 h-4" />
-          </a>
-          <button
-            onClick={() => handleDelete(row.nome)}
-            className="text-red-500 hover:text-red-700 transition-colors duration-200"
-            title="Excluir"
-          >
-            <FiTrash2 className="w-4 h-4" />
-          </button>
-        </div>
-      )
+      render: (value) => new Date(value).toLocaleString()
     }
   ];
+
+  const filteredFiles = files.filter(file => 
+    file.nome.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+  );
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6b342f]"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full">
-      <StorageTable
-        data={files}
-        columns={columns}
-      />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Input
+            type="text"
+            placeholder="Buscar por nome do arquivo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
+          />
+          <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <SortableTable
+          data={filteredFiles}
+          columns={columns}
+          actions={(item) => (
+            <div className="flex gap-2">
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors duration-200"
+                title="Download"
+              >
+                <FiDownload className="w-4 h-4" />
+              </a>
+              <button
+                onClick={() => handleDelete(item.nome)}
+                className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                title="Excluir"
+              >
+                <FiTrash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        />
+      </div>
     </div>
   );
 };
