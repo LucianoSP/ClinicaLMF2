@@ -433,7 +433,7 @@ async def upload_pdf(
                         # Salvar registro no banco
                         ficha_id = salvar_ficha_presenca(
                             {
-                                "data_execucao": registro["data_execucao"],
+                                "data_atendimento": registro["data_execucao"],
                                 "paciente_carteirinha": registro[
                                     "paciente_carteirinha"
                                 ],
