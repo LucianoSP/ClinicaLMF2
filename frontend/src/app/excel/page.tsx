@@ -122,11 +122,11 @@ export default function ExcelPage() {
     try {
       // Preparar os dados para exportação
       const exportData = data.map(item => ({
+        'Código Ficha': item.codigo_ficha || '',
         'Guia': item.numero_guia,
         'Paciente': item.paciente_nome,
         'Data': item.data_execucao,
         'Número da carteirinha': item.paciente_carteirinha,
-        'Id paciente': item.paciente_id,
         'Data importação': item.created_at,
       }));
 
@@ -224,6 +224,10 @@ export default function ExcelPage() {
 
   const columns: Column<ExcelData>[] = [
     {
+      key: 'codigo_ficha',
+      label: 'Código Ficha'
+    },
+    {
       key: 'numero_guia',
       label: 'Guia'
     },
@@ -238,10 +242,6 @@ export default function ExcelPage() {
     {
       key: 'paciente_carteirinha',
       label: 'Carteirinha'
-    },
-    {
-      key: 'paciente_id',
-      label: 'Id paciente'
     },
     {
       key: 'created_at',
