@@ -91,15 +91,15 @@ export default function StoragePage() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-[#8B4513]">Gerenciamento de Arquivos</h1>
+    <div className="container mx-auto px-4 py-4">
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-[#8B4513]">Arquivos Armazenados</h1>
           <div className="flex gap-2">
             <button
               onClick={handleDownloadAll}
               disabled={loading}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#b49d6b] text-white rounded hover:bg-[#a08b5f] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <FiDownload className="w-4 h-4" />
               Download Todos
@@ -107,14 +107,13 @@ export default function StoragePage() {
             <button
               onClick={handleClearStorage}
               disabled={loading}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-[#8B4513] text-white rounded hover:bg-[#7a3d10] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <FiTrash2 className="w-4 h-4" />
               Limpar Storage
             </button>
           </div>
         </div>
-
         <StorageFiles />
       </div>
     </div>

@@ -85,14 +85,14 @@ const StorageFiles = () => {
             href={row.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#b49d6b] hover:text-[#a08b5f]"
+            className="inline-flex items-center justify-center w-7 h-7 text-gray-700 hover:bg-gray-100 rounded-full"
             title="Download"
           >
             <FiDownload className="w-4 h-4" />
           </a>
           <button
             onClick={() => handleDelete(row.nome)}
-            className="text-[#8B4513] hover:text-[#7a3d10]"
+            className="inline-flex items-center justify-center w-7 h-7 text-gray-700 hover:bg-gray-100 rounded-full"
             title="Excluir"
           >
             <FiTrash2 className="w-4 h-4" />
