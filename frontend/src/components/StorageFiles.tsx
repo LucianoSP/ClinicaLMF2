@@ -7,6 +7,7 @@ import SortableTable, { Column } from './SortableTable';
 import { API_URL } from '../config/api';
 import { formatFileSize } from '../utils/format';
 import { Input } from './ui/input';
+import { Button } from './ui/button';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface StorageFile {
@@ -16,15 +17,21 @@ interface StorageFile {
   url: string;
 }
 
-const StorageFiles = () => {
+interface StorageFilesProps {
+  onDownloadAll: () => void;
+  onClearStorage: () => void;
+  loading: boolean;
+}
+
+const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesProps) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchFiles = async () => {
-    setLoading(true);
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/storage-files/`);
       if (!response.ok) {
@@ -36,7 +43,7 @@ const StorageFiles = () => {
       console.error('Error:', error);
       setError('Erro ao carregar arquivos');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -58,7 +65,6 @@ const StorageFiles = () => {
         throw new Error('Falha ao excluir arquivo');
       }
 
-      // Atualiza a lista após excluir
       fetchFiles();
     } catch (error) {
       console.error('Error:', error);
@@ -91,7 +97,7 @@ const StorageFiles = () => {
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6b342f]"></div>
@@ -101,7 +107,7 @@ const StorageFiles = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Input
             type="text"
@@ -112,6 +118,24 @@ const StorageFiles = () => {
           />
           <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         </div>
+        <Button
+          variant="outline"
+          onClick={onDownloadAll}
+          disabled={loading}
+          className="gap-2 whitespace-nowrap"
+        >
+          <FiDownload className="h-4 w-4" />
+          Download Todos
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onClearStorage}
+          disabled={loading}
+          className="gap-2 whitespace-nowrap"
+        >
+          <FiTrash2 className="h-4 w-4" />
+          Limpar Storage
+        </Button>
       </div>
 
       <div className="rounded-md border">

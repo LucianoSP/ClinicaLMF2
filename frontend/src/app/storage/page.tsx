@@ -5,6 +5,7 @@ import { FiDownload, FiTrash2 } from 'react-icons/fi';
 import { useToast } from '@/hooks/use-toast';
 import { API_URL } from '@/config/api';
 import StorageFiles from '@/components/StorageFiles';
+import { Button } from '@/components/ui/button';
 
 export default function StoragePage() {
   const { toast } = useToast();
@@ -21,23 +22,14 @@ export default function StoragePage() {
         throw new Error('Falha ao baixar os arquivos');
       }
 
-      // Get the blob from the response
       const blob = await response.blob();
-
-      // Create a URL for the blob
       const url = window.URL.createObjectURL(blob);
-
-      // Create a temporary link element
       const a = document.createElement('a');
       a.href = url;
       a.download = `todos_arquivos_${new Date().toISOString().split('T')[0]}.zip`;
-
-      // Append to body, click and remove
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-
-      // Clean up the URL
       window.URL.revokeObjectURL(url);
 
       toast({
@@ -76,7 +68,6 @@ export default function StoragePage() {
         description: "Storage limpo com sucesso",
       });
 
-      // Refresh the page to show the updated list
       window.location.reload();
     } catch (error) {
       console.error('Error:', error);
@@ -93,28 +84,12 @@ export default function StoragePage() {
   return (
     <div className="container mx-auto px-4 py-4">
       <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-[#8B4513]">Arquivos Armazenados</h1>
-          <div className="flex gap-2">
-            <button
-              onClick={handleDownloadAll}
-              disabled={loading}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <FiDownload className="w-4 h-4" />
-              Download Todos
-            </button>
-            <button
-              onClick={handleClearStorage}
-              disabled={loading}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <FiTrash2 className="w-4 h-4" />
-              Limpar Storage
-            </button>
-          </div>
-        </div>
-        <StorageFiles />
+        <h1 className="text-2xl font-bold text-[#8B4513] mb-4">Arquivos Armazenados</h1>
+        <StorageFiles 
+          onDownloadAll={handleDownloadAll}
+          onClearStorage={handleClearStorage}
+          loading={loading}
+        />
       </div>
     </div>
   );
