@@ -1,37 +1,44 @@
+'use client';
+
 import React, { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { TrashIcon } from './TrashIcon';
 import { API_URL } from '../config/api';
 import { FiDownload } from 'react-icons/fi';
 
-type StorageFile = {
+interface StorageFile {
   nome: string;
   url: string;
   created_at: string;
   size: number;
   mime_type?: string;
-};
+}
 
-type Column<T> = {
-  key: keyof T;
+type StorageFileTableKey = 'nome' | 'size' | 'created_at';
+
+type Column = {
+  key: StorageFileTableKey;
   label: string;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: StorageFile) => React.ReactNode;
 };
 
-type StorageTableProps<T> = {
-  data: T[];
-  columns: Column<T>[];
-};
-
-type ApiResponse<T> = {
-  data: T;
-  error?: string;
-};
+interface StorageTableProps {
+  data: StorageFile[];
+  columns: Column[];
+}
 
 export interface StorageFileListRef {
   fetchFiles: () => Promise<void>;
 }
 
-const StorageTable = <T extends StorageFile>({ data, columns }: StorageTableProps<T>) => {
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const StorageTable: React.FC<StorageTableProps> = ({ data, columns }) => {
   const isValidUrl = (url: string): boolean => {
     try {
       new URL(url);
@@ -46,7 +53,7 @@ const StorageTable = <T extends StorageFile>({ data, columns }: StorageTableProp
       <thead>
         <tr>
           {columns.map(column => (
-            <th key={String(column.key)} className="px-4 py-2 text-left">{column.label}</th>
+            <th key={column.key} className="px-4 py-2 text-left">{column.label}</th>
           ))}
           <th className="px-4 py-2 text-right">Ações</th>
         </tr>
@@ -55,7 +62,7 @@ const StorageTable = <T extends StorageFile>({ data, columns }: StorageTableProp
         {data.map((row, i) => (
           <tr key={i} className="border-t">
             {columns.map(column => (
-              <td key={String(column.key)} className="px-4 py-2">
+              <td key={column.key} className="px-4 py-2">
                 {column.render ? column.render(row) : String(row[column.key])}
               </td>
             ))}
@@ -88,14 +95,6 @@ const StorageTable = <T extends StorageFile>({ data, columns }: StorageTableProp
   );
 };
 
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
 const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -103,20 +102,20 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [processing, setProcessing] = useState<Set<string>>(new Set());
 
-  const tableColumns: Column<StorageFile>[] = [
+  const columns: Column[] = [
     {
-      key: 'nome' as const,
+      key: 'nome',
       label: 'Nome'
     },
     {
-      key: 'size' as const,
+      key: 'size',
       label: 'Tamanho',
-      render: (row: StorageFile) => formatFileSize(row.size)
+      render: (row) => formatFileSize(row.size)
     },
     {
-      key: 'created_at' as const,
+      key: 'created_at',
       label: 'Data',
-      render: (row: StorageFile) => new Date(row.created_at).toLocaleDateString()
+      render: (row) => new Date(row.created_at).toLocaleDateString()
     }
   ];
 
@@ -213,9 +212,9 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
         <div className="text-gray-500">Nenhum arquivo encontrado</div>
       ) : (
         <div className="overflow-x-auto">
-          <StorageTable<StorageFile>
+          <StorageTable
             data={files}
-            columns={tableColumns}
+            columns={columns}
           />
         </div>
       )}
