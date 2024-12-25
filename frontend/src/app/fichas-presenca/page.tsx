@@ -373,14 +373,23 @@ export default function FichasPresenca() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Fichas de Presença</h2>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => handleFileUpload}
-              >
-                <FiUpload className="h-4 w-4" />
-                Upload PDF
-              </Button>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={(e) => e.currentTarget.previousElementSibling?.click()}
+                >
+                  <FiUpload className="h-4 w-4" />
+                  Upload PDF
+                </Button>
+              </label>
               <Button
                 variant="outline"
                 className="gap-2"
