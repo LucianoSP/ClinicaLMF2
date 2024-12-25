@@ -11,11 +11,50 @@ interface StorageFile {
   size: number;
 }
 
-interface Column {
-  key: 'nome' | 'size' | 'created_at';
+interface Column<T> {
+  key: keyof T;
   label: string;
-  render?: (value: any) => React.ReactNode;
+  render?: (row: T) => React.ReactNode;
 }
+
+interface TableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+}
+
+const StorageTable = <T extends StorageFile>({ data, columns }: TableProps<T>) => (
+  <table className="w-full">
+    <thead>
+      <tr>
+        {columns.map(col => (
+          <th key={String(col.key)} className="text-left p-2">{col.label}</th>
+        ))}
+        <th className="text-right p-2">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {data.map((item, index) => (
+        <tr key={index} className="border-t">
+          {columns.map(col => (
+            <td key={String(col.key)} className="p-2">
+              {col.render ? col.render(item) : String(item[col.key])}
+            </td>
+          ))}
+          <td className="p-2 text-right">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#C5A880] hover:text-[#B39770] transition-colors"
+            >
+              <FiDownload size={20} />
+            </a>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
@@ -24,6 +63,23 @@ const formatFileSize = (bytes: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
+
+const columns: Column<StorageFile>[] = [
+  {
+    key: 'nome' as keyof StorageFile,
+    label: 'Nome'
+  },
+  {
+    key: 'size' as keyof StorageFile,
+    label: 'Tamanho',
+    render: (row) => formatFileSize(row.size)
+  },
+  {
+    key: 'created_at' as keyof StorageFile,
+    label: 'Data',
+    render: (row) => new Date(row.created_at).toLocaleDateString()
+  }
+];
 
 export interface StorageFileListRef {
   fetchFiles: () => Promise<void>;
@@ -34,12 +90,6 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
-
-  const columns: Column[] = [
-    { key: 'nome', label: 'Nome' },
-    { key: 'size', label: 'Tamanho', render: formatFileSize },
-    { key: 'created_at', label: 'Data', render: (date) => new Date(date).toLocaleDateString() }
-  ];
 
   const fetchFiles = async () => {
     try {
@@ -104,37 +154,12 @@ const StorageFileList = forwardRef<StorageFileListRef>((_, ref) => {
       {files.length === 0 ? (
         <div className="text-gray-500">Nenhum arquivo encontrado</div>
       ) : (
-        <table className="w-full">
-          <thead>
-            <tr>
-              {columns.map(col => (
-                <th key={col.key} className="text-left p-2">{col.label}</th>
-              ))}
-              <th className="text-right p-2">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {files.map((file, index) => (
-              <tr key={index} className="border-t">
-                {columns.map(col => (
-                  <td key={col.key} className="p-2">
-                    {col.render ? col.render(file[col.key]) : file[col.key]}
-                  </td>
-                ))}
-                <td className="p-2 text-right">
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#C5A880] hover:text-[#B39770] transition-colors"
-                  >
-                    <FiDownload size={20} />
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <StorageTable<StorageFile>
+            data={files}
+            columns={columns}
+          />
+        </div>
       )}
     </div>
   );
