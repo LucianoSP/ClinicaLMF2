@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FiTrash2, FiDownload } from 'react-icons/fi';
-import { StorageTable } from './StorageTable';
+import { StorageTable, Column } from './StorageTable';
 import { API_URL } from '../config/api';
 import { formatFileSize } from '../utils/format';
 
@@ -61,7 +61,7 @@ const StorageFiles = () => {
     }
   };
 
-  const columns = [
+  const columns: Column<StorageFile>[] = [
     {
       key: 'nome',
       label: 'Nome do Arquivo',
@@ -77,7 +77,7 @@ const StorageFiles = () => {
       render: (row: StorageFile) => new Date(row.created_at).toLocaleString()
     },
     {
-      key: 'actions',
+      key: 'url',
       label: 'Ações',
       render: (row: StorageFile) => (
         <div className="flex gap-2">
