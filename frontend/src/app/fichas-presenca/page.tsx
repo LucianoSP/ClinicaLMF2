@@ -6,7 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { FiTrash2, FiEdit, FiDownload, FiUpload, FiSearch } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import SortableTable from '@/components/SortableTable';
+import SortableTable, { Column } from '@/components/SortableTable';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
