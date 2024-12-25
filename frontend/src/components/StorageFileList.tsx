@@ -24,80 +24,86 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const columns: Column<StorageFile>[] = [
-  {
-    key: 'nome',
-    label: 'Nome'
-  },
-  {
-    key: 'size',
-    label: 'Tamanho',
-    render: (row) => formatFileSize(row.size)
-  },
-  {
-    key: 'created_at',
-    label: 'Data',
-    render: (row) => new Date(row.created_at).toLocaleDateString()
-  }
-];
-
-export interface StorageFileListRef {
-  fetchFiles: () => Promise<void>;
-}
-
-const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
+const StorageFileList = forwardRef<StorageTableRef>((props, ref) => {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
   const [downloadingAll, setDownloadingAll] = useState(false);
 
+  const columns: Column<StorageFile>[] = [
+    {
+      key: 'nome' as keyof StorageFile,
+      label: 'Nome'
+    },
+    {
+      key: 'size' as keyof StorageFile,
+      label: 'Tamanho',
+      render: (row: StorageFile) => formatFileSize(row.size)
+    },
+    {
+      key: 'created_at' as keyof StorageFile,
+      label: 'Data',
+      render: (row: StorageFile) => new Date(row.created_at).toLocaleDateString()
+    }
+  ];
+
+  export interface StorageFileListRef {
+    fetchFiles: () => Promise<void>;
+  }
+
+  const StorageFileList = forwardRef<StorageFileListRef>((props, ref) => {
+    const [files, setFiles] = useState<StorageFile[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
+    const [downloadingAll, setDownloadingAll] = useState(false);
 
 
-  // Rest of the code remains the same...
 
-  return (
-    <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-      {/* ... Other UI elements ... */}
+    // Rest of the code remains the same...
 
-      <StorageTable
-        data={files}
-        columns={columns}
-      />
-    </div>
-  );
-});
+    return (
+      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+        {/* ... other UI elements ... */}
+        <StorageTable
+          data={files}
+          columns={columns}
+        />
+      </div>
+    );
+  });
 
-interface StorageTableProps<T> {
-  data: T[];
-  columns: Column<T>[];
-}
+  interface StorageTableProps<T> {
+    data: T[];
+    columns: Column<T>[];
+  }
 
-function StorageTable<T>({ data, columns }: StorageTableProps<T>) {
-  return (
-    <table className="w-full">
-      <thead>
-        <tr>
-          {columns.map(column => (
-            <th key={String(column.key)}>{column.label}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((row, i) => (
-          <tr key={i}>
+  function StorageTable<T>({ data, columns }: StorageTableProps<T>) {
+    return (
+      <table className="w-full">
+        <thead>
+          <tr>
             {columns.map(column => (
-              <td key={String(column.key)}>
-                {column.render ? column.render(row) : String(row[column.key])}
-              </td>
+              <th key={String(column.key)}>{column.label}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
+        </thead>
+        <tbody>
+          {data.map((row, i) => (
+            <tr key={i}>
+              {columns.map(column => (
+                <td key={String(column.key)}>
+                  {column.render ? column.render(row) : String(row[column.key])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
 
-StorageFileList.displayName = 'StorageFileList';
+  StorageFileList.displayName = 'StorageFileList';
 
-export default StorageFileList;
+  export default StorageFileList;
