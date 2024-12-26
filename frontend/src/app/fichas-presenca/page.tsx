@@ -280,19 +280,23 @@ export default function FichasPresenca() {
   const columns: Column<FichaPresenca>[] = [
     {
       key: 'codigo_ficha',
-      label: 'Código Ficha'
+      label: 'Código Ficha',
+      className: 'w-[120px]'
     },
     {
       key: 'paciente_nome',
-      label: 'Paciente'
+      label: 'Paciente',
+      className: 'min-w-[200px]'
     },
     {
       key: 'paciente_carteirinha',
-      label: 'Carteirinha'
+      label: 'Carteirinha',
+      className: 'w-[150px]'
     },
     {
       key: 'data_atendimento',
       label: 'Data',
+      className: 'w-[120px]',
       render: (value) => {
         if (!value) return '';
         try {
@@ -315,11 +319,13 @@ export default function FichasPresenca() {
     },
     {
       key: 'numero_guia',
-      label: 'Guia'
+      label: 'Guia',
+      className: 'w-[120px]'
     },
     {
       key: 'possui_assinatura',
       label: 'Assinado',
+      className: 'w-[100px]',
       type: 'boolean'
     }
   ];
@@ -420,19 +426,23 @@ export default function FichasPresenca() {
               columns={[
                 {
                   key: 'codigo_ficha',
-                  label: 'Código Ficha'
+                  label: 'Código Ficha',
+                  className: 'w-[120px] px-3 py-1.5'
                 },
                 {
                   key: 'paciente_nome',
-                  label: 'Paciente'
+                  label: 'Paciente',
+                  className: 'min-w-[200px] px-3 py-1.5'
                 },
                 {
                   key: 'paciente_carteirinha',
-                  label: 'Carteirinha'
+                  label: 'Carteirinha',
+                  className: 'w-[150px] px-3 py-1.5'
                 },
                 {
                   key: 'data_atendimento',
                   label: 'Data',
+                  className: 'w-[120px] px-3 py-1.5',
                   render: (value) => {
                     if (!value) return '';
                     try {
@@ -455,11 +465,13 @@ export default function FichasPresenca() {
                 },
                 {
                   key: 'numero_guia',
-                  label: 'Guia'
+                  label: 'Guia',
+                  className: 'w-[120px] px-3 py-1.5'
                 },
                 {
                   key: 'possui_assinatura',
                   label: 'Assinado',
+                  className: 'w-[100px] px-3 py-1.5',
                   type: 'boolean'
                 }
               ]}
