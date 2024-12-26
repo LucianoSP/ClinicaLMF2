@@ -11,23 +11,25 @@ import uuid
 def gerar_uuid_consistente(valor: str) -> str:
     """Gera um UUID v5 consistente usando um namespace fixo e o valor como nome."""
     # Usa o namespace DNS como base
-    namespace = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
+    namespace = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
     # Gera um UUID v5 usando o namespace e o valor
     return str(uuid.uuid5(namespace, valor))
 
 
 def extrair_codigo_plano(numero_carteirinha: str) -> str:
     """Extrai o código do plano de saúde do número da carteirinha."""
-    return numero_carteirinha.split('.')[0]
+    return numero_carteirinha.split(".")[0]
 
 
 def salvar_dados_excel(registros: List[Dict]) -> bool:
     """Salva os dados do Excel na tabela execucoes."""
     try:
         # Primeiro, vamos buscar os planos de saúde que precisamos
-        codigos_planos = set(extrair_codigo_plano(str(registro["paciente_carteirinha"])) 
-                           for registro in registros)
-        
+        codigos_planos = set(
+            extrair_codigo_plano(str(registro["paciente_carteirinha"]))
+            for registro in registros
+        )
+
         # Busca os planos no Supabase
         planos_response = (
             supabase.table("planos_saude")
@@ -36,7 +38,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
             .execute()
         )
         planos = {p["codigo"]: p["id"] for p in planos_response.data}
-        
+
         # Se algum plano não existir, cria
         planos_para_criar = []
         for codigo in codigos_planos:
@@ -44,12 +46,14 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                 # Gera um UUID consistente para o plano
                 plano_id = gerar_uuid_consistente(f"plano_{codigo}")
                 planos[codigo] = plano_id  # Já adiciona ao dicionário
-                planos_para_criar.append({
-                    "id": plano_id,
-                    "codigo": codigo,
-                    "nome": f"Plano {codigo}"  # Nome temporário
-                })
-        
+                planos_para_criar.append(
+                    {
+                        "id": plano_id,
+                        "codigo": codigo,
+                        "nome": f"Plano {codigo}",  # Nome temporário
+                    }
+                )
+
         if planos_para_criar:
             response = (
                 supabase.table("planos_saude")
@@ -61,10 +65,10 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
         # Primeiro, vamos criar os pacientes que não existem
         pacientes_para_criar = []
         pacientes_processados = set()
-        
+
         # Mapeamento de ID do Excel para UUID
         id_para_uuid = {}
-        
+
         for registro in registros:
             id_excel = str(registro["paciente_id"])
             if id_excel not in pacientes_processados:
@@ -72,12 +76,12 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                 # Gera um UUID consistente baseado no ID do Excel
                 id_uuid = gerar_uuid_consistente(id_excel)
                 id_para_uuid[id_excel] = id_uuid
-                
+
                 pacientes_para_criar.append(
                     {
                         "id": id_uuid,
                         "nome": str(registro["paciente_nome"]).upper(),
-                        "carteirinha": str(registro["paciente_carteirinha"])
+                        "carteirinha": str(registro["paciente_carteirinha"]),
                     }
                 )
 
@@ -93,12 +97,12 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
         # Agora vamos criar as carteirinhas que não existem
         carteirinhas_para_criar = []
         carteirinhas_processadas = set()
-        
+
         for registro in registros:
             numero_carteirinha = str(registro["paciente_carteirinha"])
             id_excel = str(registro["paciente_id"])
             codigo_plano = extrair_codigo_plano(numero_carteirinha)
-            
+
             if numero_carteirinha not in carteirinhas_processadas:
                 carteirinhas_processadas.add(numero_carteirinha)
                 carteirinhas_para_criar.append(
@@ -108,7 +112,9 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                         "nome_titular": str(registro["paciente_nome"]).upper(),
                         "data_validade": None,  # Opcional
                         "titular": True,  # Por padrão é o titular
-                        "plano_saude_id": planos[codigo_plano]  # ID do plano encontrado
+                        "plano_saude_id": planos[
+                            codigo_plano
+                        ],  # ID do plano encontrado
                     }
                 )
 
@@ -125,7 +131,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
         guias_para_criar = []
         guias_processadas = set()  # Conjunto para controlar guias já processadas
         data_atual = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-        
+
         for registro in registros:
             numero_guia = str(registro["guia_id"])
             id_excel = str(registro["paciente_id"])
@@ -148,7 +154,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                         "procedimento_nome": None,  # Opcional
                         "profissional_solicitante": None,  # Opcional
                         "profissional_executante": None,  # Opcional
-                        "observacoes": None  # Opcional
+                        "observacoes": None,  # Opcional
                     }
                 )
 
@@ -327,7 +333,7 @@ def salvar_guia(dados: Dict) -> bool:
             "data_emissao": dados.get("data_emissao"),
             "quantidade_autorizada": dados.get("quantidade_autorizada", 1),
             "quantidade_executada": dados.get("quantidade_executada", 0),
-            "tipo": dados.get("tipo", "sp_sadt")  # Valor correto do enum tipo_guia
+            "tipo": dados.get("tipo", "sp_sadt"),  # Valor correto do enum tipo_guia
         }
 
         # Usa upsert ao invés de insert para atualizar se já existir

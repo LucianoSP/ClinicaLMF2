@@ -284,20 +284,22 @@ async def extract_info_from_pdf(pdf_path: str):
                             "codigo_ficha": string,  // Campo 1 - FICHA no canto superior direito, formato XX-XXXXXXXX...
                             "registros": [
                                 {
-                                    "data_execucao": string,         // Data de execucao no formato DD/MM/YYYY
-                                    "paciente_carteirinha": string,          // Número da Carteira
-                                    "paciente_nome": string,        // Nome do Beneficiário
-                                    "guia_id": string,    // Número da Guia Principal
-                                    "possui_assinatura": boolean        // Indica se o execucao possui assinatura (marcado com x)
+                                    "data_execucao": string,         // Campo 11 - Data do atendimento no formato DD/MM/YYYY
+                                    "paciente_carteirinha": string,  // Campo 12 - Número da carteira
+                                    "paciente_nome": string,         // Campo 13 - Nome/Nome Social do Beneficiário
+                                    "guia_id": string,              // Campo 14 - Número da Guia Principal
+                                    "possui_assinatura": boolean     // Campo 15 - Indica se tem assinatura na linha
                                 }
                             ]
                         }
 
                         Regras de extração:
-                        1. Inclua uma linha nos registros se a linha tiver o campo Data de execucao OU o campo Assinatura tiver o quadrado preenchido por um "x"
-                        2. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano). Se encontrar uma data no formato DD/MM/YY, converta para DD/MM/YYYY. 
-                        3. Todas as datas no campo Data de execucao devem ser válidas (30/02/2024 seria uma data inválida) e iguais para todas as linhas.   
-                        4. Retorne APENAS o JSON, sem texto adicional
+                        1. Cada linha numerada (1-, 2-, 3-, etc) representa uma sessão diferente do mesmo paciente
+                        2. Inclua TODAS as linhas que têm data de atendimento preenchida, mesmo que não tenham assinatura
+                        3. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano)
+                        4. Todas as datas devem ser válidas (30/02/2024 seria uma data inválida)
+                        5. Mantenha o número da carteirinha EXATAMENTE como está no documento, incluindo pontos e hífens
+                        6. Retorne APENAS o JSON, sem texto adicional
                     """,
                         },
                     ],

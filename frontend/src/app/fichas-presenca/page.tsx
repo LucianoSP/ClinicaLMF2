@@ -543,22 +543,25 @@ export default function FichasPresenca() {
             <p className="text-sm text-muted-foreground">
               Total: {totalRecords} registros
             </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setPage(page - 1)}
-                disabled={page === 1}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages}
-              >
-                Próxima
-              </Button>
-            </div>
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-4">
+                <nav className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setPage(pageNumber)}
+                      className={`px-3 py-2 text-sm rounded-md ${
+                        page === pageNumber
+                          ? 'bg-[#C5A880] text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            )}
           </div>
         </div>
       </div>
