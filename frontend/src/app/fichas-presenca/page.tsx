@@ -427,22 +427,22 @@ export default function FichasPresenca() {
                 {
                   key: 'codigo_ficha',
                   label: 'Código Ficha',
-                  className: 'w-[120px] px-3 py-1.5'
+                  className: 'w-[120px]'
                 },
                 {
                   key: 'paciente_nome',
                   label: 'Paciente',
-                  className: 'min-w-[200px] px-3 py-1.5'
+                  className: 'min-w-[200px]'
                 },
                 {
                   key: 'paciente_carteirinha',
                   label: 'Carteirinha',
-                  className: 'w-[150px] px-3 py-1.5'
+                  className: 'w-[150px]'
                 },
                 {
                   key: 'data_atendimento',
                   label: 'Data',
-                  className: 'w-[120px] px-3 py-1.5',
+                  className: 'w-[120px]',
                   render: (value) => {
                     if (!value) return '';
                     try {
@@ -466,12 +466,12 @@ export default function FichasPresenca() {
                 {
                   key: 'numero_guia',
                   label: 'Guia',
-                  className: 'w-[120px] px-3 py-1.5'
+                  className: 'w-[120px]'
                 },
                 {
                   key: 'possui_assinatura',
                   label: 'Assinado',
-                  className: 'w-[100px] px-3 py-1.5',
+                  className: 'w-[100px]',
                   type: 'boolean'
                 }
               ]}
