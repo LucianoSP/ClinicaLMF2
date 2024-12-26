@@ -279,38 +279,36 @@ export default function FichasPresenca() {
 
   const columns: Column<FichaPresenca>[] = [
     {
-      key: 'codigo_ficha',
+      key: 'codigo_ficha' as keyof FichaPresenca,
       label: 'Código Ficha',
-      className: 'w-[120px]'
+      type: 'text'
     },
     {
-      key: 'paciente_nome',
+      key: 'paciente_nome' as keyof FichaPresenca,
       label: 'Paciente',
-      className: 'min-w-[200px]'
+      type: 'text'
     },
     {
-      key: 'paciente_carteirinha',
+      key: 'paciente_carteirinha' as keyof FichaPresenca,
       label: 'Carteirinha',
-      className: 'w-[150px]'
+      type: 'text'
     },
     {
-      key: 'data_atendimento',
+      key: 'data_atendimento' as keyof FichaPresenca,
       label: 'Data',
-      className: 'w-[120px]',
+      type: 'date',
       render: (value) => {
         if (!value) return '';
         try {
-          // Se a data vier como DD/MM/YYYY
           if (value.includes('/')) {
             const [dia, mes, ano] = value.split('/');
             return `${dia}/${mes}/${ano}`;
           }
-          // Se a data vier em outro formato
           const data = new Date(value);
           if (isNaN(data.getTime())) {
             throw new Error('Data inválida');
           }
-          return format(data, 'dd/MM/yyyy');
+          return format(data, 'dd/MM/yyyy', { locale: ptBR });
         } catch (error) {
           console.error('Erro ao formatar data:', error, value);
           return value;
@@ -318,14 +316,13 @@ export default function FichasPresenca() {
       }
     },
     {
-      key: 'numero_guia',
+      key: 'numero_guia' as keyof FichaPresenca,
       label: 'Guia',
-      className: 'w-[120px]'
+      type: 'text'
     },
     {
-      key: 'possui_assinatura',
+      key: 'possui_assinatura' as keyof FichaPresenca,
       label: 'Assinado',
-      className: 'w-[100px]',
       type: 'boolean'
     }
   ];
@@ -550,11 +547,10 @@ export default function FichasPresenca() {
                     <button
                       key={pageNumber}
                       onClick={() => setPage(pageNumber)}
-                      className={`px-3 py-2 text-sm rounded-md ${
-                        page === pageNumber
-                          ? 'bg-[#C5A880] text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                      className={`px-3 py-2 text-sm rounded-md ${page === pageNumber
+                        ? 'bg-[#C5A880] text-white'
+                        : 'text-gray-600 hover:bg-gray-100'
+                        }`}
                     >
                       {pageNumber}
                     </button>

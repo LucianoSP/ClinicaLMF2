@@ -14,6 +14,8 @@ export interface Column<T> {
   editable?: boolean;
   type?: 'boolean' | 'text' | 'string' | 'date';
   render?: (value: any, item: T) => React.ReactNode;
+  className?: string; // Adicionando suporte para className
+  style?: React.CSSProperties; // Adicionando suporte para style
 }
 
 export default function SortableTable<T>({
@@ -83,8 +85,8 @@ export default function SortableTable<T>({
               <th
                 key={String(column.key)}
                 onClick={() => handleSort(column.key)}
-                className="px-3 py-1.5 text-left cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-600"
-                style={{ whiteSpace: 'nowrap' }}
+                className={`px-3 py-1.5 text-left cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-600 ${column.className || ''}`}
+                style={{ whiteSpace: 'nowrap', ...column.style }}
               >
                 <div className="flex items-center gap-1">
                   {column.label}
@@ -118,7 +120,8 @@ export default function SortableTable<T>({
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className="px-3 py-1.5 text-xs text-gray-900"
+                  className={`px-3 py-1.5 text-xs text-gray-900 ${column.className || ''}`}
+                  style={column.style}
                 >
                   {column.editable && editingId === (item as any).codigo_ficha ? (
                     column.type === 'boolean' ? (
