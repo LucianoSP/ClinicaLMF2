@@ -41,11 +41,9 @@ export function DatePicker({ label, date, setDate, className }: DatePickerProps)
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-white" align="start">
           <Calendar
-            mode="single"
             selected={date || undefined}
             onSelect={setDate}
-            initialFocus
-            locale={ptBR}
+
           />
         </PopoverContent>
       </Popover>

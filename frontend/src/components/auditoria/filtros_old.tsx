@@ -1,7 +1,9 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
+import DatePicker from "react-datepicker"; // Mudança aqui: import direto do react-datepicker
+import "react-datepicker/dist/react-datepicker.css";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { ptBR } from 'date-fns/locale';
 
 interface FiltrosProps {
   dataInicial: Date | undefined;
@@ -34,8 +36,12 @@ export function Filtros({
             Data Inicial
           </label>
           <DatePicker
-            date={dataInicial}
-            onChange={onChangeDataInicial}
+            selected={dataInicial}
+            onChange={(date: Date | null) => onChangeDataInicial(date || undefined)}
+            dateFormat="dd/MM/yyyy"
+            locale={ptBR}
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            placeholderText="Selecione uma data"
           />
         </div>
         <div className="space-y-1.5">
@@ -43,8 +49,12 @@ export function Filtros({
             Data Final
           </label>
           <DatePicker
-            date={dataFinal}
-            onChange={onChangeDataFinal}
+            selected={dataFinal}
+            onChange={(date: Date | null) => onChangeDataFinal(date || undefined)}
+            dateFormat="dd/MM/yyyy"
+            locale={ptBR}
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            placeholderText="Selecione uma data"
           />
         </div>
         <div className="space-y-1.5">

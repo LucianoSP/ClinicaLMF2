@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Sidebar } from '@/components/Sidebar'
 import { inter } from './fonts'
 import { Toaster } from '@/components/ui/toaster'
+import "react-datepicker/dist/react-datepicker.css";
 
 export const metadata: Metadata = {
   title: 'Processador de PDFs - Clínica Larissa',

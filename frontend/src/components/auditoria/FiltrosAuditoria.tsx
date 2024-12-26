@@ -65,13 +65,17 @@ export const FiltrosAuditoria = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
-          <Label>Data Inicial</Label>
-          <DatePicker date={dataInicial} setDate={setDataInicial} />
+
+          <DatePicker label="Data Inicial"
+            date={dataInicial}
+            setDate={setDataInicial} />
         </div>
 
         <div className="space-y-2">
-          <Label>Data Final</Label>
-          <DatePicker date={dataFinal} setDate={setDataFinal} />
+
+          <DatePicker label="Data Final"
+            date={dataFinal}
+            setDate={setDataFinal} />
         </div>
 
         <div className="space-y-2">

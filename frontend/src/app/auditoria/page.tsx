@@ -32,6 +32,7 @@ export interface Divergencia {
 }
 
 export default function AuditoriaPage() {
+
   const [dataInicial, setDataInicial] = useState<Date | null>(null);
   const [dataFinal, setDataFinal] = useState<Date | null>(null);
   const [statusFiltro, setStatusFiltro] = useState('todos');
@@ -209,13 +210,12 @@ export default function AuditoriaPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
+    <div className="container mx-auto p-4">
+      <div className="bg-white rounded-lg shadow">
         <AuditoriaHeader />
 
-        <div className="p-6 flex flex-col gap-4">
+        <div className="p-6 space-y-6">
           <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
-
           <FiltrosAuditoria
             dataInicial={dataInicial}
             setDataInicial={setDataInicial}

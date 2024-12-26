@@ -65,9 +65,11 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
         divergencia={selectedDivergencia}
         open={!!selectedDivergencia}
         onClose={() => setSelectedDivergencia(null)}
-        onResolverClick={(divergencia) => {
-          onResolve(divergencia.id);
-          setSelectedDivergencia(null);
+        onResolverClick={() => {
+          if (selectedDivergencia) {
+            onResolve(selectedDivergencia.id);
+            setSelectedDivergencia(null);
+          }
         }}
       />
     </div>

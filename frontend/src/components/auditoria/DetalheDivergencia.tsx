@@ -9,7 +9,7 @@ interface DetalheDivergenciaProps {
   divergencia: Divergencia | null;
   open: boolean;
   onClose: () => void;
-  onResolverClick: () => void;
+  onResolverClick: () => void; // Aqui está esperando uma função sem parâmetros
 }
 
 export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick }: DetalheDivergenciaProps) {
@@ -89,7 +89,7 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
 
           {divergencia.status !== 'resolvido' && (
             <div className="flex justify-end pt-4">
-              <Button 
+              <Button
                 onClick={() => onResolverClick()}
                 variant="default"
                 size="lg"
