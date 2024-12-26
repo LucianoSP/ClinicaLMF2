@@ -8,26 +8,175 @@ import logging
 import uuid
 
 
+def gerar_uuid_consistente(valor: str) -> str:
+    """Gera um UUID v5 consistente usando um namespace fixo e o valor como nome."""
+    # Usa o namespace DNS como base
+    namespace = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
+    # Gera um UUID v5 usando o namespace e o valor
+    return str(uuid.uuid5(namespace, valor))
+
+
+def extrair_codigo_plano(numero_carteirinha: str) -> str:
+    """Extrai o código do plano de saúde do número da carteirinha."""
+    return numero_carteirinha.split('.')[0]
+
+
 def salvar_dados_excel(registros: List[Dict]) -> bool:
     """Salva os dados do Excel na tabela execucoes."""
     try:
-        # Prepara os dados no formato correto
+        # Primeiro, vamos buscar os planos de saúde que precisamos
+        codigos_planos = set(extrair_codigo_plano(str(registro["paciente_carteirinha"])) 
+                           for registro in registros)
+        
+        # Busca os planos no Supabase
+        planos_response = (
+            supabase.table("planos_saude")
+            .select("id, codigo")
+            .in_("codigo", list(codigos_planos))
+            .execute()
+        )
+        planos = {p["codigo"]: p["id"] for p in planos_response.data}
+        
+        # Se algum plano não existir, cria
+        planos_para_criar = []
+        for codigo in codigos_planos:
+            if codigo not in planos:
+                # Gera um UUID consistente para o plano
+                plano_id = gerar_uuid_consistente(f"plano_{codigo}")
+                planos[codigo] = plano_id  # Já adiciona ao dicionário
+                planos_para_criar.append({
+                    "id": plano_id,
+                    "codigo": codigo,
+                    "nome": f"Plano {codigo}"  # Nome temporário
+                })
+        
+        if planos_para_criar:
+            response = (
+                supabase.table("planos_saude")
+                .upsert(planos_para_criar, on_conflict="codigo")
+                .execute()
+            )
+            print("Resposta ao criar planos:", response.data)
+
+        # Primeiro, vamos criar os pacientes que não existem
+        pacientes_para_criar = []
+        pacientes_processados = set()
+        
+        # Mapeamento de ID do Excel para UUID
+        id_para_uuid = {}
+        
+        for registro in registros:
+            id_excel = str(registro["paciente_id"])
+            if id_excel not in pacientes_processados:
+                pacientes_processados.add(id_excel)
+                # Gera um UUID consistente baseado no ID do Excel
+                id_uuid = gerar_uuid_consistente(id_excel)
+                id_para_uuid[id_excel] = id_uuid
+                
+                pacientes_para_criar.append(
+                    {
+                        "id": id_uuid,
+                        "nome": str(registro["paciente_nome"]).upper(),
+                        "carteirinha": str(registro["paciente_carteirinha"])
+                    }
+                )
+
+        # Insere os pacientes no Supabase usando upsert
+        if pacientes_para_criar:
+            response = (
+                supabase.table("pacientes")
+                .upsert(pacientes_para_criar, on_conflict="id")
+                .execute()
+            )
+            print("Resposta ao criar pacientes:", response.data)
+
+        # Agora vamos criar as carteirinhas que não existem
+        carteirinhas_para_criar = []
+        carteirinhas_processadas = set()
+        
+        for registro in registros:
+            numero_carteirinha = str(registro["paciente_carteirinha"])
+            id_excel = str(registro["paciente_id"])
+            codigo_plano = extrair_codigo_plano(numero_carteirinha)
+            
+            if numero_carteirinha not in carteirinhas_processadas:
+                carteirinhas_processadas.add(numero_carteirinha)
+                carteirinhas_para_criar.append(
+                    {
+                        "numero_carteirinha": numero_carteirinha,
+                        "paciente_id": id_para_uuid[id_excel],  # UUID gerado
+                        "nome_titular": str(registro["paciente_nome"]).upper(),
+                        "data_validade": None,  # Opcional
+                        "titular": True,  # Por padrão é o titular
+                        "plano_saude_id": planos[codigo_plano]  # ID do plano encontrado
+                    }
+                )
+
+        # Insere as carteirinhas no Supabase usando upsert
+        if carteirinhas_para_criar:
+            response = (
+                supabase.table("carteirinhas")
+                .upsert(carteirinhas_para_criar, on_conflict="numero_carteirinha")
+                .execute()
+            )
+            print("Resposta ao criar carteirinhas:", response.data)
+
+        # Agora vamos criar as guias
+        guias_para_criar = []
+        guias_processadas = set()  # Conjunto para controlar guias já processadas
+        data_atual = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        
+        for registro in registros:
+            numero_guia = str(registro["guia_id"])
+            id_excel = str(registro["paciente_id"])
+            # Só adiciona se ainda não processamos esta guia
+            if numero_guia not in guias_processadas:
+                guias_processadas.add(numero_guia)
+                guias_para_criar.append(
+                    {
+                        "numero_guia": numero_guia,
+                        "paciente_nome": str(registro["paciente_nome"]).upper(),
+                        "paciente_carteirinha": str(registro["paciente_carteirinha"]),
+                        "paciente_id": id_para_uuid[id_excel],  # UUID gerado
+                        "data_emissao": data_atual,
+                        "data_validade": None,  # Opcional
+                        "status": "pendente",
+                        "quantidade_autorizada": 1,
+                        "quantidade_executada": 0,
+                        "tipo": "sp_sadt",  # Valor correto do enum tipo_guia
+                        "procedimento_codigo": None,  # Opcional
+                        "procedimento_nome": None,  # Opcional
+                        "profissional_solicitante": None,  # Opcional
+                        "profissional_executante": None,  # Opcional
+                        "observacoes": None  # Opcional
+                    }
+                )
+
+        # Insere as guias no Supabase usando upsert para evitar duplicatas
+        if guias_para_criar:
+            response = (
+                supabase.table("guias")
+                .upsert(guias_para_criar, on_conflict="numero_guia")
+                .execute()
+            )
+            print("Resposta ao criar guias:", response.data)
+
+        # Agora prepara os dados das execuções
         dados_formatados = []
         for registro in registros:
+            id_excel = str(registro["paciente_id"])
             dados_formatados.append(
                 {
-                    # Removido o campo "id" para deixar o Supabase gerar automaticamente
                     "numero_guia": str(registro["guia_id"]),
                     "paciente_nome": str(registro["paciente_nome"]).upper(),
                     "data_execucao": registro["data_execucao"],
                     "paciente_carteirinha": str(registro["paciente_carteirinha"]),
-                    "paciente_id": str(registro["paciente_id"]),
-                    "quantidade_sessoes": 1,  # Valor padrão
-                    "codigo_ficha": None,  # Novo campo adicionado
+                    "paciente_id": id_para_uuid[id_excel],  # UUID gerado
+                    "codigo_ficha": None,
                 }
             )
 
-        # Insere os dados no Supabase
+        # Insere as execuções no Supabase
         response = supabase.table("execucoes").insert(dados_formatados).execute()
 
         print(f"Dados inseridos com sucesso! {len(dados_formatados)} registros.")
@@ -35,6 +184,7 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
 
     except Exception as e:
         print(f"Erro ao salvar dados do Excel no Supabase: {e}")
+        traceback.print_exc()  # Adiciona mais detalhes do erro
         return False
 
 
@@ -71,7 +221,6 @@ def listar_dados_excel(
 
         # Adiciona filtro se paciente_nome for fornecido
         if paciente_nome:
-            print(f"Adicionando filtro por nome do paciente: {paciente_nome}")
             query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
 
         # Busca todos os registros para contar
@@ -174,12 +323,19 @@ def salvar_guia(dados: Dict) -> bool:
             "paciente_carteirinha": str(dados["paciente_carteirinha"]),
             "data_inicio": dados.get("data_inicio"),
             "data_fim": dados.get("data_fim"),
-            "quantidade_sessoes": dados.get("quantidade_sessoes", 1),
             "status": dados.get("status", "ATIVO"),
+            "data_emissao": dados.get("data_emissao"),
+            "quantidade_autorizada": dados.get("quantidade_autorizada", 1),
+            "quantidade_executada": dados.get("quantidade_executada", 0),
+            "tipo": dados.get("tipo", "sp_sadt")  # Valor correto do enum tipo_guia
         }
 
-        # Insere a guia no Supabase
-        response = supabase.table("guias").insert(guia_formatada).execute()
+        # Usa upsert ao invés de insert para atualizar se já existir
+        response = (
+            supabase.table("guias")
+            .upsert(guia_formatada, on_conflict="numero_guia")
+            .execute()
+        )
 
         print(f"Guia salva com sucesso: {guia_formatada['numero_guia']}")
         return True
@@ -565,7 +721,9 @@ def atualizar_status_divergencia(
         dados = {
             "status": novo_status,
             "data_resolucao": (
-                datetime.now().isoformat() if novo_status != "pendente" else None
+                datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                if novo_status != "pendente"
+                else None
             ),
             "resolvido_por": usuario_id if novo_status != "pendente" else None,
         }
@@ -1171,8 +1329,12 @@ def obter_ultima_auditoria() -> Dict:
             "total_resolvidas": estatisticas["por_status"].get("resolvida", 0),
             "total_pendentes": estatisticas["por_status"].get("pendente", 0),
             "total_fichas_sem_assinatura": 0,  # TODO: Implementar
-            "total_execucoes_sem_ficha": divergencias_por_tipo.get("execucao_sem_ficha", 0),
-            "total_fichas_sem_execucao": divergencias_por_tipo.get("ficha_sem_execucao", 0),
+            "total_execucoes_sem_ficha": divergencias_por_tipo.get(
+                "execucao_sem_ficha", 0
+            ),
+            "total_fichas_sem_execucao": divergencias_por_tipo.get(
+                "ficha_sem_execucao", 0
+            ),
             "total_datas_divergentes": divergencias_por_tipo.get("data_divergente", 0),
             "total_fichas": ultima_auditoria.get("total_fichas", 0),
             "data_execucao": ultima_auditoria.get("created_at"),

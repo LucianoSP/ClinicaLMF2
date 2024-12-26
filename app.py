@@ -469,7 +469,7 @@ async def upload_pdf(
     return results
 
 
-@app.post("/upload/excel")
+@app.post("/excel/upload")
 async def upload_excel(file: UploadFile = File(...)):
     """Processa o upload de arquivo Excel"""
     try:
