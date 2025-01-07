@@ -16,7 +16,17 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
     total_execucoes = 0,  
     total_resolvidas = 0,  
     total_divergencias = 0,
+    divergencias_por_tipo = {}
   } = resultadoAuditoria;
+
+  const {
+    execucao_sem_ficha = 0,
+    ficha_sem_execucao = 0,
+    data_divergente = 0,
+    ficha_sem_assinatura = 0,
+    guia_vencida = 0,
+    quantidade_excedida = 0
+  } = divergencias_por_tipo;
 
   const CardWrapper = ({ children, className = "" }) => (
     <div className={`transform transition-all duration-300 hover:scale-105 ${className}`}>
@@ -29,15 +39,15 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
       {/* Linha superior - Cards neutros (azul) */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-blue-900">Total de Guias</CardTitle>
               <div className="rounded-full bg-blue-100 p-2">
                 <Files className="h-6 w-6 text-blue-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
                 <div className="text-3xl font-bold text-blue-800">{total_execucoes}</div>
                 <p className="text-xs text-blue-600">Guias analisadas</p>
               </div>
@@ -46,15 +56,15 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         </CardWrapper>
 
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-blue-900">Total de Fichas</CardTitle>
               <div className="rounded-full bg-blue-100 p-2">
                 <FileCheck2 className="h-6 w-6 text-blue-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
                 <div className="text-3xl font-bold text-blue-800">{total_fichas}</div>
                 <p className="text-xs text-blue-600">Fichas verificadas</p>
               </div>
@@ -63,15 +73,15 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         </CardWrapper>
 
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-blue-900">Resolvidas</CardTitle>
               <div className="rounded-full bg-blue-100 p-2">
                 <CheckCircle2 className="h-6 w-6 text-blue-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
                 <div className="text-3xl font-bold text-blue-800">
                   {total_divergencias > 0
                     ? Math.round((total_resolvidas / total_divergencias) * 100)
@@ -84,19 +94,24 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         </CardWrapper>
 
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-blue-900">Última Execução</CardTitle>
               <div className="rounded-full bg-blue-100 p-2">
                 <Clock className="h-6 w-6 text-blue-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
-                <div className="text-3xl font-bold text-blue-800">
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-2xl font-bold text-blue-800 flex items-baseline gap-2">
                   {resultadoAuditoria.data_execucao
-                    ? format(new Date(resultadoAuditoria.data_execucao), "dd/MM/yyyy HH:mm")
+                    ? format(new Date(resultadoAuditoria.data_execucao), "dd/MM/yyyy")
                     : "-"}
+                  <span className="text-lg">
+                    {resultadoAuditoria.data_execucao
+                      ? format(new Date(resultadoAuditoria.data_execucao), "HH:mm")
+                      : ""}
+                  </span>
                 </div>
                 <p className="text-xs text-blue-600">{resultadoAuditoria.tempo_execucao || "Tempo não disponível"}</p>
               </div>
@@ -108,15 +123,15 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
       {/* Linha inferior - Cards de problemas (vermelho) */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-red-900">Divergências</CardTitle>
               <div className="rounded-full bg-red-100 p-2">
                 <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
                 <div className="text-3xl font-bold text-red-800">{total_divergencias}</div>
                 <p className="text-xs text-red-600">Total de divergências encontradas</p>
               </div>
@@ -125,16 +140,16 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         </CardWrapper>
 
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-red-900">Execuções sem Ficha</CardTitle>
               <div className="rounded-full bg-red-100 p-2">
                 <FileWarning className="h-6 w-6 text-red-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
-                <div className="text-3xl font-bold text-red-800">{resultadoAuditoria.total_execucoes_sem_ficha}</div>
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-3xl font-bold text-red-800">{execucao_sem_ficha}</div>
                 <p className="text-xs text-red-600">Fichas não encontradas</p>
               </div>
             </CardContent>
@@ -142,16 +157,16 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         </CardWrapper>
 
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-red-900">Fichas sem Execução</CardTitle>
               <div className="rounded-full bg-red-100 p-2">
                 <FileX className="h-6 w-6 text-red-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
-                <div className="text-3xl font-bold text-red-800">{total_fichas_sem_execucao}</div>
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-3xl font-bold text-red-800">{ficha_sem_execucao}</div>
                 <p className="text-xs text-red-600">Execuções não encontradas</p>
               </div>
             </CardContent>
@@ -159,16 +174,16 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         </CardWrapper>
 
         <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-red-900">Datas Divergentes</CardTitle>
               <div className="rounded-full bg-red-100 p-2">
                 <Calendar className="h-6 w-6 text-red-600" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col space-y-1">
-                <div className="text-3xl font-bold text-red-800">{total_datas_divergentes}</div>
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-3xl font-bold text-red-800">{data_divergente}</div>
                 <p className="text-xs text-red-600">Datas não correspondem</p>
               </div>
             </CardContent>
