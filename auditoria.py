@@ -12,7 +12,8 @@ from database_supabase import (
     registrar_auditoria_execucoes,
     limpar_divergencias_db,
     listar_divergencias,
-    registrar_execucao_auditoria
+    registrar_execucao_auditoria,
+    listar_guias  # Nova importação para buscar guias
 )
 
 # Configuração de logging
@@ -252,14 +253,17 @@ def realizar_auditoria_fichas_execucoes(
         if data_final and "/" in data_final:
             data_final = datetime.strptime(data_final, "%d/%m/%Y").strftime("%Y-%m-%d")
 
-        # Busca todas as fichas de presença e execuções
+        # Busca todas as fichas de presença, execuções e guias
         fichas = listar_fichas_presenca(limit=0)
         execucoes = listar_execucoes(limit=0)
+        guias = listar_guias(limit=0)  
 
         if not isinstance(fichas, list):
             fichas = []
         if not isinstance(execucoes, list):
             execucoes = []
+        if not isinstance(guias, list):
+            guias = []
 
         # Filtra por data se necessário
         if data_inicial:
@@ -269,21 +273,32 @@ def realizar_auditoria_fichas_execucoes(
             fichas = [f for f in fichas if f["data_atendimento"] <= data_final]
             execucoes = [e for e in execucoes if e["data_execucao"] <= data_final]
 
-        # Criar um dicionário para mapear código_ficha -> ficha
+        # Criar mapas para facilitar a busca
         mapa_fichas = {f["codigo_ficha"]: f for f in fichas}
+        mapa_guias = {g["numero_guia"]: g for g in guias}  
 
-        # Criar um dicionário para mapear código_ficha -> execucoes
+        # Agrupar execuções por código da ficha e guia
         mapa_execucoes = {}
+        mapa_execucoes_por_guia = {}  
         execucoes_sem_ficha = []
         
         for execucao in execucoes:
             codigo_ficha = execucao.get("codigo_ficha")
+            numero_guia = execucao.get("numero_guia")
+            
+            # Agrupa por código da ficha
             if codigo_ficha:
                 if codigo_ficha not in mapa_execucoes:
                     mapa_execucoes[codigo_ficha] = []
                 mapa_execucoes[codigo_ficha].append(execucao)
             else:
                 execucoes_sem_ficha.append(execucao)
+                
+            # Agrupa por número da guia
+            if numero_guia:
+                if numero_guia not in mapa_execucoes_por_guia:
+                    mapa_execucoes_por_guia[numero_guia] = []
+                mapa_execucoes_por_guia[numero_guia].append(execucao)
 
         total_fichas = len(fichas)
         total_execucoes = len(execucoes)
@@ -295,15 +310,61 @@ def realizar_auditoria_fichas_execucoes(
         total_fichas_sem_execucao = 0
         total_datas_divergentes = 0
         total_fichas_sem_assinatura = 0
+        total_guias_vencidas = 0
+        total_quantidade_excedida = 0
 
-        # 1. Registra execuções sem ficha
+        # 1. Verifica guias vencidas e quantidade excedida
+        for numero_guia, execucoes_da_guia in mapa_execucoes_por_guia.items():
+            guia = mapa_guias.get(numero_guia)
+            if guia:
+                # Verifica se a guia está vencida
+                if not verificar_validade_guia(guia):
+                    divergencias_encontradas += 1
+                    total_guias_vencidas += 1
+                    registrar_divergencia_detalhada(
+                        {
+                            "numero_guia": numero_guia,
+                            "tipo_divergencia": "guia_vencida",
+                            "descricao": f"Guia vencida em {guia.get('data_validade')}",
+                            "paciente_nome": execucoes_da_guia[0]["paciente_nome"],
+                            "carteirinha": execucoes_da_guia[0]["paciente_carteirinha"],
+                            "prioridade": "ALTA",
+                            "detalhes": {
+                                "data_validade": guia.get("data_validade"),
+                                "total_execucoes": len(execucoes_da_guia)
+                            }
+                        }
+                    )
+                
+                # Verifica quantidade excedida
+                qtd_autorizada = int(guia.get("quantidade_autorizada", 0))
+                qtd_executada = len(execucoes_da_guia)
+                if qtd_executada > qtd_autorizada:
+                    divergencias_encontradas += 1
+                    total_quantidade_excedida += 1
+                    registrar_divergencia_detalhada(
+                        {
+                            "numero_guia": numero_guia,
+                            "tipo_divergencia": "quantidade_excedida",
+                            "descricao": f"Quantidade de execuções ({qtd_executada}) excede o autorizado na guia ({qtd_autorizada})",
+                            "paciente_nome": execucoes_da_guia[0]["paciente_nome"],
+                            "carteirinha": execucoes_da_guia[0]["paciente_carteirinha"],
+                            "prioridade": "ALTA",
+                            "detalhes": {
+                                "quantidade_autorizada": qtd_autorizada,
+                                "quantidade_executada": qtd_executada
+                            }
+                        }
+                    )
+
+        # 2. Registra execuções sem ficha
         for execucao in execucoes_sem_ficha:
             divergencias_encontradas += 1
             registrar_divergencia_detalhada(
                 {
                     "numero_guia": execucao["numero_guia"],
                     "data_execucao": execucao["data_execucao"],
-                    "data_atendimento": execucao["data_execucao"],  # Usando a mesma data da execução como data de atendimento
+                    "data_atendimento": execucao["data_execucao"],
                     "codigo_ficha": execucao.get("codigo_ficha"),
                     "tipo_divergencia": "execucao_sem_ficha",
                     "descricao": "Execução sem ficha de presença correspondente",
@@ -313,7 +374,7 @@ def realizar_auditoria_fichas_execucoes(
                 }
             )
 
-        # 2. Para cada ficha, verifica as execuções correspondentes e assinatura
+        # 3. Para cada ficha, verifica as execuções correspondentes e assinatura
         for ficha in fichas:
             codigo_ficha = ficha["codigo_ficha"]
             execucoes_da_ficha = mapa_execucoes.get(codigo_ficha, [])
@@ -429,10 +490,15 @@ def realizar_auditoria_fichas_execucoes(
             divergencias_por_tipo={
                 "execucao_sem_ficha": total_execucoes_sem_ficha,
                 "ficha_sem_execucao": total_fichas_sem_execucao,
-                "data_divergente": total_datas_divergentes
+                "data_divergente": total_datas_divergentes,
+                "ficha_sem_assinatura": total_fichas_sem_assinatura,
+                "guia_vencida": total_guias_vencidas,
+                "quantidade_excedida": total_quantidade_excedida
             }
         )
 
+        logging.info(f"Auditoria concluída em {tempo_execucao}")
+        logging.info(f"Total de divergências encontradas: {divergencias_encontradas}")
         return {
             "message": "Auditoria realizada com sucesso",
             "data": {
