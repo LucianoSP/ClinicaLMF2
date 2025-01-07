@@ -365,6 +365,7 @@ async def upload_pdf(
 ):
     """
     Recebe um ou mais arquivos PDF, extrai informações e salva no banco de dados.
+    Para cada linha assinada/datada da ficha, cria um registro separado.
     """
     if not files:
         raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
@@ -407,16 +408,6 @@ async def upload_pdf(
                         info.get("erro", "Erro desconhecido ao processar PDF")
                     )
 
-                # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente
-                data_formatada = info["json"]["registros"][0]["data_execucao"].replace(
-                    "/", "-"
-                )
-                paciente_nome = info["json"]["registros"][0]["paciente_nome"]
-                novo_nome = f"{info['json']['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
-
-                # Faz upload do arquivo para o Storage
-                arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
-
                 # Prepara o resultado
                 result = {
                     "status": "success",
@@ -425,55 +416,63 @@ async def upload_pdf(
                     "uploaded_files": [],
                 }
 
-                if arquivo_url:
-                    result["uploaded_files"].append(
-                        {"nome": novo_nome, "url": arquivo_url}
-                    )
-
-                # Processa os registros do PDF
+                # Faz upload do arquivo para o Storage apenas se tiver pelo menos uma linha válida
                 dados_guia = info["json"]
                 if dados_guia["registros"]:
-                    saved_ids = []
-                    for registro in dados_guia["registros"]:
-                        registro["codigo_ficha"] = dados_guia["codigo_ficha"]
-                        if arquivo_url:
-                            registro["arquivo_url"] = arquivo_url
-
-                        # Salvar registro no banco
-                        ficha_id = salvar_ficha_presenca(
-                            {
-                                "data_atendimento": registro["data_execucao"],
-                                "paciente_carteirinha": registro[
-                                    "paciente_carteirinha"
-                                ],
-                                "paciente_nome": registro["paciente_nome"],
-                                "numero_guia": registro["guia_id"],
-                                "codigo_ficha": dados_guia["codigo_ficha"],
-                                "possui_assinatura": registro["possui_assinatura"],
-                                "arquivo_digitalizado": arquivo_url,
-                            }
+                    # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente usando dados da primeira linha
+                    primeira_linha = dados_guia["registros"][0]
+                    data_formatada = primeira_linha["data_execucao"].replace("/", "-")
+                    paciente_nome = primeira_linha["paciente_nome"]
+                    novo_nome = f"{dados_guia['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
+                    
+                    # Faz upload do arquivo
+                    arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
+                    if arquivo_url:
+                        result["uploaded_files"].append(
+                            {"nome": novo_nome, "url": arquivo_url}
                         )
-                        if ficha_id:
-                            saved_ids.append(ficha_id)
 
-                    if saved_ids:
-                        result["saved_ids"] = saved_ids
-                    else:
-                        result["status"] = "error"
-                        result["message"] = "Erro ao salvar execucaos no banco de dados"
+                    # Para cada linha do PDF que tem data e assinatura, cria um registro
+                    saved_ids = []
+                    for i, registro in enumerate(dados_guia["registros"], 1):
+                        # Só cria registro se tiver data de atendimento
+                        if registro["data_execucao"]:
+                            # Gera um código único para esta linha da ficha
+                            codigo_ficha_linha = f"{dados_guia['codigo_ficha']}_L{i}"
+                            
+                            # Salvar registro no banco
+                            ficha_id = salvar_ficha_presenca(
+                                {
+                                    "data_atendimento": registro["data_execucao"],
+                                    "paciente_carteirinha": registro["paciente_carteirinha"],
+                                    "paciente_nome": registro["paciente_nome"],
+                                    "numero_guia": registro["guia_id"],
+                                    "codigo_ficha": codigo_ficha_linha,  # Código único por linha
+                                    "possui_assinatura": registro["possui_assinatura"],
+                                    "arquivo_url": arquivo_url if arquivo_url else None,
+                                }
+                            )
+                            if ficha_id:
+                                saved_ids.append(ficha_id)
+
+                    result["saved_ids"] = saved_ids
 
                 results.append(result)
 
             finally:
-                # Limpa o arquivo temporário
+                # Limpar arquivo temporário
                 if os.path.exists(temp_pdf_path):
                     os.remove(temp_pdf_path)
 
         except Exception as e:
-            print(f"Erro ao processar {file.filename}: {str(e)}")
             results.append(
-                {"status": "error", "filename": file.filename, "message": str(e)}
+                {
+                    "status": "error",
+                    "filename": file.filename,
+                    "message": str(e),
+                }
             )
+            continue
 
     return results
 

@@ -206,6 +206,27 @@ def registrar_divergencia_detalhada(divergencia: Dict) -> bool:
         return False
 
 
+def verificar_assinatura_ficha(ficha: Dict) -> bool:
+    """
+    Verifica se a ficha possui assinatura.
+
+    Args:
+        ficha: Dicionário contendo os dados da ficha
+
+    Returns:
+        bool: True se a ficha está assinada, False caso contrário
+    """
+    # Verifica se tem URL da ficha digitalizada
+    if not ficha.get("arquivo_url"):
+        return False
+    
+    # Verifica se tem o campo assinado
+    if "assinado" in ficha:
+        return ficha["assinado"] is True
+    
+    return False
+
+
 def realizar_auditoria_fichas_execucoes(
     data_inicial: str = None, data_final: str = None
 ):
@@ -273,6 +294,7 @@ def realizar_auditoria_fichas_execucoes(
         total_execucoes_sem_ficha = len(execucoes_sem_ficha)
         total_fichas_sem_execucao = 0
         total_datas_divergentes = 0
+        total_fichas_sem_assinatura = 0
 
         # 1. Registra execuções sem ficha
         for execucao in execucoes_sem_ficha:
@@ -291,10 +313,27 @@ def realizar_auditoria_fichas_execucoes(
                 }
             )
 
-        # 2. Para cada ficha, verifica as execuções correspondentes
+        # 2. Para cada ficha, verifica as execuções correspondentes e assinatura
         for ficha in fichas:
             codigo_ficha = ficha["codigo_ficha"]
             execucoes_da_ficha = mapa_execucoes.get(codigo_ficha, [])
+
+            # Verifica assinatura da ficha
+            if not verificar_assinatura_ficha(ficha):
+                divergencias_encontradas += 1
+                total_fichas_sem_assinatura += 1
+                registrar_divergencia_detalhada(
+                    {
+                        "numero_guia": ficha.get("numero_guia", ""),
+                        "data_atendimento": ficha["data_atendimento"],
+                        "codigo_ficha": codigo_ficha,
+                        "tipo_divergencia": "ficha_sem_assinatura",
+                        "descricao": "Ficha de presença sem assinatura",
+                        "paciente_nome": ficha["paciente_nome"],
+                        "carteirinha": ficha["paciente_carteirinha"],
+                        "prioridade": "ALTA",
+                    }
+                )
 
             # Se não houver nenhuma execução
             if not execucoes_da_ficha:
@@ -401,7 +440,7 @@ def realizar_auditoria_fichas_execucoes(
                 "total_divergencias": divergencias_encontradas,
                 "total_resolvidas": 0,
                 "total_pendentes": divergencias_encontradas,
-                "total_fichas_sem_assinatura": 0,
+                "total_fichas_sem_assinatura": total_fichas_sem_assinatura,
                 "total_execucoes_sem_ficha": total_execucoes_sem_ficha,
                 "total_fichas_sem_execucao": total_fichas_sem_execucao,
                 "total_datas_divergentes": total_datas_divergentes,
