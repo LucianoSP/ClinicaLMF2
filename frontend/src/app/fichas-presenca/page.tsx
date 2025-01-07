@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FiTrash2, FiEdit, FiDownload, FiUpload, FiSearch } from 'react-icons/fi';
+import { FiTrash2, FiEdit, FiDownload, FiUpload, FiSearch, FiCheck, FiX } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import SortableTable, { Column } from '@/components/SortableTable';
@@ -14,6 +14,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon, DocumentIcon } from '@heroicons/react/24/outline';
+import Pagination from '@/components/Pagination';
 
 interface FichaPresenca {
   id: string;
@@ -43,42 +44,6 @@ export default function FichasPresenca() {
   const [selectedFicha, setSelectedFicha] = useState<FichaPresenca | null>(null);
   const [editedFicha, setEditedFicha] = useState<Partial<FichaPresenca>>({});
   const { toast } = useToast();
-
-  const fetchFichas = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        limit: perPage.toString(),
-        offset: ((page - 1) * perPage).toString(),
-      });
-
-      if (debouncedSearchTerm.trim().length >= 2) {
-        params.append('paciente_nome', debouncedSearchTerm.trim());
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca?${params.toString()}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setFichas(data.fichas);
-        setTotalPages(data.paginas);
-        setTotalRecords(data.total);
-      } else {
-        throw new Error(data.detail || 'Erro ao carregar fichas');
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao carregar as fichas de presença",
-        variant: "destructive",
-      });
-      setFichas([]);
-      setTotalPages(1);
-      setTotalRecords(0);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!selectedFicha) return;
@@ -273,57 +238,165 @@ export default function FichasPresenca() {
     XLSX.writeFile(wb, `fichas_presenca_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
   };
 
+  const handlePageChange = (newPage: number) => {
+    console.log('Mudando para página:', newPage);
+    setPage(newPage);
+  };
+
+  const handlePerPageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPerPage = parseInt(event.target.value, 10);
+    console.log('Mudando itens por página para:', newPerPage);
+    setPerPage(newPerPage);
+    setPage(1); // Reset para primeira página ao mudar itens por página
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const searchValue = event.target.value || '';
+    console.log('Novo termo de busca:', searchValue);
+    setSearchTerm(searchValue);
+    setPage(1); // Reset para primeira página ao pesquisar
+  };
+
+  const fetchFichas = async () => {
+    setLoading(true);
+    try {
+      const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca`;
+      const params = new URLSearchParams();
+      
+      // Convertendo page/perPage para limit/offset
+      const limit = perPage;
+      const offset = (page - 1) * perPage;
+      
+      params.append('limit', limit.toString());
+      params.append('offset', offset.toString());
+
+      if (debouncedSearchTerm.trim().length >= 2) {
+        params.append('paciente_nome', debouncedSearchTerm.trim());
+      }
+
+      const url = `${baseUrl}?${params.toString()}`;
+      console.log('URL da requisição:', url, { page, perPage, limit, offset });
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Falha ao carregar fichas');
+      }
+
+      const result = await response.json();
+      console.log('Resposta da API:', result);
+
+      if (!result.fichas || !Array.isArray(result.fichas)) {
+        console.error('Formato inválido da resposta:', result);
+        throw new Error('Formato inválido da resposta da API');
+      }
+
+      // Formatando os dados recebidos
+      const fichasFormatadas = result.fichas.map((ficha: any) => {
+        console.log('Processando ficha:', ficha);
+        let dataFormatada = '';
+        
+        if (ficha.data_atendimento) {
+          try {
+            // Se a data vier como DD/MM/YYYY
+            if (ficha.data_atendimento.includes('/')) {
+              const [dia, mes, ano] = ficha.data_atendimento.split('/');
+              dataFormatada = `${dia}/${mes}/${ano}`;
+            } else {
+              // Se vier em outro formato (ISO ou MM/DD/YYYY)
+              const data = new Date(ficha.data_atendimento);
+              if (!isNaN(data.getTime())) {
+                dataFormatada = format(data, 'dd/MM/yyyy');
+              } else {
+                console.error('Data inválida:', ficha.data_atendimento);
+                dataFormatada = ficha.data_atendimento;
+              }
+            }
+          } catch (error) {
+            console.error('Erro ao formatar data:', error, ficha.data_atendimento);
+            dataFormatada = ficha.data_atendimento;
+          }
+        }
+
+        return {
+          ...ficha,
+          possui_assinatura: Boolean(ficha.possui_assinatura),
+          data_atendimento: dataFormatada
+        };
+      });
+
+      console.log('Fichas formatadas:', fichasFormatadas);
+      setFichas(fichasFormatadas);
+      
+      // Calculando o total de páginas
+      const totalPages = Math.ceil(result.total / perPage);
+      setTotalPages(totalPages);
+      setTotalRecords(result.total);
+
+    } catch (error) {
+      console.error('Erro ao buscar fichas:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar as fichas de presença",
+        variant: "destructive",
+      });
+      setFichas([]);
+      setTotalPages(1);
+      setTotalRecords(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    console.log('Efeito disparado:', { page, perPage, searchTerm: debouncedSearchTerm });
     fetchFichas();
-  }, [page, debouncedSearchTerm]);
+  }, [page, perPage, debouncedSearchTerm]);
 
   const columns: Column<FichaPresenca>[] = [
     {
-      key: 'codigo_ficha' as keyof FichaPresenca,
+      key: 'codigo_ficha',
       label: 'Código Ficha',
-      type: 'text'
+      className: 'w-[200px]'
     },
     {
-      key: 'paciente_nome' as keyof FichaPresenca,
+      key: 'paciente_nome',
       label: 'Paciente',
-      type: 'text'
+      className: 'w-[220px]'
     },
     {
-      key: 'paciente_carteirinha' as keyof FichaPresenca,
+      key: 'paciente_carteirinha',
       label: 'Carteirinha',
-      type: 'text'
+      className: 'w-[250px]'
     },
     {
-      key: 'data_atendimento' as keyof FichaPresenca,
+      key: 'data_atendimento',
       label: 'Data',
-      type: 'date',
-      render: (value) => {
-        if (!value) return '';
-        try {
-          if (value.includes('/')) {
-            const [dia, mes, ano] = value.split('/');
-            return `${dia}/${mes}/${ano}`;
-          }
-          const data = new Date(value);
-          if (isNaN(data.getTime())) {
-            throw new Error('Data inválida');
-          }
-          return format(data, 'dd/MM/yyyy', { locale: ptBR });
-        } catch (error) {
-          console.error('Erro ao formatar data:', error, value);
-          return value;
-        }
-      }
+      className: 'w-[130px]',
+      render: (value) => value || ''
     },
     {
-      key: 'numero_guia' as keyof FichaPresenca,
+      key: 'numero_guia',
       label: 'Guia',
-      type: 'text'
+      className: 'w-[150px]'
     },
     {
-      key: 'possui_assinatura' as keyof FichaPresenca,
+      key: 'possui_assinatura',
       label: 'Assinado',
-      type: 'boolean'
+      className: 'w-[100px]',
+      type: 'boolean',
+      render: (value) => (
+        <div className="flex items-center justify-center">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+            value ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
+          }`}>
+            {value ? (
+              <><FiCheck className="w-3 h-3" />Sim</>
+            ) : (
+              <><FiX className="w-3 h-3" />Não</>
+            )}
+          </span>
+        </div>
+      )
     }
   ];
 
@@ -392,27 +465,26 @@ export default function FichasPresenca() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome do paciente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
+          <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Itens por página:</span>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar por nome..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <FiSearch className="absolute left-2 top-3 text-muted-foreground" />
+              </div>
               <select
                 value={perPage}
-                onChange={(e) => setPerPage(Number(e.target.value))}
+                onChange={handlePerPageChange}
                 className="h-10 rounded-md border border-input bg-background px-3 py-2"
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={30}>30</option>
-                <option value={50}>50</option>
+                <option value={10}>10 por página</option>
+                <option value={25}>25 por página</option>
+                <option value={50}>50 por página</option>
               </select>
             </div>
           </div>
@@ -420,58 +492,8 @@ export default function FichasPresenca() {
           <div className="rounded-md border">
             <SortableTable
               data={fichas}
-              columns={[
-                {
-                  key: 'codigo_ficha',
-                  label: 'Código Ficha',
-                  className: 'w-[120px]'
-                },
-                {
-                  key: 'paciente_nome',
-                  label: 'Paciente',
-                  className: 'min-w-[200px]'
-                },
-                {
-                  key: 'paciente_carteirinha',
-                  label: 'Carteirinha',
-                  className: 'w-[150px]'
-                },
-                {
-                  key: 'data_atendimento',
-                  label: 'Data',
-                  className: 'w-[120px]',
-                  render: (value) => {
-                    if (!value) return '';
-                    try {
-                      // Se a data vier como DD/MM/YYYY
-                      if (value.includes('/')) {
-                        const [dia, mes, ano] = value.split('/');
-                        return `${dia}/${mes}/${ano}`;
-                      }
-                      // Se a data vier em outro formato
-                      const data = new Date(value);
-                      if (isNaN(data.getTime())) {
-                        throw new Error('Data inválida');
-                      }
-                      return format(data, 'dd/MM/yyyy');
-                    } catch (error) {
-                      console.error('Erro ao formatar data:', error, value);
-                      return value;
-                    }
-                  }
-                },
-                {
-                  key: 'numero_guia',
-                  label: 'Guia',
-                  className: 'w-[120px]'
-                },
-                {
-                  key: 'possui_assinatura',
-                  label: 'Assinado',
-                  className: 'w-[100px]',
-                  type: 'boolean'
-                }
-              ]}
+              columns={columns}
+              loading={loading}
               actions={(ficha) => (
                 <div className="flex gap-2">
                   <Button
@@ -479,35 +501,15 @@ export default function FichasPresenca() {
                     size="sm"
                     onClick={() => {
                       setSelectedFicha(ficha);
-
-                      // Formatar a data corretamente
                       let dataAtendimento = '';
                       if (ficha.data_atendimento) {
                         try {
-                          // Se a data vier como DD/MM/YYYY
-                          if (ficha.data_atendimento.includes('/')) {
-                            const [dia, mes, ano] = ficha.data_atendimento.split('/');
-                            // Garantir que dia e mês tenham 2 dígitos
-                            const diaFormatado = dia.padStart(2, '0');
-                            const mesFormatado = mes.padStart(2, '0');
-                            dataAtendimento = `${ano}-${mesFormatado}-${diaFormatado}`;
-                          } else {
-                            // Se a data vier em outro formato, tentar converter
-                            const data = new Date(ficha.data_atendimento);
-                            if (isNaN(data.getTime())) {
-                              throw new Error('Data inválida');
-                            }
-                            dataAtendimento = format(data, 'yyyy-MM-dd');
-                          }
+                          dataAtendimento = format(new Date(ficha.data_atendimento), 'yyyy-MM-dd');
                         } catch (error) {
-                          console.error('Erro ao formatar data:', error, ficha.data_atendimento);
+                          console.error('Erro ao formatar data:', error);
                           dataAtendimento = new Date().toISOString().split('T')[0];
                         }
                       }
-
-                      console.log('Data original:', ficha.data_atendimento);
-                      console.log('Data formatada:', dataAtendimento);
-
                       setEditedFicha({
                         data_atendimento: dataAtendimento,
                         paciente_nome: ficha.paciente_nome,
@@ -536,26 +538,42 @@ export default function FichasPresenca() {
             />
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
               Total: {totalRecords} registros
             </p>
             {totalPages > 1 && (
-              <div className="flex justify-center mt-4">
-                <nav className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-                    <button
-                      key={pageNumber}
-                      onClick={() => setPage(pageNumber)}
-                      className={`px-3 py-2 text-sm rounded-md ${page === pageNumber
-                        ? 'bg-[#C5A880] text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
-                        }`}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <Button
+                      key={pageNum}
+                      variant={pageNum === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(pageNum)}
+                      disabled={loading}
+                      className={pageNum === page ? "bg-[#b49d6b] text-white" : ""}
                     >
-                      {pageNumber}
-                    </button>
+                      {pageNum}
+                    </Button>
                   ))}
-                </nav>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages || loading}
+                >
+                  Próxima
+                </Button>
               </div>
             )}
           </div>

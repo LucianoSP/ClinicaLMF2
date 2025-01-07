@@ -20,7 +20,7 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
     <div className="rounded-md border">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="h-12">
             <TableHead>Guia</TableHead>
             <TableHead>Código Ficha</TableHead>
             <TableHead>Paciente</TableHead>
@@ -33,7 +33,7 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
         </TableHeader>
         <TableBody>
           {divergencias.map((divergencia) => (
-            <TableRow key={divergencia.id}>
+            <TableRow key={divergencia.id} className="h-12">
               <TableCell>{divergencia.numero_guia}</TableCell>
               <TableCell>{divergencia.codigo_ficha || '-'}</TableCell>
               <TableCell>{divergencia.paciente_nome}</TableCell>
