@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AuditoriaHeader } from '@/components/auditoria/AuditoriaHeader';
 import { EstatisticasCards } from '@/components/auditoria/EstatisticasCards';
-import FiltrosAuditoria from '@/components/auditoria/FiltrosAuditoria';
+import { FiltrosAuditoria } from '@/components/auditoria/FiltrosAuditoria';
 import { TabelaDivergencias } from '@/components/auditoria/TabelaDivergencias';
 import { Button } from '@/components/ui/button';
 import { FileDown, RefreshCw } from 'lucide-react';
