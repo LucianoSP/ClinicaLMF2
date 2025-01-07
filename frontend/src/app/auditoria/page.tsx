@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { API_URL } from '@/config/api';
 import { AuditoriaResultado } from "@/types";
-import { FiltrosAuditoria, FiltrosAuditoriaProps } from '@/components/auditoria/FiltrosAuditoria';
+import FiltrosAuditoria, { FiltrosAuditoriaProps } from '@/components/auditoria/FiltrosAuditoria';
 
 export interface Divergencia {
   id: string;
@@ -31,11 +31,10 @@ export interface Divergencia {
 }
 
 export default function AuditoriaPage() {
-
   const [dataInicial, setDataInicial] = useState<Date | null>(null);
   const [dataFinal, setDataFinal] = useState<Date | null>(null);
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [tipoDivergencia, setTipoDivergencia] = useState('todos');
+  const [statusFiltro, setStatusFiltro] = useState<string>('todos');
+  const [tipoDivergencia, setTipoDivergencia] = useState<string>('todos');
   const [resultadoAuditoria, setResultadoAuditoria] = useState<AuditoriaResultado | null>(null);
   const [divergencias, setDivergencias] = useState<Divergencia[]>([]);
   const [loading, setLoading] = useState(false);

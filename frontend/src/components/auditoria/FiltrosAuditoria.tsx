@@ -1,23 +1,23 @@
-import { Dispatch, SetStateAction } from 'react';
+import type { FC } from 'react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 
-export interface FiltrosAuditoriaProps {
+export type FiltrosAuditoriaProps = {
   dataInicial: Date | null;
-  setDataInicial: Dispatch<SetStateAction<Date | null>>;
+  setDataInicial: (date: Date | null) => void;
   dataFinal: Date | null;
-  setDataFinal: Dispatch<SetStateAction<Date | null>>;
+  setDataFinal: (date: Date | null) => void;
   statusFiltro: string;
-  setStatusFiltro: Dispatch<SetStateAction<string>>;
+  setStatusFiltro: (status: string) => void;
   tipoDivergencia: string;
-  setTipoDivergencia: Dispatch<SetStateAction<string>>;
+  setTipoDivergencia: (tipo: string) => void;
   onAuditoria: () => Promise<void>;
   onGerarRelatorio: () => Promise<void>;
   loading: boolean;
-}
+};
 
 const tiposDivergencia = [
   { value: 'todos', label: 'Todos os tipos' },
@@ -35,7 +35,7 @@ const statusOptions = [
   { value: 'resolvida', label: 'Resolvida' },
 ] as const;
 
-export function FiltrosAuditoria({
+const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
   dataInicial,
   setDataInicial,
   dataFinal,
@@ -47,7 +47,7 @@ export function FiltrosAuditoria({
   onAuditoria,
   onGerarRelatorio,
   loading
-}: FiltrosAuditoriaProps) {
+}) => {
   const limparFiltros = () => {
     setDataInicial(null);
     setDataFinal(null);
@@ -168,4 +168,6 @@ export function FiltrosAuditoria({
       </div>
     </div>
   );
-}
+};
+
+export default FiltrosAuditoria;
