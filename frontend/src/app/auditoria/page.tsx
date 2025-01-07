@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AuditoriaHeader } from '@/components/auditoria/AuditoriaHeader';
 import { EstatisticasCards } from '@/components/auditoria/EstatisticasCards';
-import { FiltrosAuditoria } from '@/components/auditoria/FiltrosAuditoria';
+
 import { TabelaDivergencias } from '@/components/auditoria/TabelaDivergencias';
 import { Button } from '@/components/ui/button';
 import { FileDown, RefreshCw } from 'lucide-react';
@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { API_URL } from '@/config/api';
 import { AuditoriaResultado } from "@/types";
-
+import { FiltrosAuditoria, FiltrosAuditoriaProps } from '@/components/auditoria/FiltrosAuditoria';
 
 export interface Divergencia {
   id: string;
