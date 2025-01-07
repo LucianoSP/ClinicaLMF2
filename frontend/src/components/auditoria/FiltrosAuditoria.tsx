@@ -2,7 +2,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { FileDown, RefreshCw, X } from 'lucide-react';
 
 interface FiltrosAuditoriaProps {
   dataInicial: Date | null;
@@ -13,6 +13,9 @@ interface FiltrosAuditoriaProps {
   setStatusFiltro: (status: string) => void;
   tipoDivergencia: string;
   setTipoDivergencia: (tipo: string) => void;
+  onAuditoria: () => Promise<void>;
+  onGerarRelatorio: () => Promise<void>;
+  loading: boolean;
 }
 
 const tiposDivergencia = [
@@ -40,6 +43,9 @@ export const FiltrosAuditoria = ({
   setStatusFiltro,
   tipoDivergencia,
   setTipoDivergencia,
+  onAuditoria,
+  onGerarRelatorio,
+  loading
 }: FiltrosAuditoriaProps) => {
   const limparFiltros = () => {
     setDataInicial(null);
@@ -52,30 +58,52 @@ export const FiltrosAuditoria = ({
     <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-800">Filtros</h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={limparFiltros}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          <X className="w-4 h-4 mr-1" />
-          Limpar Filtros
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onGerarRelatorio}
+            disabled={loading}
+          >
+            <FileDown className="w-4 h-4 mr-1" />
+            Gerar Relatório
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onAuditoria}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Iniciar Auditoria
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={limparFiltros}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X className="w-4 h-4 mr-1" />
+            Limpar Filtros
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
-
-          <DatePicker label="Data Inicial"
+          <DatePicker
+            label="Data Inicial"
             date={dataInicial}
-            setDate={setDataInicial} />
+            setDate={setDataInicial}
+          />
         </div>
 
         <div className="space-y-2">
-
-          <DatePicker label="Data Final"
+          <DatePicker
+            label="Data Final"
             date={dataFinal}
-            setDate={setDataFinal} />
+            setDate={setDataFinal}
+          />
         </div>
 
         <div className="space-y-2">
