@@ -352,37 +352,68 @@ export default function FichasPresenca() {
     fetchFichas();
   }, [page, perPage, debouncedSearchTerm]);
 
+  const handleActions = (item: FichaPresenca) => {
+    return (
+      <div className="flex items-center justify-center gap-4">
+        <button
+          onClick={() => {
+            setSelectedFicha(item);
+            setEditedFicha({
+              ...item,
+              data_atendimento: item.data_atendimento.split('/').reverse().join('-')
+            });
+            setShowEditDialog(true);
+          }}
+          className="text-[#b49d6b] hover:text-[#a08b5f]"
+          title="Editar"
+        >
+          <FiEdit className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => {
+            setSelectedFicha(item);
+            setShowDeleteDialog(true);
+          }}
+          className="text-red-600 hover:text-red-700"
+          title="Excluir"
+        >
+          <FiTrash2 className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
+
   const columns: Column<FichaPresenca>[] = [
     {
       key: 'codigo_ficha',
       label: 'Código Ficha',
-      className: 'w-[200px]'
+      className: 'w-[200px] text-center'
     },
     {
       key: 'paciente_nome',
       label: 'Paciente',
-      className: 'w-[220px]'
+      className: 'w-[220px] text-center'
     },
     {
       key: 'paciente_carteirinha',
       label: 'Carteirinha',
-      className: 'w-[250px]'
+      className: 'w-[250px] text-center'
     },
     {
       key: 'data_atendimento',
       label: 'Data',
-      className: 'w-[130px]',
+      className: 'w-[130px] text-center',
       render: (value) => value || ''
     },
     {
       key: 'numero_guia',
       label: 'Guia',
-      className: 'w-[150px]'
+      className: 'w-[150px] text-center'
     },
     {
       key: 'possui_assinatura',
       label: 'Assinado',
-      className: 'w-[100px]',
+      className: 'w-[100px] text-center',
       type: 'boolean',
       render: (value) => (
         <div className="flex items-center justify-center">
@@ -397,6 +428,12 @@ export default function FichasPresenca() {
           </span>
         </div>
       )
+    },
+    {
+      key: 'actions',
+      label: 'Ações',
+      className: 'w-[100px] text-center',
+      render: (value, item) => handleActions(item)
     }
   ];
 
@@ -494,47 +531,6 @@ export default function FichasPresenca() {
               data={fichas}
               columns={columns}
               loading={loading}
-              actions={(ficha) => (
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedFicha(ficha);
-                      let dataAtendimento = '';
-                      if (ficha.data_atendimento) {
-                        try {
-                          dataAtendimento = format(new Date(ficha.data_atendimento), 'yyyy-MM-dd');
-                        } catch (error) {
-                          console.error('Erro ao formatar data:', error);
-                          dataAtendimento = new Date().toISOString().split('T')[0];
-                        }
-                      }
-                      setEditedFicha({
-                        data_atendimento: dataAtendimento,
-                        paciente_nome: ficha.paciente_nome,
-                        paciente_carteirinha: ficha.paciente_carteirinha,
-                        numero_guia: ficha.numero_guia,
-                        codigo_ficha: ficha.codigo_ficha,
-                        possui_assinatura: ficha.possui_assinatura
-                      });
-                      setShowEditDialog(true);
-                    }}
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedFicha(ficha);
-                      setShowDeleteDialog(true);
-                    }}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
             />
           </div>
 

@@ -85,10 +85,12 @@ export default function SortableTable<T>({
               <th
                 key={String(column.key)}
                 onClick={() => handleSort(column.key)}
-                className={`px-3 py-1.5 text-left cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-500 ${column.className || ''}`}
+                className={`px-3 py-1.5 cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-500 ${
+                  column.className?.includes('text-center') ? 'text-center' : 'text-left'
+                } ${column.className || ''}`}
                 style={{ whiteSpace: 'nowrap', ...column.style }}
               >
-                <div className="flex items-center gap-1">
+                <div className={`flex items-center ${column.className?.includes('text-center') ? 'justify-center' : 'gap-1'}`}>
                   {column.label}
                   <span className="text-gray-400">
                     {sortKey === column.key ? (
@@ -175,8 +177,8 @@ export default function SortableTable<T>({
                 </td>
               ))}
               {(onEdit || onDelete || onSave || actions) && (
-                <td className="px-3 py-2 text-sm text-gray-500 whitespace-nowrap w-[100px]">
-                  <div className="flex items-center justify-end space-x-2">
+                <td className="px-3 py-3 text-sm text-gray-500 whitespace-nowrap w-[100px]">
+                  <div className="flex items-center justify-center space-x-2">
                     {actions ? (
                       actions(item)
                     ) : (
