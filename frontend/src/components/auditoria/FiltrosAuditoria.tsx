@@ -1,19 +1,21 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { FileDown, RefreshCw, X } from 'lucide-react';
 
-export type FiltrosAuditoriaProps = {
+type SetState<T> = Dispatch<SetStateAction<T>>;
+
+type FiltrosAuditoriaProps = {
   dataInicial: Date | null;
-  setDataInicial: Dispatch<SetStateAction<Date | null>>;
+  setDataInicial: SetState<Date | null>;
   dataFinal: Date | null;
-  setDataFinal: Dispatch<SetStateAction<Date | null>>;
+  setDataFinal: SetState<Date | null>;
   statusFiltro: string;
-  setStatusFiltro: Dispatch<SetStateAction<string>>;
+  setStatusFiltro: SetState<string>;
   tipoDivergencia: string;
-  setTipoDivergencia: Dispatch<SetStateAction<string>>;
+  setTipoDivergencia: SetState<string>;
   onAuditoria: () => Promise<void>;
   onGerarRelatorio: () => Promise<void>;
   loading: boolean;
@@ -35,7 +37,7 @@ const statusOptions = [
   { value: 'resolvida', label: 'Resolvida' },
 ] as const;
 
-export const FiltrosAuditoria = ({
+export function FiltrosAuditoria({
   dataInicial,
   setDataInicial,
   dataFinal,
@@ -47,7 +49,7 @@ export const FiltrosAuditoria = ({
   onAuditoria,
   onGerarRelatorio,
   loading
-}: FiltrosAuditoriaProps): JSX.Element => {
+}: FiltrosAuditoriaProps) {
   const limparFiltros = () => {
     setDataInicial(null);
     setDataFinal(null);
@@ -160,4 +162,4 @@ export const FiltrosAuditoria = ({
       </div>
     </div>
   );
-};
+}

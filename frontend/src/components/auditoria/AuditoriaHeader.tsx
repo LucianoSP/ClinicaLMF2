@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
 import { CardHeader } from "@/components/ui/card";
 import { CardTitle } from "@/components/ui/card";
-import { AuditoriaResultado } from '@/types/index';
+import { AuditoriaResultado } from "@/types";
 
 const formatarData = (data: string) => {
     if (!data) return '-';
