@@ -1522,3 +1522,23 @@ def registrar_auditoria_execucoes(
         logging.error(f"Erro ao registrar metadados da auditoria: {str(e)}")
         logging.error(traceback.format_exc())
         return False
+
+
+def listar_tipos_divergencia():
+    """Lista todos os valores possíveis do enum tipo_divergencia"""
+    try:
+        # Consulta SQL para obter todos os valores do enum tipo_divergencia
+        query = """
+        SELECT e.enumlabel
+        FROM pg_type t 
+        JOIN pg_enum e ON t.oid = e.enumtypid  
+        WHERE t.typname = 'tipo_divergencia'
+        ORDER BY e.enumsortorder;
+        """
+        
+        result = supabase.raw(query).execute()
+        tipos = [row['enumlabel'] for row in result.data]
+        return tipos
+    except Exception as e:
+        print(f"Erro ao listar tipos de divergência: {e}")
+        return []

@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 import logging
 import traceback
 from fastapi import APIRouter, HTTPException
+from datetime import timedelta
 
 from database_supabase import (
     listar_fichas_presenca,
@@ -314,29 +315,71 @@ def realizar_auditoria_fichas_execucoes(
             else:
                 # Para cada execução desta ficha, verifica se a data bate
                 for execucao in execucoes_da_ficha:
-                    # Compara apenas a data, ignorando a hora
-                    data_execucao = datetime.strptime(execucao["data_execucao"], "%Y-%m-%d").date()
-                    data_atendimento = datetime.strptime(ficha["data_atendimento"], "%Y-%m-%d").date()
-                    
-                    if data_execucao != data_atendimento:
+                    # Verifica se as datas existem
+                    if not execucao.get("data_execucao") or not ficha.get("data_atendimento"):
                         divergencias_encontradas += 1
-                        total_datas_divergentes += 1
                         registrar_divergencia_detalhada(
                             {
-                                "numero_guia": execucao["numero_guia"],
-                                "data_execucao": execucao["data_execucao"],
-                                "data_atendimento": ficha["data_atendimento"],
+                                "numero_guia": execucao.get("numero_guia", ""),
+                                "data_execucao": execucao.get("data_execucao", ""),
+                                "data_atendimento": ficha.get("data_atendimento", ""),
                                 "codigo_ficha": codigo_ficha,
-                                "tipo_divergencia": "data_divergente",
-                                "descricao": f'Data da ficha ({ficha["data_atendimento"]}) diferente da execução ({execucao["data_execucao"]})',
-                                "paciente_nome": execucao["paciente_nome"],
-                                "carteirinha": execucao["paciente_carteirinha"],
-                                "prioridade": "MEDIA",
+                                "tipo_divergencia": "execucao_sem_ficha",
+                                "descricao": "Data de execução ou atendimento ausente",
+                                "paciente_nome": execucao.get("paciente_nome", ""),
+                                "carteirinha": execucao.get("paciente_carteirinha", ""),
+                                "prioridade": "ALTA",
+                            }
+                        )
+                        continue
+
+                    # Compara apenas a data, ignorando a hora
+                    try:
+                        data_execucao = datetime.strptime(execucao["data_execucao"], "%d/%m/%Y").date()
+                        data_atendimento = datetime.strptime(ficha["data_atendimento"], "%d/%m/%Y").date()
+                        
+                        if data_execucao != data_atendimento:
+                            divergencias_encontradas += 1
+                            total_datas_divergentes += 1
+                            registrar_divergencia_detalhada(
+                                {
+                                    "numero_guia": execucao["numero_guia"],
+                                    "data_execucao": execucao["data_execucao"],
+                                    "data_atendimento": ficha["data_atendimento"],
+                                    "codigo_ficha": codigo_ficha,
+                                    "tipo_divergencia": "data_divergente",
+                                    "descricao": f'Data da ficha ({ficha["data_atendimento"]}) diferente da execução ({execucao["data_execucao"]})',
+                                    "paciente_nome": execucao["paciente_nome"],
+                                    "carteirinha": execucao["paciente_carteirinha"],
+                                    "prioridade": "MEDIA",
+                                }
+                            )
+                    except ValueError as e:
+                        divergencias_encontradas += 1
+                        registrar_divergencia_detalhada(
+                            {
+                                "numero_guia": execucao.get("numero_guia", ""),
+                                "data_execucao": execucao.get("data_execucao", ""),
+                                "data_atendimento": ficha.get("data_atendimento", ""),
+                                "codigo_ficha": codigo_ficha,
+                                "tipo_divergencia": "execucao_sem_ficha",
+                                "descricao": f"Formato de data inválido: {str(e)}",
+                                "paciente_nome": execucao.get("paciente_nome", ""),
+                                "carteirinha": execucao.get("paciente_carteirinha", ""),
+                                "prioridade": "ALTA",
                             }
                         )
 
         end_time = datetime.now()
         tempo_execucao = str(end_time - start_time)
+
+        # Se as datas não foram fornecidas, usa o primeiro e último dia do mês atual
+        if not data_inicial:
+            data_inicial = datetime.now().replace(day=1).strftime("%d/%m/%Y")
+        if not data_final:
+            # Último dia do mês atual
+            ultimo_dia = (datetime.now().replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            data_final = ultimo_dia.strftime("%d/%m/%Y")
 
         # Registra os metadados da auditoria
         registrar_execucao_auditoria(

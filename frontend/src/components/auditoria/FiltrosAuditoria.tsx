@@ -19,10 +19,10 @@ const tiposDivergencia = [
   { value: 'todos', label: 'Todos os tipos' },
   { value: 'execucao_sem_ficha', label: 'Execução sem Ficha' },
   { value: 'ficha_sem_execucao', label: 'Ficha sem Execução' },
+  { value: 'ficha_sem_assinatura', label: 'Ficha sem Assinatura' },
+  { value: 'data_divergente', label: 'Data Divergente' },
+  { value: 'guia_vencida', label: 'Guia Vencida' },
   { value: 'quantidade_excedida', label: 'Quantidade Excedida' },
-  { value: 'data_inconsistente', label: 'Data Inconsistente' },
-  { value: 'doc_incompleto', label: 'Documentação Incompleta' },
-  { value: 'assinatura_ausente', label: 'Assinatura Ausente' },
 ];
 
 const statusOptions = [

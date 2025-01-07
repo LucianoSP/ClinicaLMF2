@@ -1,5 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Query, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
+import database_supabase
+from auditoria import realizar_auditoria, realizar_auditoria_fichas_execucoes
 from pydantic import BaseModel, ValidationError
 import os
 import pandas as pd
@@ -40,7 +42,6 @@ import anthropic
 from pathlib import Path
 import re
 from math import ceil
-from auditoria import realizar_auditoria, realizar_auditoria_fichas_execucoes
 import logging
 import uvicorn
 import sqlite3  # Adicionando importação do sqlite3
@@ -52,14 +53,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PDF Processor API")
 
-# Configurar CORS
+# Configuração do CORS - totalmente permissivo para desenvolvimento
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir todas as origens em desenvolvimento
-    allow_credentials=True,  # Permitir cookies
-    allow_methods=["*"],  # Permitir todos os métodos
-    allow_headers=["*"],  # Permitir todos os headers
-    expose_headers=["*"],  # Expor todos os headers
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Debug: Verificar variáveis do Supabase
@@ -240,6 +242,11 @@ class DivergenciasListResponse(BaseModel):
     total: int
     paginas: int
     resumo: dict[str, int]  # Contagem por tipo e prioridade
+
+
+class AuditoriaRequest(BaseModel):
+    data_inicio: str | None = None
+    data_fim: str | None = None
 
 
 async def extract_info_from_pdf(pdf_path: str):
@@ -729,15 +736,12 @@ async def clear_execucoes():
 
 
 @app.post("/auditoria/iniciar")
-async def iniciar_auditoria(
-    data_inicio: Optional[str] = Query(None, description="Data inicial (DD/MM/YYYY)"),
-    data_fim: Optional[str] = Query(None, description="Data final (DD/MM/YYYY)"),
-):
+async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
     try:
         logger.info(
-            f"Iniciando auditoria com data_inicial={data_inicio}, data_final={data_fim}"
+            f"Iniciando auditoria com data_inicial={request.data_inicio}, data_final={request.data_fim}"
         )
-        realizar_auditoria_fichas_execucoes(data_inicio, data_fim)
+        realizar_auditoria_fichas_execucoes(request.data_inicio, request.data_fim)
         ultima_auditoria = obter_ultima_auditoria()
         return {"message": "Auditoria realizada com sucesso", "data": ultima_auditoria}
     except Exception as e:
@@ -1175,6 +1179,19 @@ async def listar_guias_paciente(paciente_id: str):
     except Exception as e:
         logger.error(f"Erro ao buscar guias do paciente: {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar guias do paciente")
+
+
+@app.get("/tipos-divergencia")
+def listar_tipos_divergencia_route():
+    """Lista os tipos de divergência disponíveis"""
+    try:
+        tipos = database_supabase.listar_tipos_divergencia()
+        return {"tipos": tipos}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao listar tipos de divergência: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

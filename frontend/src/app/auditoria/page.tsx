@@ -13,7 +13,6 @@ import { API_URL } from '@/config/api';
 import { AuditoriaResultado } from "@/types";
 
 
-
 export interface Divergencia {
   id: string;
   numero_guia: string;
@@ -47,21 +46,24 @@ export default function AuditoriaPage() {
 
   const formatarData = (date: Date | null) => {
     if (!date) return '';
-    return format(date, 'yyyy-MM-dd');
+    return format(date, 'dd/MM/yyyy');
   };
 
   const handleAuditoria = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        data_inicial: formatarData(dataInicial),
-        data_final: formatarData(dataFinal),
-        status: statusFiltro,
-        tipo_divergencia: tipoDivergencia,
-      });
+      const requestBody = {
+        data_inicio: formatarData(dataInicial),
+        data_fim: formatarData(dataFinal)
+      };
 
-      const response = await fetch(`${API_URL}/auditoria/iniciar/?${params.toString()}`, {
+      const response = await fetch(`${API_URL}/auditoria/iniciar`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'omit',
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -91,14 +93,14 @@ export default function AuditoriaPage() {
   const buscarDivergencias = async () => {
     try {
       const params = new URLSearchParams();
-      if (dataInicial) params.append('data_inicio', formatarData(dataInicial));
-      if (dataFinal) params.append('data_fim', formatarData(dataFinal));
-      if (statusFiltro !== 'todos') params.append('status', statusFiltro);
-      if (tipoDivergencia !== 'todos') params.append('tipo_divergencia', tipoDivergencia);
-      params.append('page', page.toString());
-      params.append('per_page', perPage.toString());
+      if (dataInicial) params.set('data_inicio', formatarData(dataInicial));
+      if (dataFinal) params.set('data_fim', formatarData(dataFinal));
+      if (statusFiltro !== 'todos') params.set('status', statusFiltro);
+      if (tipoDivergencia !== 'todos') params.set('tipo_divergencia', tipoDivergencia);
+      params.set('page', page.toString());
+      params.set('per_page', perPage.toString());
 
-      const response = await fetch(`${API_URL}/auditoria/divergencias?${params.toString()}`);
+      const response = await fetch(`${API_URL}/auditoria/divergencias?${params}`);
 
       if (!response.ok) {
         throw new Error('Falha ao buscar divergências');
@@ -124,7 +126,7 @@ export default function AuditoriaPage() {
       if (dataInicial) params.append('data_inicio', formatarData(dataInicial));
       if (dataFinal) params.append('data_fim', formatarData(dataFinal));
 
-      const response = await fetch(`${API_URL}/auditoria/relatorio?${params.toString()}`);
+      const response = await fetch(`${API_URL}/auditoria/relatorio?${params}`);
 
       if (!response.ok) {
         throw new Error('Falha ao gerar relatório');
