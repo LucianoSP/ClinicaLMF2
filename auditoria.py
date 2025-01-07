@@ -267,11 +267,14 @@ def realizar_auditoria_fichas_execucoes(
 
         # Filtra por data se necessário
         if data_inicial:
-            fichas = [f for f in fichas if f["data_atendimento"] >= data_inicial]
-            execucoes = [e for e in execucoes if e["data_execucao"] >= data_inicial]
+            fichas = [f for f in fichas if f.get("data_atendimento") and f["data_atendimento"] >= data_inicial]
+            execucoes = [e for e in execucoes if e.get("data_execucao") and e["data_execucao"] >= data_inicial]
         if data_final:
-            fichas = [f for f in fichas if f["data_atendimento"] <= data_final]
-            execucoes = [e for e in execucoes if e["data_execucao"] <= data_final]
+            fichas = [f for f in fichas if f.get("data_atendimento") and f["data_atendimento"] <= data_final]
+            execucoes = [e for e in execucoes if e.get("data_execucao") and e["data_execucao"] <= data_final]
+
+        logging.info(f"Total de fichas após filtro: {len(fichas)}")
+        logging.info(f"Total de execuções após filtro: {len(execucoes)}")
 
         # Criar mapas para facilitar a busca
         mapa_fichas = {f["codigo_ficha"]: f for f in fichas}
@@ -485,7 +488,7 @@ def realizar_auditoria_fichas_execucoes(
         registrar_execucao_auditoria(
             data_inicial=data_inicial,
             data_final=data_final,
-            total_protocolos=total_fichas + total_execucoes,
+            total_protocolos=len(fichas),
             total_divergencias=divergencias_encontradas,
             divergencias_por_tipo={
                 "execucao_sem_ficha": total_execucoes_sem_ficha,
@@ -494,7 +497,10 @@ def realizar_auditoria_fichas_execucoes(
                 "ficha_sem_assinatura": total_fichas_sem_assinatura,
                 "guia_vencida": total_guias_vencidas,
                 "quantidade_excedida": total_quantidade_excedida
-            }
+            },
+            total_fichas=len(fichas),
+            total_execucoes=len(execucoes),
+            total_resolvidas=0  # Inicialmente todas as divergências estão não resolvidas
         )
 
         logging.info(f"Auditoria concluída em {tempo_execucao}")

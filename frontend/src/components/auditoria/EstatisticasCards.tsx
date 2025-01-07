@@ -12,7 +12,10 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
   const {
     total_fichas_sem_execucao = 0,
     total_datas_divergentes = 0,
-    total_fichas = resultadoAuditoria.total_protocolos || 0,
+    total_fichas = 0,  
+    total_execucoes = 0,  
+    total_resolvidas = 0,  
+    total_divergencias = 0,
   } = resultadoAuditoria;
 
   const CardWrapper = ({ children, className = "" }) => (
@@ -35,7 +38,7 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col space-y-1">
-                <div className="text-3xl font-bold text-blue-800">{resultadoAuditoria.total_protocolos}</div>
+                <div className="text-3xl font-bold text-blue-800">{total_execucoes}</div>
                 <p className="text-xs text-blue-600">Guias analisadas</p>
               </div>
             </CardContent>
@@ -70,8 +73,8 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
             <CardContent>
               <div className="flex flex-col space-y-1">
                 <div className="text-3xl font-bold text-blue-800">
-                  {resultadoAuditoria.total_divergencias > 0
-                    ? Math.round((resultadoAuditoria.total_resolvidas / resultadoAuditoria.total_divergencias) * 100)
+                  {total_divergencias > 0
+                    ? Math.round((total_resolvidas / total_divergencias) * 100)
                     : 0}%
                 </div>
                 <p className="text-xs text-blue-600">Divergências resolvidas</p>
@@ -114,7 +117,7 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col space-y-1">
-                <div className="text-3xl font-bold text-red-800">{resultadoAuditoria.total_divergencias}</div>
+                <div className="text-3xl font-bold text-red-800">{total_divergencias}</div>
                 <p className="text-xs text-red-600">Total de divergências encontradas</p>
               </div>
             </CardContent>

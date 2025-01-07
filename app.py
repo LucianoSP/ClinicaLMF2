@@ -740,11 +740,20 @@ async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
         logger.info(
             f"Iniciando auditoria com data_inicial={request.data_inicio}, data_final={request.data_fim}"
         )
-        realizar_auditoria_fichas_execucoes(request.data_inicio, request.data_fim)
+        # Converte as datas para o formato correto se necessário
+        data_inicial = request.data_inicio
+        data_final = request.data_fim
+        if data_inicial and "/" not in data_inicial:
+            data_inicial = datetime.strptime(data_inicial, "%Y-%m-%d").strftime("%d/%m/%Y")
+        if data_final and "/" not in data_final:
+            data_final = datetime.strptime(data_final, "%Y-%m-%d").strftime("%d/%m/%Y")
+
+        realizar_auditoria_fichas_execucoes(data_inicial, data_final)
         ultima_auditoria = obter_ultima_auditoria()
         return {"message": "Auditoria realizada com sucesso", "data": ultima_auditoria}
     except Exception as e:
         logger.error(f"Erro ao realizar auditoria: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 

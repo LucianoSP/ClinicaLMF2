@@ -1231,27 +1231,37 @@ def registrar_execucao_auditoria(
     total_protocolos: int = 0,
     total_divergencias: int = 0,
     divergencias_por_tipo: dict = None,
-) -> Optional[str]:
-    """Registra uma nova execução de auditoria com seus metadados"""
+    total_fichas: int = 0,
+    total_execucoes: int = 0,
+    total_resolvidas: int = 0,
+) -> bool:
+    """Registra uma nova execução de auditoria com seus metadados."""
     try:
-        dados = {
+        logging.info(f"Registrando execução de auditoria com {total_fichas} fichas e {total_execucoes} execuções")
+        data = {
+            "data_execucao": datetime.now(timezone.utc).isoformat(),
             "data_inicial": data_inicial,
             "data_final": data_final,
             "total_protocolos": total_protocolos,
             "total_divergencias": total_divergencias,
             "divergencias_por_tipo": divergencias_por_tipo or {},
+            "total_fichas": total_fichas,
+            "total_execucoes": total_execucoes,
+            "total_resolvidas": total_resolvidas,
         }
 
-        response = supabase.table("auditoria_execucoes").insert(dados).execute()
-
-        if response.data and len(response.data) > 0:
-            return response.data[0]["id"]
-        return None
+        response = supabase.table("auditoria_execucoes").insert(data).execute()
+        if response.data:
+            logging.info("Execução de auditoria registrada com sucesso")
+            return True
+        else:
+            logging.error("Erro ao registrar execução de auditoria: response.data está vazio")
+            return False
 
     except Exception as e:
-        print(f"Erro ao registrar execução de auditoria: {e}")
+        logging.error(f"Erro ao registrar execução de auditoria: {str(e)}")
         traceback.print_exc()
-        return None
+        return False
 
 
 def calcular_estatisticas_divergencias() -> Dict:
@@ -1307,48 +1317,59 @@ def calcular_estatisticas_divergencias() -> Dict:
 
 
 def obter_ultima_auditoria() -> Dict:
-    """
-    Obtém o resultado da última auditoria realizada e calcula estatísticas das divergências
-    """
+    """Obtém o resultado da última auditoria realizada e calcula estatísticas das divergências."""
     try:
-        # Busca última auditoria
+        # Busca a última execução de auditoria
         response = (
             supabase.table("auditoria_execucoes")
             .select("*")
-            .order("created_at", desc=True)
+            .order("data_execucao", desc=True)
             .limit(1)
             .execute()
         )
 
         if not response.data:
-            return None
+            return {
+                "total_protocolos": 0,
+                "total_divergencias": 0,
+                "divergencias_por_tipo": {},
+                "total_fichas": 0,
+                "total_execucoes": 0,
+                "total_resolvidas": 0,
+                "data_execucao": None,
+                "tempo_execucao": None
+            }
 
         ultima_auditoria = response.data[0]
-        divergencias_por_tipo = ultima_auditoria.get("divergencias_por_tipo", {})
 
-        # Calcula estatísticas das divergências
-        estatisticas = calcular_estatisticas_divergencias()
+        # Calcula o tempo desde a última execução
+        data_execucao = datetime.fromisoformat(ultima_auditoria["data_execucao"].replace("Z", "+00:00"))
+        agora = datetime.now(timezone.utc)
+        diferenca = agora - data_execucao
+
+        # Formata o tempo de execução
+        if diferenca.days > 0:
+            tempo_execucao = f"Há {diferenca.days} dias"
+        elif diferenca.seconds > 3600:
+            tempo_execucao = f"Há {diferenca.seconds // 3600} horas"
+        elif diferenca.seconds > 60:
+            tempo_execucao = f"Há {diferenca.seconds // 60} minutos"
+        else:
+            tempo_execucao = f"Há {diferenca.seconds} segundos"
 
         return {
             "total_protocolos": ultima_auditoria.get("total_protocolos", 0),
-            "total_divergencias": estatisticas["total"],
-            "total_resolvidas": estatisticas["por_status"].get("resolvida", 0),
-            "total_pendentes": estatisticas["por_status"].get("pendente", 0),
-            "total_fichas_sem_assinatura": 0,  # TODO: Implementar
-            "total_execucoes_sem_ficha": divergencias_por_tipo.get(
-                "execucao_sem_ficha", 0
-            ),
-            "total_fichas_sem_execucao": divergencias_por_tipo.get(
-                "ficha_sem_execucao", 0
-            ),
-            "total_datas_divergentes": divergencias_por_tipo.get("data_divergente", 0),
+            "total_divergencias": ultima_auditoria.get("total_divergencias", 0),
+            "divergencias_por_tipo": ultima_auditoria.get("divergencias_por_tipo", {}),
             "total_fichas": ultima_auditoria.get("total_fichas", 0),
-            "data_execucao": ultima_auditoria.get("created_at"),
-            "tempo_execucao": "Tempo não disponível",  # TODO: Calcular tempo de execução se necessário
+            "total_execucoes": ultima_auditoria.get("total_execucoes", 0),
+            "total_resolvidas": ultima_auditoria.get("total_resolvidas", 0),
+            "data_execucao": ultima_auditoria["data_execucao"],
+            "tempo_execucao": tempo_execucao
         }
 
     except Exception as e:
-        print(f"Erro ao obter última auditoria: {e}")
+        logging.error(f"Erro ao obter última auditoria: {str(e)}")
         traceback.print_exc()
         return None
 
@@ -1522,23 +1543,3 @@ def registrar_auditoria_execucoes(
         logging.error(f"Erro ao registrar metadados da auditoria: {str(e)}")
         logging.error(traceback.format_exc())
         return False
-
-
-def listar_tipos_divergencia():
-    """Lista todos os valores possíveis do enum tipo_divergencia"""
-    try:
-        # Consulta SQL para obter todos os valores do enum tipo_divergencia
-        query = """
-        SELECT e.enumlabel
-        FROM pg_type t 
-        JOIN pg_enum e ON t.oid = e.enumtypid  
-        WHERE t.typname = 'tipo_divergencia'
-        ORDER BY e.enumsortorder;
-        """
-        
-        result = supabase.raw(query).execute()
-        tipos = [row['enumlabel'] for row in result.data]
-        return tipos
-    except Exception as e:
-        print(f"Erro ao listar tipos de divergência: {e}")
-        return []
