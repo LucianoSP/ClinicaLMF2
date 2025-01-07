@@ -1,4 +1,3 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatarData } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
@@ -6,60 +5,70 @@ import { useState } from "react";
 import { DetalheDivergencia } from "./DetalheDivergencia";
 import { BadgeStatus } from "@/components/ui/badge-status";
 import { Divergencia } from "@/app/auditoria/page";
+import SortableTable, { Column } from '@/components/SortableTable';
 
 interface TabelaDivergenciasProps {
   divergencias: Divergencia[];
-  onResolve: (id: string) => void;
+  onMarcarResolvido: (id: string) => void;
   loading?: boolean;
 }
 
-export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaDivergenciasProps) {
+export function TabelaDivergencias({ divergencias, onMarcarResolvido, loading }: TabelaDivergenciasProps) {
   const [selectedDivergencia, setSelectedDivergencia] = useState<Divergencia | null>(null);
 
+  const columns: Column<Divergencia>[] = [
+    {
+      key: 'numero_guia',
+      label: 'Guia',
+    },
+    {
+      key: 'codigo_ficha',
+      label: 'Código Ficha',
+      render: (value) => value || '-'
+    },
+    {
+      key: 'paciente_nome',
+      label: 'Paciente',
+    },
+    {
+      key: 'data_atendimento',
+      label: 'Data Atendimento',
+      render: (value) => value ? formatarData(new Date(value)) : '-'
+    },
+    {
+      key: 'data_execucao',
+      label: 'Data Execução',
+      render: (value) => value ? formatarData(new Date(value)) : '-'
+    },
+    {
+      key: 'tipo_divergencia',
+      label: 'Tipo',
+      render: (value) => <BadgeStatus value={value} />
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (value) => <BadgeStatus value={value} />
+    }
+  ];
+
+  const actions = (item: Divergencia) => (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => setSelectedDivergencia(item)}
+    >
+      Detalhes
+    </Button>
+  );
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow className="h-12">
-            <TableHead>Guia</TableHead>
-            <TableHead>Código Ficha</TableHead>
-            <TableHead>Paciente</TableHead>
-            <TableHead>Data Atendimento</TableHead>
-            <TableHead>Data Execução</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {divergencias.map((divergencia) => (
-            <TableRow key={divergencia.id} className="h-12">
-              <TableCell>{divergencia.numero_guia}</TableCell>
-              <TableCell>{divergencia.codigo_ficha || '-'}</TableCell>
-              <TableCell>{divergencia.paciente_nome}</TableCell>
-              <TableCell>{divergencia.data_atendimento ? formatarData(new Date(divergencia.data_atendimento)) : '-'}</TableCell>
-              <TableCell>{divergencia.data_execucao ? formatarData(new Date(divergencia.data_execucao)) : '-'}</TableCell>
-              <TableCell>
-                <BadgeStatus value={divergencia.tipo_divergencia} />
-              </TableCell>
-              <TableCell>
-                <BadgeStatus value={divergencia.status} />
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedDivergencia(divergencia)}
-                  >
-                    Detalhes
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <>
+      <SortableTable
+        data={divergencias}
+        columns={columns}
+        actions={actions}
+      />
 
       <DetalheDivergencia
         divergencia={selectedDivergencia}
@@ -67,11 +76,11 @@ export function TabelaDivergencias({ divergencias, onResolve, loading }: TabelaD
         onClose={() => setSelectedDivergencia(null)}
         onResolverClick={() => {
           if (selectedDivergencia) {
-            onResolve(selectedDivergencia.id);
+            onMarcarResolvido(selectedDivergencia.id);
             setSelectedDivergencia(null);
           }
         }}
       />
-    </div>
+    </>
   );
 }

@@ -12,7 +12,6 @@ import { format } from 'date-fns';
 import { API_URL } from '@/config/api';
 import { AuditoriaResultado } from "@/types";
 
-
 export interface Divergencia {
   id: string;
   numero_guia: string;
@@ -212,91 +211,65 @@ export default function AuditoriaPage() {
   }, []);
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="bg-white rounded-lg shadow">
+    <div className="pl-1">
+      <div className="bg-white rounded-lg shadow p-6 flex flex-col space-y-4">
         <AuditoriaHeader />
+        <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
+        <FiltrosAuditoria
+          dataInicial={dataInicial}
+          setDataInicial={setDataInicial}
+          dataFinal={dataFinal}
+          setDataFinal={setDataFinal}
+          statusFiltro={statusFiltro}
+          setStatusFiltro={setStatusFiltro}
+          tipoDivergencia={tipoDivergencia}
+          setTipoDivergencia={setTipoDivergencia}
+          onAuditoria={handleAuditoria}
+          onGerarRelatorio={gerarRelatorio}
+          loading={loading}
+        />
 
-        <div className="p-6 space-y-6">
-          <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
-          <FiltrosAuditoria
-            dataInicial={dataInicial}
-            setDataInicial={setDataInicial}
-            dataFinal={dataFinal}
-            setDataFinal={setDataFinal}
-            statusFiltro={statusFiltro}
-            setStatusFiltro={setStatusFiltro}
-            tipoDivergencia={tipoDivergencia}
-            setTipoDivergencia={setTipoDivergencia}
-          />
-
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
+        <TabelaDivergencias
+          divergencias={divergencias}
+          loading={loading}
+          onMarcarResolvido={marcarResolvido}
+        />
+        
+        {divergencias.length > 0 && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">Itens por página:</span>
               <select
+                className="border rounded p-1"
                 value={perPage}
-                onChange={(e) => {
-                  setPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2"
+                onChange={(e) => setPerPage(Number(e.target.value))}
               >
                 <option value={10}>10</option>
-                <option value={25}>25</option>
+                <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
             </div>
-
-            <div className="flex gap-2">
+            <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
-                onClick={gerarRelatorio}
-                disabled={loading}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
               >
-                <FileDown className="w-4 h-4 mr-2" />
-                Exportar
+                Anterior
               </Button>
+              <span className="text-sm text-muted-foreground">
+                Página {page} de {totalPages}
+              </span>
               <Button
-                onClick={handleAuditoria}
-                disabled={loading}
+                variant="outline"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || loading}
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar Auditoria
+                Próxima
               </Button>
             </div>
           </div>
-
-          <div className="rounded-md border">
-            <TabelaDivergencias
-              divergencias={divergencias}
-              onResolve={marcarResolvido}
-              loading={loading}
-            />
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex justify-center">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1 || loading}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Página {page} de {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages || loading}
-                >
-                  Próxima
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
