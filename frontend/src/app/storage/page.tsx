@@ -82,10 +82,10 @@ export default function StoragePage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-4">
+    <div className="p-2"> {/* Alterado apenas o padding aqui de px-4 py-4 para p-2 */}
       <div className="bg-white rounded-lg shadow-md p-4">
         <h1 className="text-2xl font-bold text-[#8B4513] mb-4">Arquivos Armazenados</h1>
-        <StorageFiles 
+        <StorageFiles
           onDownloadAll={handleDownloadAll}
           onClearStorage={handleClearStorage}
           loading={loading}
