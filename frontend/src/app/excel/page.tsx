@@ -225,27 +225,33 @@ export default function ExcelPage() {
   const columns: Column<ExcelData>[] = [
     {
       key: 'codigo_ficha',
-      label: 'Código Ficha'
+      label: 'Código Ficha',
+      className: 'py-1.5'
     },
     {
       key: 'numero_guia',
-      label: 'Guia'
+      label: 'Guia',
+      className: 'py-1.5'
     },
     {
       key: 'paciente_nome',
-      label: 'Paciente'
+      label: 'Paciente',
+      className: 'py-1.5'
     },
     {
       key: 'data_execucao',
-      label: 'Data'
+      label: 'Data',
+      className: 'py-1.5'
     },
     {
       key: 'paciente_carteirinha',
-      label: 'Carteirinha'
+      label: 'Carteirinha',
+      className: 'py-1.5'
     },
     {
       key: 'created_at',
-      label: 'Data importação'
+      label: 'Data importação',
+      className: 'py-1.5'
     }
   ];
 

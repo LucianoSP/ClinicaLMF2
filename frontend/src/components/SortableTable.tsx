@@ -122,7 +122,7 @@ export default function SortableTable<T>({
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className={`px-3 py-1.5 text-xs text-gray-900 ${column.className || ''}`}
+                  className={`px-3 py-3 text-sm text-gray-900 ${column.className || ''}`}
                   style={column.style}
                 >
                   {column.editable && editingId === (item as any).codigo_ficha ? (
