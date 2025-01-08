@@ -126,8 +126,14 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Nome do Plano</p>
-                <p className="text-base font-medium">{patient.plano.nome}</p>
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-muted-foreground">Nome do Plano</p>
+                  <p className="text-base font-medium">{patient.plano.nome}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Carteirinha</p>
+                  <p className="text-base font-medium">{patient.carteirinha}</p>
+                </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Código</p>
