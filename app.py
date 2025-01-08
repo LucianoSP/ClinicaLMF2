@@ -47,7 +47,13 @@ import uvicorn
 import sqlite3  # Adicionando importação do sqlite3
 import traceback
 
-api_key = os.environ["ANTHROPIC_API_KEY"]
+from google import genai
+from google.genai import types
+
+claude_api_key = os.environ["ANTHROPIC_API_KEY"]
+gemini_api_key = os.environ["GEMINI_API_KEY"]
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -263,7 +269,7 @@ async def extract_info_from_pdf(pdf_path: str):
     if not pdf_data:
         raise HTTPException(status_code=500, detail="Erro ao ler PDF: arquivo vazio")
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=claude_api_key)
 
     try:
         response = client.beta.messages.create(
@@ -358,7 +364,282 @@ async def extract_info_from_pdf(pdf_path: str):
             ),
         }
 
+# Configuração de logging detalhado
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
+@app.post("/test-pdf-extraction")
+async def test_pdf_extraction(
+    file: UploadFile = File(..., description="Arquivo PDF para teste")
+):
+    """
+    Endpoint de teste que apenas extrai as informações do PDF usando o Gemini.
+    """
+    try:
+        # Validação inicial do arquivo
+        if not file.filename.endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Arquivo deve ser PDF")
+
+        # Ler o conteúdo do arquivo
+        content = await file.read()
+        logging.info(f"Arquivo lido com sucesso: {file.filename} ({len(content)} bytes)")
+
+        # Verificar se o arquivo está vazio
+        if not content:
+            raise HTTPException(status_code=400, detail="Arquivo PDF vazio")
+
+        # Converter para base64 de forma segura
+        try:
+            pdf_base64 = base64.b64encode(content).decode('utf-8')
+            logging.info(f"Arquivo convertido para base64 ({len(pdf_base64)} caracteres)")
+        except Exception as e:
+            logging.error(f"Erro na conversão base64: {str(e)}")
+            raise HTTPException(status_code=500, detail="Erro na conversão do arquivo")
+
+        # Verificar API key
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="GOOGLE_API_KEY não configurada")
+
+        # Inicializar cliente Gemini com tratamento de erro
+        try:
+            client = genai.Client(api_key=api_key)
+            logging.info("Cliente Gemini inicializado com sucesso")
+        except Exception as e:
+            logging.error(f"Erro ao inicializar cliente Gemini: {str(e)}")
+            raise HTTPException(status_code=500, detail="Erro ao inicializar Gemini API")
+
+        # Preparar o prompt
+        prompt = """
+        Analise este documento PDF e extraia as informações no seguinte formato JSON:
+
+        {
+            "codigo_ficha": "XX-XXXXXXXX",
+            "registros": [
+                {
+                    "data_execucao": "DD/MM/YYYY",
+                    "paciente_carteirinha": "XXXXX",
+                    "paciente_nome": "NOME",
+                    "guia_id": "XXXXX",
+                    "possui_assinatura": true/false
+                }
+            ]
+        }
+
+        Importante:
+        1. Cada linha numerada é uma sessão diferente
+        2. Inclua linhas com data preenchida mesmo sem assinatura
+        3. Datas devem estar no formato DD/MM/YYYY
+        4. Mantenha números de carteirinha exatos
+        5. Retorne apenas o JSON
+        """
+
+        try:
+            # Criar a mensagem para o modelo
+            message = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": "application/pdf",
+                                    "data": pdf_base64
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            # Configuração do modelo
+            config = types.GenerateContentConfig(
+                temperature=0.1,
+                candidate_count=1,
+                max_output_tokens=2048,
+            )
+
+            logging.info("Enviando requisição para o Gemini...")
+
+            # Fazer a requisição ao modelo
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-exp",
+                contents=message["contents"],
+                config=config
+            )
+
+            logging.info("Resposta recebida do Gemini")
+            logging.debug(f"Resposta raw: {response.text}")
+
+            # Tentar extrair JSON da resposta
+            try:
+                # Limpar a resposta para garantir que é um JSON válido
+                response_text = response.text.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:-3]  # Remove ```json e ```
+                elif response_text.startswith("```"):
+                    response_text = response_text[3:-3]  # Remove ``` e ```
+
+                extracted_data = json.loads(response_text)
+                logging.info("JSON extraído com sucesso")
+
+                return {
+                    "status": "success",
+                    "filename": file.filename,
+                    "file_size": len(content),
+                    "extracted_data": extracted_data,
+                    "num_registros": len(extracted_data.get("registros", [])),
+                    "raw_response": response_text
+                }
+
+            except json.JSONDecodeError as e:
+                logging.error(f"Erro ao fazer parse do JSON: {str(e)}")
+                return {
+                    "status": "error",
+                    "message": "Erro ao fazer parse do JSON",
+                    "error_details": str(e),
+                    "raw_response": response.text
+                }
+
+        except Exception as e:
+            logging.error(f"Erro na comunicação com Gemini: {str(e)}")
+            logging.error(traceback.format_exc())
+            return {
+                "status": "error",
+                "message": "Erro na comunicação com Gemini",
+                "error_details": str(e)
+            }
+
+    except Exception as e:
+        logging.error(f"Erro ao processar PDF: {str(e)}")
+        logging.error(traceback.format_exc())
+        return {
+            "status": "error",
+            "message": "Erro ao processar PDF",
+            "error_details": str(e)
+        }
+
+async def extract_info_from_pdf_gemini(pdf_path: str):
+    """
+    Extrai informações de um arquivo PDF usando o Google Gemini.
+
+    Args:
+        pdf_path: Caminho do arquivo PDF
+
+    Returns:
+        Dict contendo as informações extraídas em formato JSON
+
+    Raises:
+        HTTPException: Se houver erro ao ler o arquivo ou processar o PDF
+    """
+    # Verifica se a chave da API está configurada
+    api_key = gemini_api_key
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GOOGLE_API_KEY não configurada nas variáveis de ambiente")
+
+    if not os.path.isfile(pdf_path):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+
+    pdf_data = None
+    try:
+        with open(pdf_path, "rb") as pdf_file:
+            pdf_data = base64.b64encode(pdf_file.read()).decode("utf-8")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao ler PDF: {str(e)}")
+
+    if not pdf_data:
+        raise HTTPException(status_code=500, detail="Erro ao ler PDF: arquivo vazio")
+
+    try:
+        # Inicializa o cliente do Gemini
+        client = genai.Client(api_key=api_key)
+
+        # Prepara o prompt com as instruções específicas
+        prompt = """
+        Analise este documento PDF e extraia as seguintes informações em JSON válido:
+
+        {
+            "codigo_ficha": string,  // Campo 1 - FICHA no canto superior direito, formato XX-XXXXXXXX...
+            "registros": [
+                {
+                    "data_execucao": string,         // Campo 11 - Data do atendimento no formato DD/MM/YYYY
+                    "paciente_carteirinha": string,  // Campo 12 - Número da carteira
+                    "paciente_nome": string,         // Campo 13 - Nome/Nome Social do Beneficiário
+                    "guia_id": string,              // Campo 14 - Número da Guia Principal
+                    "possui_assinatura": boolean     // Campo 15 - Indica se tem assinatura na linha
+                }
+            ]
+        }
+
+        Regras de extração:
+        1. Cada linha numerada (1-, 2-, 3-, etc) representa uma sessão diferente do mesmo paciente
+        2. Inclua TODAS as linhas que têm data de atendimento preenchida, mesmo que não tenham assinatura
+        3. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano)
+        4. Todas as datas devem ser válidas (30/02/2024 seria uma data inválida)
+        5. Mantenha o número da carteirinha EXATAMENTE como está no documento, incluindo pontos e hífens
+        6. Retorne APENAS o JSON, sem texto adicional
+        """
+
+        # Configuração para garantir resposta em JSON
+        config = types.GenerateContentConfig(
+            response_mime_type='application/json',
+            temperature=0.1,  # Baixa temperatura para respostas mais consistentes
+            candidate_count=1,
+            max_output_tokens=2048  # Limite máximo de tokens para a resposta
+        )
+
+        # Faz a requisição ao Gemini
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-exp',  # Usando o modelo mais rápido do Gemini
+            contents=[
+                types.Part.from_data(mime_type='application/pdf', data=pdf_data),
+                types.Part.from_text(prompt)
+            ],
+            config=config
+        )
+
+        # Parse da resposta JSON
+        dados_extraidos = json.loads(response.text)
+
+        # Garantir que todas as datas estejam no formato correto
+        for registro in dados_extraidos["registros"]:
+            registro["data_execucao"] = formatar_data(registro["data_execucao"])
+
+        # Validar usando Pydantic
+        dados_validados = DadosGuia(**dados_extraidos)
+
+        # Criar DataFrame dos registros
+        df = pd.DataFrame([registro.dict() for registro in dados_validados.registros])
+
+        return {
+            "json": dados_validados.dict(),
+            "dataframe": df,
+            "status_validacao": "sucesso",
+        }
+
+    except json.JSONDecodeError as e:
+        return {
+            "erro": f"Erro ao processar JSON: {str(e)}",
+            "status_validacao": "falha",
+            "resposta_raw": response.text if 'response' in locals() else None,
+        }
+    except ValidationError as e:
+        return {
+            "erro": str(e),
+            "status_validacao": "falha",
+            "resposta_raw": response.text if 'response' in locals() else None,
+        }
+    except Exception as e:
+        return {
+            "erro": str(e),
+            "status_validacao": "falha",
+            "resposta_raw": response.text if 'response' in locals() else None,
+        }
+
+
+## Endpoints Fast API
 @app.post("/upload-pdf")
 async def upload_pdf(
     files: list[UploadFile] = File(description="Múltiplos arquivos PDF"),
@@ -424,7 +705,7 @@ async def upload_pdf(
                     data_formatada = primeira_linha["data_execucao"].replace("/", "-")
                     paciente_nome = primeira_linha["paciente_nome"]
                     novo_nome = f"{dados_guia['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
-                    
+
                     # Faz upload do arquivo
                     arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
                     if arquivo_url:
@@ -439,7 +720,7 @@ async def upload_pdf(
                         if registro["data_execucao"]:
                             # Gera um código único para esta linha da ficha
                             codigo_ficha_linha = f"{dados_guia['codigo_ficha']}_L{i}"
-                            
+
                             # Salvar registro no banco
                             ficha_id = salvar_ficha_presenca(
                                 {
