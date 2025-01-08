@@ -1463,6 +1463,14 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 guias.append(guia_formatada)
 
             print(f"Total de guias encontradas: {len(guias)}")
+            print("DEBUG - Guias antes de retornar:", [
+                {
+                    "id": g["id"],
+                    "numero_guia": g["numero_guia"],
+                    "status": g["status"]  # Verifique o valor do status aqui
+                } 
+                for g in guias_response.data
+            ])
             return {
                 "items": guias,
                 "total": len(guias),

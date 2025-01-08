@@ -10,6 +10,7 @@ import {
   TableRow 
 } from '@/components/ui/table'
 import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 interface Guide {
   id: string
@@ -52,12 +53,42 @@ const formatDate = (dateStr: string | null) => {
   }
 }
 
+const formatStatus = (status: string) => {
+  // Convert status to lowercase for case-insensitive comparison
+  const normalizedStatus = status?.toLowerCase() || '';
+  
+  const statusMap: { [key: string]: { label: string; className: string } } = {
+    'pendente': {
+      label: 'Pendente',
+      className: 'bg-yellow-100 text-yellow-800'
+    },
+    'em_andamento': {
+      label: 'Em andamento',
+      className: 'bg-blue-100 text-blue-800'
+    },
+    'concluida': {
+      label: 'Concluída',
+      className: 'bg-green-100 text-green-800'
+    },
+    'cancelada': {
+      label: 'Cancelada',
+      className: 'bg-red-100 text-red-800'
+    }
+  }
+
+  const defaultStatus = {
+    label: status || '',
+    className: 'bg-gray-100 text-gray-800'
+  }
+
+  return statusMap[normalizedStatus] || defaultStatus
+}
+
 export default function PatientDetails({ patient }: PatientDetailsProps) {
-  console.log('PatientDetails - Dados recebidos:', {
-    paciente: patient,
-    guias: patient.guias,
-    plano: patient.plano
-  })
+  console.log('DEBUG - Status das guias:', patient.guias.map(g => ({
+    numero_guia: g.numero_guia,
+    status: g.status
+  })))
 
   return (
     <div className="space-y-6">
@@ -102,17 +133,27 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patient.guias.map((guia) => (
-                  <TableRow key={guia.id}>
-                    <TableCell>{guia.numero_guia}</TableCell>
-                    <TableCell>{guia.data_emissao}</TableCell>
-                    <TableCell>{guia.data_validade}</TableCell>
-                    <TableCell>
-                      {guia.quantidade_executada}/{guia.quantidade_autorizada}
-                    </TableCell>
-                    <TableCell>{guia.status}</TableCell>
-                  </TableRow>
-                ))}
+                {patient.guias.map((guia) => {
+                  const status = formatStatus(guia.status)
+                  return (
+                    <TableRow key={guia.id}>
+                      <TableCell>{guia.numero_guia}</TableCell>
+                      <TableCell>{guia.data_emissao}</TableCell>
+                      <TableCell>{guia.data_validade}</TableCell>
+                      <TableCell>
+                        {guia.quantidade_executada}/{guia.quantidade_autorizada}
+                      </TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                          status.className
+                        )}>
+                          {status.label}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           ) : (

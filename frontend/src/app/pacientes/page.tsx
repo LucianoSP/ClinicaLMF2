@@ -123,11 +123,12 @@ export default function PatientsPage() {
   // Efeito para carregar guias quando um paciente é selecionado
   useEffect(() => {
     if (selectedPatient) {
-      loadPatientGuides(selectedPatient.id)
-    } else {
-      setPatientGuides([])
+      console.log('Carregando guias para paciente:', selectedPatient.id)
+      loadPatientGuides(selectedPatient.id).then(response => {
+        console.log('Resposta do backend - guias:', response) // Verifique os valores aqui
+      })
     }
-  }, [selectedPatient?.id, loadPatientGuides])
+  }, [selectedPatient?.id])
 
   const handleEditPatient = (patient: Patient) => {
     setSelectedPatient(patient)
