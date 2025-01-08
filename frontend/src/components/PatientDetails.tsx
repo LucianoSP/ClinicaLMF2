@@ -84,6 +84,29 @@ const formatStatus = (status: string) => {
   return statusMap[normalizedStatus] || defaultStatus
 }
 
+const ProgressBar = ({ value, max }: { value: number; max: number }) => {
+  const percentage = Math.min(Math.round((value / max) * 100), 100)
+  
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-32 bg-gray-100 rounded-full h-4 dark:bg-gray-200">
+        <div 
+          className={cn(
+            "h-4 rounded-full transition-all",
+            percentage >= 100 ? "bg-red-500" : // Vermelho se excedeu
+            percentage >= 75 ? "bg-yellow-500" : // Amarelo se acima de 75%
+            "bg-green-500" // Verde otherwise
+          )} 
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <span className="text-sm font-medium whitespace-nowrap">
+        {value}/{max}
+      </span>
+    </div>
+  )
+}
+
 export default function PatientDetails({ patient }: PatientDetailsProps) {
   console.log('DEBUG - Status das guias:', patient.guias.map(g => ({
     numero_guia: g.numero_guia,
@@ -140,8 +163,11 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
                       <TableCell>{guia.numero_guia}</TableCell>
                       <TableCell>{guia.data_emissao}</TableCell>
                       <TableCell>{guia.data_validade}</TableCell>
-                      <TableCell>
-                        {guia.quantidade_executada}/{guia.quantidade_autorizada}
+                      <TableCell className="w-[200px]">
+                        <ProgressBar 
+                          value={guia.quantidade_executada} 
+                          max={guia.quantidade_autorizada} 
+                        />
                       </TableCell>
                       <TableCell>
                         <span className={cn(
