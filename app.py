@@ -31,6 +31,7 @@ from database_supabase import (
     listar_fichas_presenca,
     limpar_fichas_presenca,
     obter_ultima_auditoria,
+    listar_guias_paciente,  # Adicione esta linha
 )
 from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2
@@ -1456,15 +1457,13 @@ async def listar_pacientes(
 
 
 @app.get("/pacientes/{paciente_id}/guias")
-async def listar_guias_paciente(paciente_id: str):
-    """Busca as guias de um paciente específico"""
+async def listar_guias_paciente_endpoint(paciente_id: str):
+    """Busca as guias e informações do plano de um paciente específico"""
     try:
-        from database_supabase import listar_guias_paciente
-
-        guias = listar_guias_paciente(paciente_id)
-        if not guias:
-            raise HTTPException(status_code=404, detail="Paciente não encontrado")
-        return guias
+        resultado = listar_guias_paciente(paciente_id)
+        if not resultado or not resultado["items"]:
+            raise HTTPException(status_code=404, detail="Paciente não encontrado ou sem guias")
+        return resultado
     except Exception as e:
         logger.error(f"Erro ao buscar guias do paciente: {e}")
         raise HTTPException(status_code=500, detail="Erro ao buscar guias do paciente")

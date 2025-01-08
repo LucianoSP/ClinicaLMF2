@@ -1409,42 +1409,73 @@ def listar_pacientes(
 
 def listar_guias_paciente(paciente_id: str) -> Dict:
     """
-    Retorna todas as guias de um paciente específico.
-    Primeiro busca a carteirinha do paciente pelo ID, depois busca as guias pela carteirinha.
+    Lista todas as guias de um paciente específico e suas informações de plano.
     """
     try:
-        # Primeiro busca a carteirinha do paciente
-        paciente = (
+        # Primeiro busca o paciente e sua carteirinha associada ao plano
+        print(f"Buscando paciente com ID: {paciente_id}")
+        paciente_query = (
+            "*, "  # Dados do paciente
+            "carteirinhas(*, "  # Dados da carteirinha
+            "planos_saude(*))"  # Dados do plano de saúde
+        )
+        
+        paciente_response = (
             supabase.table("pacientes")
-            .select("carteirinha")
+            .select(paciente_query)
             .eq("id", paciente_id)
             .execute()
         )
 
-        if not paciente.data:
-            print(f"Paciente não encontrado: {paciente_id}")
-            return {"items": [], "total": 0}
+        if not paciente_response.data:
+            print("Paciente não encontrado")
+            return {"items": [], "total": 0, "plano": None}
 
-        carteirinha = paciente.data[0]["carteirinha"]
+        paciente = paciente_response.data[0]
+        print(f"Paciente encontrado: {paciente}")
 
-        # Depois busca as guias usando a carteirinha
-        response = (
-            supabase.table("guias")
-            .select("*")
-            .eq("paciente_carteirinha", carteirinha)
-            .order("created_at", desc=True)
-            .execute()
-        )
+        # Extrai informações do plano
+        carteirinha = paciente["carteirinhas"][0] if paciente.get("carteirinhas") else None
+        plano = None
+        if carteirinha and carteirinha.get("planos_saude"):
+            plano = carteirinha["planos_saude"]
+            print(f"Plano encontrado: {plano}")
 
-        if not response.data:
-            return {"items": [], "total": 0}
+        # Se temos uma carteirinha, busca as guias
+        numero_carteirinha = carteirinha["numero_carteirinha"] if carteirinha else None
+        if numero_carteirinha:
+            print(f"Buscando guias para carteirinha: {numero_carteirinha}")
+            guias_response = (
+                supabase.table("guias")
+                .select("*")
+                .eq("paciente_carteirinha", numero_carteirinha)
+                .order("created_at", desc=True)
+                .execute()
+            )
 
-        return {"items": response.data, "total": len(response.data)}
+            guias = []
+            for guia in guias_response.data:
+                guia_formatada = {
+                    **guia,
+                    "data_emissao": formatar_data(guia["data_emissao"]) if guia.get("data_emissao") else None,
+                    "data_validade": formatar_data(guia["data_validade"]) if guia.get("data_validade") else None
+                }
+                guias.append(guia_formatada)
+
+            print(f"Total de guias encontradas: {len(guias)}")
+            return {
+                "items": guias,
+                "total": len(guias),
+                "plano": plano
+            }
+        else:
+            print("Nenhuma carteirinha encontrada para o paciente")
+            return {"items": [], "total": 0, "plano": None}
 
     except Exception as e:
         print(f"Erro ao listar guias do paciente: {e}")
         traceback.print_exc()
-        return {"items": [], "total": 0}
+        return {"items": [], "total": 0, "plano": None}
 
 
 def listar_guias(
@@ -1543,3 +1574,100 @@ def registrar_auditoria_execucoes(
         logging.error(f"Erro ao registrar metadados da auditoria: {str(e)}")
         logging.error(traceback.format_exc())
         return False
+
+def get_plano_by_carteirinha(carteirinha: str) -> Dict:
+    """Busca informações do plano de saúde usando o número da carteirinha"""
+    try:
+        codigo_plano = carteirinha.split('.')[0]
+        response = (
+            supabase.table("planos_saude")
+            .select("*")
+            .eq("codigo", codigo_plano)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        print(f"Erro ao buscar plano: {e}")
+        return None
+
+
+def listar_divergencias(
+    page: int = 1,
+    per_page: int = 10,
+    data_inicio: Optional[str] = None,
+    data_fim: Optional[str] = None,
+    status: Optional[str] = None,
+    tipo_divergencia: Optional[str] = None,
+    prioridade: Optional[str] = None,
+) -> Dict:
+    """
+    Lista divergências com paginação e filtros
+    """
+    return buscar_divergencias(
+        page=page,
+        per_page=per_page,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        status=status,
+        tipo_divergencia=tipo_divergencia,
+        prioridade=prioridade,
+    )
+
+
+def registrar_auditoria_execucoes(
+    total_protocolos: int,
+    data_inicial: Optional[str] = None,
+    data_final: Optional[str] = None,
+) -> bool:
+    """
+    Registra os metadados da auditoria de execuções
+    """
+    try:
+        dados = {
+            "id": str(uuid.uuid4()),
+            "data_execucao": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "total_protocolos": total_protocolos,
+            "data_inicial": data_inicial,
+            "data_final": data_final,
+        }
+
+        response = supabase.table("auditoria_execucoes").insert(dados).execute()
+
+        if response.data:
+            logging.info(f"Metadados da auditoria registrados com sucesso")
+            return True
+        else:
+            logging.error("Erro ao registrar metadados da auditoria: resposta vazia")
+            return False
+
+    except Exception as e:
+        logging.error(f"Erro ao registrar metadados da auditoria: {str(e)}")
+        logging.error(traceback.format_exc())
+        return False
+
+
+def formatar_data(data: str) -> str:
+    """
+    Formata uma data para o padrão DD/MM/YYYY.
+    
+    Args:
+        data: Data em formato string (YYYY-MM-DD ou DD/MM/YYYY)
+        
+    Returns:
+        Data formatada em DD/MM/YYYY
+    """
+    if not data:
+        return None
+        
+    try:
+        # Se já estiver no formato DD/MM/YYYY
+        if '/' in data:
+            return data
+            
+        # Converte de YYYY-MM-DD para DD/MM/YYYY
+        from datetime import datetime
+        data_obj = datetime.strptime(data, '%Y-%m-%d')
+        return data_obj.strftime('%d/%m/%Y')
+    except Exception as e:
+        print(f"Erro ao formatar data {data}: {e}")
+        return data

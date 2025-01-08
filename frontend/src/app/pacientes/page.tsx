@@ -25,6 +25,11 @@ interface Patient {
   id: string
   nome: string
   carteirinha: string
+  plano?: {
+    id: string
+    nome: string
+    codigo: string
+  }
 }
 
 interface Guide {
@@ -86,9 +91,20 @@ export default function PatientsPage() {
       console.log('Carregando guias para o paciente:', patientId)
       const response = await fetch(`${API_URL}/pacientes/${patientId}/guias`)
       if (!response.ok) throw new Error('Falha ao carregar guias')
+      
       const data = await response.json()
-      console.log('Guias recebidas:', data)
+      console.log('Dados recebidos:', data)
+      
+      // Primeiro atualiza as guias
       setPatientGuides(data.items || [])
+      
+      // Depois atualiza o paciente com o plano
+      if (data.plano) {
+        setSelectedPatient(prev => prev ? {
+          ...prev,
+          plano: data.plano
+        } : prev)
+      }
     } catch (error) {
       console.error('Erro ao carregar guias:', error)
       setPatientGuides([])
@@ -111,7 +127,7 @@ export default function PatientsPage() {
     } else {
       setPatientGuides([])
     }
-  }, [selectedPatient, loadPatientGuides])
+  }, [selectedPatient?.id, loadPatientGuides])
 
   const handleEditPatient = (patient: Patient) => {
     setSelectedPatient(patient)
@@ -120,6 +136,7 @@ export default function PatientsPage() {
 
   const handleSelectPatient = (patient: Patient) => {
     setSelectedPatient(patient)
+    setPatientGuides([]) // Limpa as guias antes de carregar novas
     setOpen(false)
     setSearchTerm('')
     setPatients([])
@@ -129,82 +146,116 @@ export default function PatientsPage() {
     <div className="flex flex-col gap-6">
       <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
         <div className="p-6 flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Gerenciamento de Pacientes</h2>
+          {/* Header com título e botão */}
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Gerenciamento de Pacientes</h2>
+              <p className="text-sm text-muted-foreground mt-1">Gerencie pacientes e suas guias</p>
+            </div>
             <Button 
               variant="outline"
               onClick={() => setIsFormOpen(true)}
-              className="gap-2"
+              className="gap-2 hover:bg-[#8B4513] hover:text-white transition-colors"
             >
               <PlusIcon className="h-4 w-4" />
               Novo Paciente
             </Button>
           </div>
 
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-[300px] justify-between"
-              >
-                {selectedPatient
-                  ? selectedPatient.nome
-                  : "Selecione um paciente..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" align="start">
-              <Command shouldFilter={false}>
-                <CommandInput 
-                  placeholder="Buscar paciente..." 
-                  value={searchTerm}
-                  onValueChange={setSearchTerm}
-                />
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-6">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8f732b]"></div>
-                  </div>
-                ) : patients.length === 0 ? (
-                  <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
-                ) : (
-                  <CommandGroup>
-                    {patients.map((patient) => (
-                      <button
-                        key={patient.id}
-                        onClick={() => handleSelectPatient(patient)}
-                        className="w-full flex items-start gap-2 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm relative select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 outline-none"
-                      >
-                        <Check
-                          className={cn(
-                            "h-4 w-4 mt-1",
-                            selectedPatient?.id === patient.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{patient.nome}</span>
-                          <span className="text-xs text-muted-foreground">
-                            Carteirinha: {patient.carteirinha}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </CommandGroup>
-                )}
-              </Command>
-            </PopoverContent>
-          </Popover>
+          {/* Barra de busca melhorada */}
+          <div className="flex items-center gap-4">
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-[300px] justify-between hover:border-[#8B4513]"
+                >
+                  {selectedPatient
+                    ? selectedPatient.nome
+                    : "Buscar paciente..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command shouldFilter={false}>
+                  <CommandInput 
+                    placeholder="Digite o nome ou carteirinha..." 
+                    value={searchTerm}
+                    onValueChange={setSearchTerm}
+                  />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8B4513]"></div>
+                    </div>
+                  ) : patients.length === 0 ? (
+                    <CommandEmpty className="py-6 text-center text-sm">
+                      {searchTerm ? "Nenhum paciente encontrado." : "Digite para buscar pacientes"}
+                    </CommandEmpty>
+                  ) : (
+                    <CommandGroup>
+                      {patients.map((patient) => (
+                        <button
+                          key={patient.id}
+                          onClick={() => handleSelectPatient(patient)}
+                          className="w-full flex items-start gap-2 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm relative select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 outline-none"
+                        >
+                          <Check
+                            className={cn(
+                              "h-4 w-4 mt-1",
+                              selectedPatient?.id === patient.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{patient.nome}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Carteirinha: {patient.carteirinha}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
 
+          {/* Card do paciente selecionado */}
           {selectedPatient && (
             <div className="mt-6 space-y-6">
               <div className="rounded-lg border p-6">
-                <PatientDetails 
-                  patient={{
-                    ...selectedPatient,
-                    guias: patientGuides
-                  }} 
-                />
+                {console.log('DEBUG - Rendering with data:', {
+                  selectedPatient,
+                  guias: patientGuides,
+                })}
+                
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-semibold">{selectedPatient.nome}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Carteirinha: {selectedPatient.carteirinha}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditPatient(selectedPatient)}
+                    className="hover:bg-[#8B4513] hover:text-white transition-colors"
+                  >
+                    Editar
+                  </Button>
+                </div>
+
+                <div className="mt-6">
+                  <PatientDetails 
+                    patient={{
+                      ...selectedPatient,
+                      guias: patientGuides
+                    }} 
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -222,3 +273,4 @@ export default function PatientsPage() {
     </div>
   )
 }
+
