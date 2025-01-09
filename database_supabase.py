@@ -923,51 +923,23 @@ def list_storage_files():
 def salvar_ficha_presenca(info: Dict) -> Optional[str]:
     """
     Salva as informações da ficha de presença no Supabase.
-    Se o código da ficha já existir, atualiza o registro.
+    Se o código da ficha já existir, será criado um novo registro com o mesmo código.
     """
     try:
         print(f"Tentando salvar ficha de presença: {info}")
 
-        # Formata os dados para o formato esperado pelo banco
+        # Usa o código da ficha exatamente como recebidoS
         dados = {
             "data_atendimento": info["data_atendimento"],
             "paciente_carteirinha": info["paciente_carteirinha"],
             "paciente_nome": info["paciente_nome"].upper(),
             "numero_guia": info["numero_guia"],
-            "codigo_ficha": info["codigo_ficha"],
+            "codigo_ficha": info["codigo_ficha"],  # Usa o código exatamente como veio
             "possui_assinatura": info.get("possui_assinatura", False),
             "arquivo_digitalizado": info.get("arquivo_digitalizado"),
         }
 
-        # Verifica se já existe um registro com o mesmo código de ficha
-        codigo_ficha = info.get("codigo_ficha")
-        if codigo_ficha:
-            existing = (
-                supabase.table("fichas_presenca")
-                .select("id")
-                .eq("codigo_ficha", codigo_ficha)
-                .execute()
-            )
-
-            if existing.data:
-                print(
-                    f"Atualizando registro existente para codigo_ficha: {codigo_ficha}"
-                )
-                response = (
-                    supabase.table("fichas_presenca")
-                    .update(dados)
-                    .eq("codigo_ficha", codigo_ficha)
-                    .execute()
-                )
-                if response.data:
-                    print(f"Ficha atualizada com sucesso: {response.data}")
-                    return response.data[0].get("id")
-                else:
-                    print("Erro: Resposta vazia do Supabase ao atualizar")
-                    return None
-
-        # Se não existe, insere novo registro
-        print(f"Inserindo novo registro para codigo_ficha: {codigo_ficha}")
+        # Insere novo registro
         response = supabase.table("fichas_presenca").insert(dados).execute()
 
         if response.data:
@@ -979,6 +951,7 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
 
     except Exception as e:
         print(f"Erro ao salvar ficha de presença: {e}")
+        traceback.print_exc()
         return None
 
 
