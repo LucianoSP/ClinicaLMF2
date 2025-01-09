@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { FiCheck, FiX } from 'react-icons/fi'
 
 interface Guide {
   id: string
@@ -24,6 +25,17 @@ interface Guide {
   procedimento_nome?: string
 }
 
+interface FichaPresenca {
+  id: string
+  data_atendimento: string
+  paciente_carteirinha: string
+  paciente_nome: string
+  numero_guia: string
+  codigo_ficha: string
+  possui_assinatura: boolean
+  arquivo_digitalizado?: string
+}
+
 interface PatientDetailsProps {
   patient: {
     id: string
@@ -35,6 +47,17 @@ interface PatientDetailsProps {
       codigo: string
     }
     guias: Guide[]
+    fichas: Array<{
+      id: string
+      data_atendimento: string
+      paciente_carteirinha: string
+      paciente_nome: string
+      numero_guia: string
+      codigo_ficha: string
+      possui_assinatura: boolean
+      arquivo_digitalizado?: string | null
+      observacoes?: string | null
+    }>
   }
 }
 
@@ -109,10 +132,10 @@ const ProgressBar = ({ value, max }: { value: number; max: number }) => {
 }
 
 export default function PatientDetails({ patient }: PatientDetailsProps) {
-  console.log('DEBUG - Status das guias:', patient.guias.map(g => ({
-    numero_guia: g.numero_guia,
-    status: g.status
-  })))
+  console.log('PatientDetails rendering with:', {
+    fichas: patient.fichas,
+    guias: patient.guias
+  });
 
   return (
     <div className="space-y-6">
@@ -158,6 +181,7 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
                   <TableHead>Número</TableHead>
                   <TableHead>Data de Emissão</TableHead>
                   <TableHead>Data de Validade</TableHead>
+                  <TableHead>Carteirinha</TableHead>
                   <TableHead>Tipo de Procedimento</TableHead>
                   <TableHead>Sessões</TableHead>
                   <TableHead>Status</TableHead>
@@ -171,6 +195,7 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
                       <TableCell>{guia.numero_guia}</TableCell>
                       <TableCell>{guia.data_emissao}</TableCell>
                       <TableCell>{guia.data_validade}</TableCell>
+                      <TableCell>{guia.paciente_carteirinha}</TableCell>
                       <TableCell>{guia.procedimento_nome || '-'}</TableCell>
                       <TableCell className="w-[200px]">
                         <ProgressBar 
@@ -194,6 +219,56 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
           ) : (
             <p className="text-muted-foreground text-center py-4">
               Nenhuma guia encontrada
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Card das Fichas de Presença */}
+      <Card className="border-[#e5e7eb] border-[0.5px]">
+        <CardHeader>
+          <CardTitle className="text-lg text-[#8B4513]">Fichas de Presença</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {Array.isArray(patient.fichas) && patient.fichas.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código Ficha</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Guia</TableHead>
+                  <TableHead>Assinado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {patient.fichas.map((ficha) => (
+                  <TableRow key={ficha.id}>
+                    <TableCell>{ficha.codigo_ficha}</TableCell>
+                    <TableCell>{ficha.data_atendimento}</TableCell>
+                    <TableCell>{ficha.numero_guia}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        <span className={cn(
+                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                          ficha.possui_assinatura 
+                            ? 'bg-[#dcfce7] text-[#15803d]'
+                            : 'bg-[#fef9c3] text-[#854d0e]'
+                        )}>
+                          {ficha.possui_assinatura ? (
+                            <><FiCheck className="w-3 h-3" />Sim</>
+                          ) : (
+                            <><FiX className="w-3 h-3" />Não</>
+                          )}
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">
+              Nenhuma ficha de presença encontrada
             </p>
           )}
         </CardContent>

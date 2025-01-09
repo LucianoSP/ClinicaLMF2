@@ -30,6 +30,7 @@ interface Patient {
     nome: string
     codigo: string
   }
+  fichas?: any[] // Add fichas to the patient interface
 }
 
 interface Guide {
@@ -88,23 +89,21 @@ export default function PatientsPage() {
   // Carregar guias do paciente
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
-      console.log('Carregando guias para o paciente:', patientId)
       const response = await fetch(`${API_URL}/pacientes/${patientId}/guias`)
       if (!response.ok) throw new Error('Falha ao carregar guias')
       
       const data = await response.json()
       console.log('Dados recebidos:', data)
       
-      // Primeiro atualiza as guias
+      // Atualiza as guias
       setPatientGuides(data.items || [])
       
-      // Depois atualiza o paciente com o plano
-      if (data.plano) {
-        setSelectedPatient(prev => prev ? {
-          ...prev,
-          plano: data.plano
-        } : prev)
-      }
+      // Depois atualiza o paciente com o plano e fichas
+      setSelectedPatient(prev => prev ? {
+        ...prev,
+        plano: data.plano,
+        fichas: data.fichas || [] // Ensure fichas is an array
+      } : prev)
     } catch (error) {
       console.error('Erro ao carregar guias:', error)
       setPatientGuides([])
@@ -245,7 +244,8 @@ export default function PatientsPage() {
               <PatientDetails 
                 patient={{
                   ...selectedPatient,
-                  guias: patientGuides
+                  guias: patientGuides,
+                  fichas: selectedPatient.fichas || [] // Pass fichas from the state
                 }} 
               />
             </div>

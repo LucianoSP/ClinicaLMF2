@@ -1471,10 +1471,32 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 } 
                 for g in guias_response.data
             ])
+
+            # Buscar fichas de presença usando a carteirinha do paciente
+            fichas_response = (
+                supabase.table("fichas_presenca")
+                .select("*")
+                .eq("paciente_carteirinha", numero_carteirinha)  # Changed to use carteirinha
+                .order("data_atendimento", desc=True)
+                .execute()
+            )
+
+            print(f"Buscando fichas para carteirinha: {numero_carteirinha}")
+            print(f"Fichas encontradas: {len(fichas_response.data)}")
+
+            fichas = []
+            for ficha in fichas_response.data:
+                ficha_formatada = {
+                    **ficha,
+                    "data_atendimento": formatar_data(ficha["data_atendimento"]) if ficha.get("data_atendimento") else None
+                }
+                fichas.append(ficha_formatada)
+
             return {
                 "items": guias,
                 "total": len(guias),
-                "plano": plano
+                "plano": plano,
+                "fichas": fichas
             }
         else:
             print("Nenhuma carteirinha encontrada para o paciente")
