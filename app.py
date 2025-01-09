@@ -1266,11 +1266,15 @@ async def listar_fichas(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
     paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
+    status: str = Query("pendente", description="Filtrar por status (pendente, conferida, todas)")
 ):
-    """Lista todas as fichas de presença com suporte a paginação e filtro"""
+    """Lista todas as fichas de presença com suporte a paginação e filtros"""
     try:
         result = listar_fichas_presenca(
-            limit=limit, offset=offset, paciente_nome=paciente_nome
+            limit=limit, 
+            offset=offset, 
+            paciente_nome=paciente_nome,
+            status=status
         )
         return result
     except Exception as e:
@@ -1480,6 +1484,19 @@ def listar_tipos_divergencia_route():
             status_code=500,
             detail=f"Erro ao listar tipos de divergência: {str(e)}"
         )
+
+
+@app.put("/fichas-presenca/{ficha_id}/conferir")
+async def conferir_ficha(ficha_id: str):
+    """Marca uma ficha como conferida"""
+    try:
+        result = database_supabase.atualizar_status_ficha(ficha_id, "conferida")
+        if result:
+            return {"message": "Ficha marcada como conferida com sucesso"}
+        else:
+            raise HTTPException(status_code=400, detail="Falha ao conferir ficha")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

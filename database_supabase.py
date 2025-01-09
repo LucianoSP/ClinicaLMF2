@@ -937,6 +937,7 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
             "codigo_ficha": info["codigo_ficha"],  # Usa o código exatamente como veio
             "possui_assinatura": info.get("possui_assinatura", False),
             "arquivo_digitalizado": info.get("arquivo_digitalizado"),
+            "status": "pendente"  # Status padrão ao criar nova ficha
         }
 
         # Insere novo registro
@@ -956,15 +957,21 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
 
 
 def listar_fichas_presenca(
-    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
+    limit: int = 100, 
+    offset: int = 0, 
+    paciente_nome: Optional[str] = None,
+    status: Optional[str] = None
 ) -> Dict:
     """
-    Retorna todas as fichas de presença com suporte a paginação e filtro.
-    Se limit for 0, retorna todos os registros.
+    Retorna as fichas de presença com suporte a paginação e filtros.
     """
     try:
         # Inicia a query
         query = supabase.table("fichas_presenca").select("*")
+
+        # Aplica filtro por status se fornecido
+        if status and status.lower() != "todas":
+            query = query.eq("status", status.lower())
 
         # Adiciona filtro por nome se fornecido
         if paciente_nome and isinstance(paciente_nome, str):
@@ -983,21 +990,16 @@ def listar_fichas_presenca(
         response = query.execute()
         fichas = response.data
 
-        # Formata as datas se necessário
+        # Formata as datas
         for ficha in fichas:
             if ficha.get("data_atendimento"):
                 try:
                     data = datetime.strptime(ficha["data_atendimento"], "%Y-%m-%d")
                     ficha["data_atendimento"] = data.strftime("%d/%m/%Y")
                 except ValueError:
-                    pass  # Mantém o formato original se não conseguir converter
+                    pass
 
-        # Se limit = 0, retorna todas as fichas como lista
-        if limit == 0:
-            return fichas
-
-        # Se limit > 0, retorna com paginação
-        total = len(supabase.table("fichas_presenca").select("id").execute().data)
+        # Retorna com paginação
         return {
             "fichas": fichas,
             "total": total,
@@ -1006,8 +1008,40 @@ def listar_fichas_presenca(
 
     except Exception as e:
         print(f"Erro ao listar fichas de presença: {e}")
-        traceback.print_exc()  # Isso imprimirá o traceback completo
-        return [] if limit == 0 else {"fichas": [], "total": 0, "total_pages": 1}
+        traceback.print_exc()
+        return {"fichas": [], "total": 0, "total_pages": 1}
+
+
+def atualizar_status_ficha(id: str, novo_status: str) -> bool:
+    """
+    Atualiza o status de uma ficha de presença.
+    
+    Args:
+        id: ID da ficha
+        novo_status: Novo status ('pendente' ou 'conferida')
+        
+    Returns:
+        bool indicando sucesso da operação
+    """
+    try:
+        response = (
+            supabase.table("fichas_presenca")
+            .update({"status": novo_status})
+            .eq("id", id)
+            .execute()
+        )
+        
+        if response.data:
+            print(f"Status da ficha {id} atualizado para {novo_status}")
+            return True
+        else:
+            print("Erro: Resposta vazia do Supabase")
+            return False
+            
+    except Exception as e:
+        print(f"Erro ao atualizar status da ficha: {e}")
+        traceback.print_exc()
+        return False
 
 
 def buscar_ficha_presenca(
@@ -1674,3 +1708,60 @@ def formatar_data(data: str) -> str:
     except Exception as e:
         print(f"Erro ao formatar data {data}: {e}")
         return data
+
+def listar_fichas_presenca(
+    limit: int = 100, 
+    offset: int = 0, 
+    paciente_nome: Optional[str] = None,
+    status: Optional[str] = None
+) -> Dict:
+    """
+    Retorna as fichas de presença com suporte a paginação e filtros.
+    """
+    try:
+        # Inicia a query
+        query = supabase.table("fichas_presenca").select("*")
+
+        # Aplica filtro por status se fornecido
+        if status and status.lower() != "todas":
+            query = query.eq("status", status.lower())
+
+        # Adiciona filtro por nome se fornecido
+        if paciente_nome and isinstance(paciente_nome, str):
+            query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
+
+        # Busca todos os registros para contar
+        count_response = query.execute()
+        total = len(count_response.data)
+
+        # Adiciona ordenação e paginação
+        query = query.order("data_atendimento", desc=True)
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
+        # Executa a query
+        response = query.execute()
+        fichas = response.data
+
+        # Formata as datas
+        for ficha in fichas:
+            if ficha.get("data_atendimento"):
+                try:
+                    data = datetime.strptime(ficha["data_atendimento"], "%Y-%m-%d")
+                    ficha["data_atendimento"] = data.strftime("%d/%m/%Y")
+                except ValueError:
+                    pass
+
+        # Retorna com paginação
+        return {
+            "fichas": fichas,
+            "total": total,
+            "total_pages": ceil(total / limit) if limit > 0 else 1,
+        }
+
+    except Exception as e:
+        print(f"Erro ao listar fichas de presença: {e}")
+        traceback.print_exc()
+        return {"fichas": [], "total": 0, "total_pages": 1}
+
+

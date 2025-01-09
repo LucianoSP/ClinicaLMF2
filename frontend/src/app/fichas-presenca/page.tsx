@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FiTrash2, FiEdit, FiDownload, FiUpload, FiSearch, FiCheck, FiX } from 'react-icons/fi';
+import { FiTrash2, FiEdit, FiDownload, FiUpload, FiSearch, FiCheck, FiX, FiCheckCircle } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import SortableTable, { Column } from '@/components/SortableTable';
@@ -44,6 +44,7 @@ export default function FichasPresenca() {
   const [selectedFicha, setSelectedFicha] = useState<FichaPresenca | null>(null);
   const [editedFicha, setEditedFicha] = useState<Partial<FichaPresenca>>({});
   const { toast } = useToast();
+  const [statusFilter, setStatusFilter] = useState<string>('pendente');
 
   const handleDelete = async () => {
     if (!selectedFicha) return;
@@ -269,6 +270,7 @@ export default function FichasPresenca() {
       
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
+      params.append('status', statusFilter);
 
       if (debouncedSearchTerm.trim().length >= 2) {
         params.append('paciente_nome', debouncedSearchTerm.trim());
@@ -350,11 +352,45 @@ export default function FichasPresenca() {
   useEffect(() => {
     console.log('Efeito disparado:', { page, perPage, searchTerm: debouncedSearchTerm });
     fetchFichas();
-  }, [page, perPage, debouncedSearchTerm]);
+  }, [page, perPage, debouncedSearchTerm, statusFilter]);
+
+  const handleConferir = async (id: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${id}/conferir`, {
+        method: 'PUT',
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso",
+          description: "Ficha marcada como conferida",
+        });
+        // Remove a ficha da lista localmente
+        setFichas(fichas.filter(ficha => ficha.id !== id));
+        // Atualiza o total
+        setTotalRecords(prev => prev - 1);
+      } else {
+        throw new Error('Falha ao conferir ficha');
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao marcar ficha como conferida",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleActions = (item: FichaPresenca) => {
     return (
       <div className="flex items-center justify-center gap-4">
+        <button
+          onClick={() => handleConferir(item.id)}
+          className="text-green-600 hover:text-green-700"
+          title="Marcar como conferida"
+        >
+          <FiCheckCircle className="w-4 h-4" />
+        </button>
         <button
           onClick={() => {
             setSelectedFicha(item);
@@ -424,6 +460,24 @@ export default function FichasPresenca() {
               <><FiCheck className="w-3 h-3" />Sim</>
             ) : (
               <><FiX className="w-3 h-3" />Não</>
+            )}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      className: 'w-[100px] text-center',
+      render: (value) => (
+        <div className="flex items-center justify-center">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+            value === 'conferida' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
+          }`}>
+            {value === 'conferida' ? (
+              <><FiCheck className="w-3 h-3" />Conferida</>
+            ) : (
+              <><FiX className="w-3 h-3" />Pendente</>
             )}
           </span>
         </div>
@@ -514,6 +568,18 @@ export default function FichasPresenca() {
                 />
                 <FiSearch className="absolute left-2 top-3 text-muted-foreground" />
               </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1); // Reset para primeira página ao mudar filtro
+                }}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2"
+              >
+                <option value="pendente">Pendentes</option>
+                <option value="conferida">Conferidas</option>
+                <option value="todas">Todas</option>
+              </select>
               <select
                 value={perPage}
                 onChange={handlePerPageChange}
