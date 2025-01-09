@@ -147,31 +147,21 @@ export default function PatientsPage() {
     <div className="flex flex-col gap-6">
       <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
         <div className="p-6 flex flex-col gap-6">
-          {/* Header com título e botão */}
-          <div className="flex items-center justify-between border-b pb-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Gerenciamento de Pacientes</h2>
-              <p className="text-sm text-muted-foreground mt-1">Gerencie pacientes e suas guias</p>
-            </div>
-            <Button 
-              variant="outline"
-              onClick={() => setIsFormOpen(true)}
-              className="gap-2 hover:bg-[#8B4513] hover:text-white transition-colors"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Novo Paciente
-            </Button>
+          {/* Header com título */}
+          <div className="border-b pb-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Gerenciamento de Pacientes</h2>
+            
           </div>
 
-          {/* Barra de busca melhorada */}
-          <div className="flex items-center gap-4">
+          {/* Barra de busca e botão novo paciente */}
+          <div className="flex items-center justify-between gap-4">
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
-                  className="w-[300px] justify-between hover:border-[#8B4513]"
+                  className="w-[400px] justify-between hover:border-gray-300 hover:bg-gray-50 transition-colors"
                 >
                   {selectedPatient
                     ? selectedPatient.nome
@@ -179,7 +169,7 @@ export default function PatientsPage() {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
+              <PopoverContent className="w-[400px] p-0" align="start">
                 <Command shouldFilter={false}>
                   <CommandInput 
                     placeholder="Digite o nome ou carteirinha..." 
@@ -221,43 +211,43 @@ export default function PatientsPage() {
                 </Command>
               </PopoverContent>
             </Popover>
+
+            <Button 
+              variant="outline"
+              onClick={() => setIsFormOpen(true)}
+              className="gap-2 hover:bg-[#8B4513] hover:text-white transition-colors"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Novo Paciente
+            </Button>
           </div>
 
-          {/* Card do paciente selecionado */}
+          {/* Patient section */}
           {selectedPatient && (
             <div className="mt-6 space-y-6">
-              <div className="rounded-lg border p-6">
-                {console.log('DEBUG - Rendering with data:', {
-                  selectedPatient,
-                  guias: patientGuides,
-                })}
-                
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-semibold">{selectedPatient.nome}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Carteirinha: {selectedPatient.carteirinha}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditPatient(selectedPatient)}
-                    className="hover:bg-[#8B4513] hover:text-white transition-colors"
-                  >
-                    Editar
-                  </Button>
+              <div className="flex items-center justify-between pb-4">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-semibold">{selectedPatient.nome}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Carteirinha: {selectedPatient.carteirinha}
+                  </p>
                 </div>
-
-                <div className="mt-6">
-                  <PatientDetails 
-                    patient={{
-                      ...selectedPatient,
-                      guias: patientGuides
-                    }} 
-                  />
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditPatient(selectedPatient)}
+                  className="hover:bg-[#8B4513] hover:text-white transition-colors"
+                >
+                  Editar
+                </Button>
               </div>
+
+              <PatientDetails 
+                patient={{
+                  ...selectedPatient,
+                  guias: patientGuides
+                }} 
+              />
             </div>
           )}
 

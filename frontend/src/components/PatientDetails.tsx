@@ -21,6 +21,7 @@ interface Guide {
   quantidade_executada: number
   status: string
   tipo: string
+  procedimento_nome?: string
 }
 
 interface PatientDetailsProps {
@@ -95,7 +96,7 @@ const ProgressBar = ({ value, max }: { value: number; max: number }) => {
             "h-4 rounded-full transition-all",
             percentage >= 100 ? "bg-red-500" : // Vermelho se excedeu
             percentage >= 75 ? "bg-yellow-500" : // Amarelo se acima de 75%
-            "bg-green-500" // Verde otherwise
+            "bg-black" // Preto (antes era verde)
           )} 
           style={{ width: `${percentage}%` }}
         />
@@ -117,7 +118,7 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
     <div className="space-y-6">
       {/* Card do Plano */}
       {patient.plano && (
-        <Card>
+        <Card className="border-[#e5e7eb] border-[0.5px]">
           <CardHeader>
             <CardTitle className="text-lg text-[#8B4513]">
               Plano de Saúde
@@ -145,7 +146,7 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
       )}
 
       {/* Card das Guias */}
-      <Card>
+      <Card className="border-[#e5e7eb] border-[0.5px]">
         <CardHeader>
           <CardTitle className="text-lg text-[#8B4513]">Guias</CardTitle>
         </CardHeader>
@@ -157,6 +158,7 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
                   <TableHead>Número</TableHead>
                   <TableHead>Data de Emissão</TableHead>
                   <TableHead>Data de Validade</TableHead>
+                  <TableHead>Tipo de Procedimento</TableHead>
                   <TableHead>Sessões</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -169,6 +171,7 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
                       <TableCell>{guia.numero_guia}</TableCell>
                       <TableCell>{guia.data_emissao}</TableCell>
                       <TableCell>{guia.data_validade}</TableCell>
+                      <TableCell>{guia.procedimento_nome || '-'}</TableCell>
                       <TableCell className="w-[200px]">
                         <ProgressBar 
                           value={guia.quantidade_executada} 
