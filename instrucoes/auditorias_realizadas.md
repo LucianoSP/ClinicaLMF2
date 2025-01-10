@@ -74,196 +74,60 @@
 
 ## Estrutura de Tabelas
 
-{
- "divergencias": {
-   "columns": [
-     {
-       "name": "id",
-       "type": "uuid"
-     },
-     {
-       "name": "numero_guia",
-       "type": "text"
-     },
-     {
-       "name": "data_execucao", 
-       "type": "date"
-     },
-     {
-       "name": "codigo_ficha",
-       "type": "text"
-     },
-     {
-       "name": "tipo_divergencia",
-       "type": "tipo_divergencia"
-     },
-     {
-       "name": "descricao",
-       "type": "text"
-     },
-     {
-       "name": "status",
-       "type": "status_divergencia"
-     },
-     {
-       "name": "data_identificacao",
-       "type": "timestamptz"
-     },
-     {
-       "name": "data_resolucao",
-       "type": "timestamptz" 
-     },
-     {
-       "name": "resolvido_por",
-       "type": "uuid"
-     },
-     {
-       "name": "observacoes",
-       "type": "text"
-     },
-     {
-       "name": "created_at",
-       "type": "timestamptz"
-     },
-     {
-       "name": "updated_at",
-       "type": "timestamptz"
-     },
-     {
-       "name": "paciente_nome",
-       "type": "text"
-     },
-     {
-       "name": "ficha_id",
-       "type": "uuid"
-     },
-     {
-       "name": "execucao_id",
-       "type": "uuid"
-     },
-     {
-       "name": "prioridade",
-       "type": "text"
-     },
-     {
-       "name": "detalhes",
-       "type": "jsonb"
-     },
-     {
-       "name": "data_atendimento",
-       "type": "date"
-     },
-     {
-       "name": "carteirinha",
-       "type": "varchar"
-     }
-   ]
- }
-}
 
-{
- "execucoes": {
-   "columns": [
-     {
-       "name": "id",
-       "type": "uuid"
-     },
-     {
-       "name": "numero_guia",
-       "type": "text"
-     },
-     {
-       "name": "paciente_nome",
-       "type": "text"
-     },
-     {
-       "name": "data_execucao",
-       "type": "date"
-     },
-     {
-       "name": "paciente_carteirinha",
-       "type": "text"
-     },
-     {
-       "name": "paciente_id",
-       "type": "text"
-     },
-     {
-       "name": "usuario_executante",
-       "type": "uuid"
-     },
-     {
-       "name": "created_at",
-       "type": "timestamptz"
-     },
-     {
-       "name": "updated_at",
-       "type": "timestamptz"
-     },
-     {
-       "name": "codigo_ficha",
-       "type": "text"
-     }
-   ]
- }
-}
+-- Tabela de divergências
+CREATE TABLE divergencias (
+    id uuid PRIMARY KEY,
+    numero_guia text,
+    data_execucao date,
+    codigo_ficha text,
+    tipo_divergencia tipo_divergencia,
+    descricao text,
+    status status_divergencia,
+    data_identificacao timestamptz,
+    data_resolucao timestamptz,
+    resolvido_por uuid,
+    observacoes text,
+    created_at timestamptz,
+    updated_at timestamptz,
+    paciente_nome text,
+    ficha_id uuid,
+    execucao_id uuid,
+    prioridade text,
+    detalhes jsonb,
+    data_atendimento date,
+    carteirinha varchar
+);
 
+-- Tabela de execuções
+CREATE TABLE execucoes (
+    id uuid PRIMARY KEY,
+    numero_guia text,
+    paciente_nome text,
+    data_execucao date,
+    paciente_carteirinha text,
+    paciente_id text,
+    usuario_executante uuid,
+    created_at timestamptz,
+    updated_at timestamptz,
+    codigo_ficha text
+);
 
-{
- "fichas_presenca": {
-   "columns": [
-     {
-       "name": "id",
-       "type": "uuid"
-     },
-     {
-       "name": "data_atendimento",
-       "type": "date"
-     },
-     {
-       "name": "paciente_carteirinha",
-       "type": "text"
-     },
-     {
-       "name": "paciente_nome",
-       "type": "text"
-     },
-     {
-       "name": "numero_guia",
-       "type": "text"
-     },
-     {
-       "name": "codigo_ficha",
-       "type": "text"
-     },
-     {
-       "name": "possui_assinatura",
-       "type": "bool"
-     },
-     {
-       "name": "arquivo_digitalizado",
-       "type": "text"
-     },
-     {
-       "name": "observacoes",
-       "type": "text"
-     },
-     {
-       "name": "created_at",
-       "type": "timestamptz"
-     },
-     {
-       "name": "updated_at",
-       "type": "timestamptz"
-     },
-     {
-       "name": "status",
-       "type": "varchar"
-     }
-   ]
- }
-}
-
+-- Tabela de fichas de presença
+CREATE TABLE fichas_presenca (
+    id uuid PRIMARY KEY,
+    data_atendimento date,
+    paciente_carteirinha text,
+    paciente_nome text,
+    numero_guia text,
+    codigo_ficha text,
+    possui_assinatura bool,
+    arquivo_digitalizado text,
+    observacoes text,
+    created_at timestamptz,
+    updated_at timestamptz,
+    status varchar
+);
 ## Database Enums
 
 status_divergencia:	pendente, em_analise, resolvida, cancelada
@@ -272,6 +136,7 @@ tipo_divergencia:	ficha_sem_execucao, execucao_sem_ficha, ficha_sem_assinatura, 
 tipo_guia:	sp_sadt, consulta
 
 ## Arquivos 
+
 
 database_supabase.py
 # Manter apenas funções básicas de CRUD:

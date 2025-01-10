@@ -9,8 +9,7 @@ from database_supabase import (
     listar_fichas_presenca,
     listar_execucoes,
     listar_guias,
-    formatar_data,
-    atualizar_ficha_ids_divergencias  # Add this import here since it's now in database_supabase
+    formatar_data
 )
 
 # Imports do auditoria_repository
@@ -23,7 +22,8 @@ from auditoria_repository import (
     registrar_divergencia_detalhada,
     registrar_divergencia,
     limpar_divergencias_db,
-    listar_divergencias
+    listar_divergencias,
+    atualizar_ficha_ids_divergencias  # Movido para cá
 )
 
 # Configuração de logging

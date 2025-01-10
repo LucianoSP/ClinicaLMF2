@@ -23,16 +23,15 @@ from database_supabase import (
     excluir_ficha_presenca,
     listar_fichas_presenca,
     limpar_fichas_presenca,
-    listar_guias_paciente,
-    atualizar_ficha_ids_divergencias
+    listar_guias_paciente
 )
 from auditoria_repository import (
     registrar_divergencia,
     listar_divergencias,
     atualizar_status_divergencia,
-    obter_ultima_auditoria,  # Moved from database_supabase
+    obter_ultima_auditoria,
     limpar_divergencias_db,
-    atualizar_ficha_ids_divergencias  # Adicione esta importação
+    atualizar_ficha_ids_divergencias  # Movido para cá
 )
 from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2

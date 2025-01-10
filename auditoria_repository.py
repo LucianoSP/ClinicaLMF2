@@ -204,39 +204,35 @@ def registrar_divergencia_detalhada(divergencia: Dict) -> bool:
         paciente_nome = divergencia.get("paciente_nome", "PACIENTE NÃO IDENTIFICADO")
         numero_guia = divergencia.get("numero_guia", "SEM_GUIA")
         
-        # Se não tem data_execucao, registra como uma divergência específica
+        # Base comum para todos os tipos de divergência
+        dados_base = {
+            "numero_guia": numero_guia,
+            "paciente_nome": paciente_nome,
+            "codigo_ficha": divergencia.get("codigo_ficha"),
+            "data_atendimento": divergencia.get("data_atendimento"),
+            "prioridade": divergencia.get("prioridade", "MEDIA"),
+            "carteirinha": divergencia.get("carteirinha"),
+            "detalhes": divergencia.get("detalhes"),
+            "ficha_id": divergencia.get("ficha_id"),
+            "execucao_id": divergencia.get("execucao_id"),
+        }
+        
+        # Se não tem data_execucao
         if not divergencia.get("data_execucao"):
             dados = {
-                "numero_guia": numero_guia,
+                **dados_base,
                 "tipo_divergencia": "falta_data_execucao",
                 "descricao": "Data de execução não informada",
-                "paciente_nome": paciente_nome,
-                "prioridade": "ALTA",  # Falta de data é prioridade alta
-                "codigo_ficha": divergencia.get("codigo_ficha"),
-                "data_atendimento": divergencia.get("data_atendimento"),
+                "prioridade": "ALTA",
             }
         else:
-            # Caso tenha data_execucao, registra a divergência normalmente
+            # Caso tenha data_execucao
             dados = {
-                "numero_guia": numero_guia,
+                **dados_base,
                 "tipo_divergencia": tipo,
                 "descricao": divergencia["descricao"],
-                "paciente_nome": paciente_nome,
-                "prioridade": divergencia.get("prioridade", "MEDIA"),
                 "data_execucao": divergencia["data_execucao"],
             }
-            
-            # Adiciona campos opcionais se existirem
-            campos_opcionais = [
-                "data_atendimento",
-                "codigo_ficha",
-                "carteirinha",
-                "detalhes",
-            ]
-
-            for campo in campos_opcionais:
-                if campo in divergencia:
-                    dados[campo] = divergencia[campo]
 
         # Remove campos None para evitar erro de tipo no banco
         dados = {k: v for k, v in dados.items() if v is not None}
@@ -420,52 +416,47 @@ def registrar_divergencia(
     tipo_divergencia: str,
     descricao: str,
     paciente_nome: str,
-    data_execucao: Optional[str] = None,
-    data_atendimento: Optional[str] = None,  # Adicionado explicitamente
-    codigo_ficha: Optional[str] = None,
+    codigo_ficha: str = None,
+    data_execucao: str = None,
+    data_atendimento: str = None,
+    carteirinha: str = None,
     prioridade: str = "MEDIA",
-    carteirinha: Optional[str] = None,
-    detalhes: Optional[Dict] = None,
-    ficha_id: Optional[str] = None,  # Adicionado
-    execucao_id: Optional[str] = None,  # Adicionado
-    status: str = "pendente",  # Adicionado parâmetro status
+    status: str = "pendente",
+    detalhes: Dict = None,
+    ficha_id: str = None,
+    execucao_id: str = None
 ) -> bool:
-    """Registra uma nova divergência no banco de dados."""
+    """Registra uma nova divergência."""
     try:
-        divergencia_id = str(uuid.uuid4())
-        
-        divergencia = {
-            "id": divergencia_id,
+        dados = {
             "numero_guia": numero_guia,
             "tipo_divergencia": tipo_divergencia,
             "descricao": descricao,
+            "status": status,
+            "data_identificacao": datetime.now(timezone.utc).isoformat(),
             "paciente_nome": paciente_nome,
-            "status": status,  # Usa o status fornecido
-            "prioridade": prioridade,
-            "data_atendimento": data_atendimento,  # Garantir que está sendo incluído
+            "prioridade": prioridade
         }
 
-        # Adiciona campos opcionais apenas se tiverem valor
-        if data_execucao:
-            divergencia["data_execucao"] = data_execucao
-        if codigo_ficha:
-            divergencia["codigo_ficha"] = codigo_ficha
-        if carteirinha:
-            divergencia["carteirinha"] = carteirinha[:50]
-        if detalhes:
-            divergencia["detalhes"] = detalhes
-        if ficha_id:
-            divergencia["ficha_id"] = ficha_id
-        if execucao_id:
-            divergencia["execucao_id"] = execucao_id
+        campos_opcionais = {
+            "codigo_ficha": codigo_ficha,
+            "data_execucao": data_execucao,
+            "data_atendimento": data_atendimento,
+            "carteirinha": carteirinha,
+            "detalhes": detalhes,
+            "ficha_id": ficha_id,
+            "execucao_id": execucao_id
+        }
 
-        print(f"Tentando registrar divergência: {divergencia}")
-        response = supabase.table("divergencias").insert(divergencia).execute()
-        
-        return bool(response.data)
+        for campo, valor in campos_opcionais.items():
+            if valor is not None:
+                dados[campo] = valor
+
+        supabase.table("divergencias").insert(dados).execute()
+        return True
 
     except Exception as e:
-        print(f"Erro ao registrar divergência: {str(e)}")
+        print(f"Erro ao registrar divergência: {e}")
         traceback.print_exc()
         return False
 
@@ -475,13 +466,12 @@ def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) 
     Se nenhuma divergência for fornecida, busca todas as pendentes.
     """
     try:
-        # Se não recebeu divergências, busca todas pendentes
         if divergencias == None:
             response = (
                 supabase.table("divergencias")
                 .select("*")
                 .is_("ficha_id", "null")
-                .filter("codigo_ficha", "not.is", "null")  # Corrigido: usando .filter com "not.is"
+                .not_("codigo_ficha", "is", "null")
                 .execute()
             )
             divergencias = response.data if response.data else []
@@ -490,31 +480,27 @@ def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) 
             logging.info("Nenhuma divergência para atualizar")
             return True
 
-        # Coleta todos os códigos de ficha únicos
         codigos_ficha = list(set(
             div["codigo_ficha"] 
             for div in divergencias 
             if div.get("codigo_ficha")
         ))
-
+        
         if not codigos_ficha:
             return True
 
-        # Busca todas as fichas correspondentes
         fichas_response = (
             supabase.table("fichas_presenca")
             .select("id,codigo_ficha")
             .in_("codigo_ficha", codigos_ficha)
             .execute()
         )
-
-        # Mapeia código_ficha -> id da ficha
+        
         mapa_fichas = {
-            f["codigo_ficha"]: f["id"]
+            f["codigo_ficha"]: f["id"] 
             for f in fichas_response.data or []
         }
 
-        # Atualiza cada divergência
         count = 0
         for div in divergencias:
             if div.get("codigo_ficha") in mapa_fichas:
