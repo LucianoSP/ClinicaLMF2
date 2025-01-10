@@ -21,7 +21,7 @@ def formatar_data(data: str) -> str:
     Formata uma data para o padrão DD/MM/YYYY.
     
     Args:
-        data: Data em formato string (YYYY-MM-DD ou DD/MM/YYYY ou YYYY-MM-DDTHH:MM:SS.mmmmmm+00:00)
+        data: Data em formato string (YYYY-MM-DD ou DD/MM/YYYY)
         
     Returns:
         Data formatada em DD/MM/YYYY
@@ -32,10 +32,6 @@ def formatar_data(data: str) -> str:
     try:
         if '/' in data:
             return data
-            
-        # Se tem T na string, é um timestamp - pega só a parte da data
-        if 'T' in data:
-            data = data.split('T')[0]
             
         data_obj = datetime.strptime(data, '%Y-%m-%d')
         return data_obj.strftime('%d/%m/%Y')
@@ -424,45 +420,6 @@ def listar_fichas_presenca(
         traceback.print_exc()
         return {"fichas": [], "total": 0, "total_pages": 1}
 
-def atualizar_ficha_ids() -> bool:
-    """
-    Atualiza os ficha_id de todas as divergências que têm codigo_ficha mas não têm ficha_id.
-    Esta é uma função legada que será removida. 
-    Use a função diretamente de auditoria_repository.py
-    """
-    try:
-        divergencias = (
-            supabase.table("divergencias")
-            .select("id,codigo_ficha")
-            .is_("ficha_id", "null")
-            .not_("codigo_ficha", "is", "null")
-            .execute()
-        )
-
-        atualizacoes = 0
-        for div in divergencias.data:
-            # Busca a ficha correspondente
-            ficha = (
-                supabase.table("fichas_presenca")
-                .select("id")
-                .eq("codigo_ficha", div["codigo_ficha"])
-                .execute()
-            )
-            
-            if ficha.data:
-                # Atualiza a divergência com o ficha_id
-                supabase.table("divergencias").update({
-                    "ficha_id": ficha.data[0]["id"]
-                }).eq("id", div["id"]).execute()
-                atualizacoes += 1
-
-        print(f"{atualizacoes} divergências atualizadas com ficha_id")
-        return True
-
-    except Exception as e:
-        print(f"Erro ao atualizar ficha_ids: {e}")
-        return False
-
 def atualizar_status_ficha(id: str, novo_status: str) -> bool:
     """
     Atualiza o status de uma ficha de presença.
@@ -641,6 +598,97 @@ def listar_execucoes(
         traceback.print_exc()
         return [] if limit == 0 else {"execucoes": [], "total": 0, "total_pages": 1}
 
+def registrar_execucao_auditoria(
+    data_inicial: str = None,
+    data_final: str = None,
+    total_protocolos: int = 0,
+    total_divergencias: int = 0,
+    divergencias_por_tipo: dict = None,
+    total_fichas: int = 0,
+    total_execucoes: int = 0,
+    total_resolvidas: int = 0,
+) -> bool:
+    """Registra uma nova execução de auditoria com seus metadados."""
+    try:
+        logging.info(f"Registrando execução de auditoria com {total_fichas} fichas e {total_execucoes} execuções")
+        data = {
+            "data_execucao": datetime.now(timezone.utc).isoformat(),
+            "data_inicial": data_inicial,
+            "data_final": data_final,
+            "total_protocolos": total_protocolos,
+            "total_divergencias": total_divergencias,
+            "divergencias_por_tipo": divergencias_por_tipo or {},
+            "total_fichas": total_fichas,
+            "total_execucoes": total_execucoes,
+            "total_resolvidas": total_resolvidas,
+        }
+
+        response = supabase.table("auditoria_execucoes").insert(data).execute()
+        if response.data:
+            logging.info("Execução de auditoria registrada com sucesso")
+            return True
+        else:
+            logging.error("Erro ao registrar execução de auditoria: response.data está vazio")
+            return False
+
+    except Exception as e:
+        logging.error(f"Erro ao registrar execução de auditoria: {str(e)}")
+        traceback.print_exc()
+        return False
+
+def obter_ultima_auditoria() -> Dict:
+    """Obtém o resultado da última auditoria realizada e calcula estatísticas."""
+    try:
+        response = (
+            supabase.table("auditoria_execucoes")
+            .select("*")
+            .order("data_execucao", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if not response.data:
+            return {
+                "total_protocolos": 0,
+                "total_divergencias": 0,
+                "divergencias_por_tipo": {},
+                "total_fichas": 0,
+                "total_execucoes": 0,
+                "total_resolvidas": 0,
+                "data_execucao": None,
+                "tempo_execucao": None
+            }
+
+        ultima_auditoria = response.data[0]
+        data_execucao = datetime.fromisoformat(ultima_auditoria["data_execucao"].replace("Z", "+00:00"))
+        agora = datetime.now(timezone.utc)
+        diferenca = agora - data_execucao
+
+        if diferenca.days > 0:
+            tempo_execucao = f"Há {diferenca.days} dias"
+        elif diferenca.seconds > 3600:
+            tempo_execucao = f"Há {diferenca.seconds // 3600} horas"
+        elif diferenca.seconds > 60:
+            tempo_execucao = f"Há {diferenca.seconds // 60} minutos"
+        else:
+            tempo_execucao = f"Há {diferenca.seconds} segundos"
+
+        return {
+            "total_protocolos": ultima_auditoria.get("total_protocolos", 0),
+            "total_divergencias": ultima_auditoria.get("total_divergencias", 0),
+            "divergencias_por_tipo": ultima_auditoria.get("divergencias_por_tipo", {}),
+            "total_fichas": ultima_auditoria.get("total_fichas", 0),
+            "total_execucoes": ultima_auditoria.get("total_execucoes", 0),
+            "total_resolvidas": ultima_auditoria.get("total_resolvidas", 0),
+            "data_execucao": ultima_auditoria["data_execucao"],
+            "tempo_execucao": tempo_execucao
+        }
+
+    except Exception as e:
+        logging.error(f"Erro ao obter última auditoria: {str(e)}")
+        traceback.print_exc()
+        return None
+
 def listar_pacientes(
     limit: int = 100, 
     offset: int = 0, 
@@ -690,7 +738,6 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
         carteirinha = paciente["carteirinhas"][0] if paciente.get("carteirinhas") else None
         plano = None
         
-        # Corrigido o operador && para and
         if carteirinha and carteirinha.get("planos_saude"):
             plano = carteirinha["planos_saude"]
 
@@ -759,6 +806,35 @@ def get_plano_by_carteirinha(carteirinha: str) -> Dict:
     except Exception as e:
         print(f"Erro ao buscar plano: {e}")
         return None
+
+def registrar_auditoria_execucoes(
+    total_protocolos: int,
+    data_inicial: Optional[str] = None,
+    data_final: Optional[str] = None,
+) -> bool:
+    """Registra os metadados da auditoria de execuções"""
+    try:
+        dados = {
+            "id": str(uuid.uuid4()),
+            "data_execucao": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "total_protocolos": total_protocolos,
+            "data_inicial": data_inicial,
+            "data_final": data_final,
+        }
+
+        response = supabase.table("auditoria_execucoes").insert(dados).execute()
+
+        if response.data:
+            logging.info("Metadados da auditoria registrados com sucesso")
+            return True
+        else:
+            logging.error("Erro ao registrar metadados da auditoria: resposta vazia")
+            return False
+
+    except Exception as e:
+        logging.error(f"Erro ao registrar metadados da auditoria: {str(e)}")
+        logging.error(traceback.format_exc())
+        return False
 
 def gerar_dados_teste() -> bool:
     """
@@ -941,126 +1017,3 @@ def list_storage_files():
     except Exception as e:
         print(f"Erro em list_storage_files: {e}")
         return []
-    
-
-def atualizar_execucao(codigo_ficha: str, dados: Dict) -> bool:
-    """
-    Atualiza um execucao no Supabase
-    """
-    try:
-        # Formata os dados no padrão esperado
-        dados_atualizados = {
-            "guia_id": str(dados["guia_id"]),
-            "paciente_nome": str(dados["paciente_nome"]),
-            "data_execucao": dados["data_execucao"],
-            "paciente_carteirinha": str(dados["paciente_carteirinha"]),
-            "codigo_ficha": str(dados["codigo_ficha"]),
-            "possui_assinatura": bool(dados["possui_assinatura"]),
-            "arquivo_url": dados.get("arquivo_url", None),
-        }
-
-        # Verifica se o registro existe
-        check_response = (
-            supabase.table("execucaos")
-            .select("id")
-            .eq("codigo_ficha", codigo_ficha)
-            .execute()
-        )
-        if not check_response.data:
-            return False
-
-        # Se o código da ficha está sendo alterado, verifica se o novo código já existe
-        if codigo_ficha != dados_atualizados["codigo_ficha"]:
-            check_new_code = (
-                supabase.table("execucaos")
-                .select("id")
-                .eq("codigo_ficha", dados_atualizados["codigo_ficha"])
-                .execute()
-            )
-            if check_new_code.data:
-                raise ValueError("O novo código da ficha já existe")
-
-        # Atualiza o registro no Supabase
-        response = (
-            supabase.table("execucaos")
-            .update(dados_atualizados)
-            .eq("codigo_ficha", codigo_ficha)
-            .execute()
-        )
-
-        return True
-
-    except Exception as e:
-        print(f"Erro ao atualizar execucao: {e}")
-        raise e
-
-def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) -> bool:
-    """
-    Atualiza os ficha_ids nas divergências.
-    Se nenhuma divergência for fornecida, busca todas as pendentes.
-    """
-    try:
-        # Se não recebeu divergências, busca todas pendentes
-        if divergencias == None:
-            response = (
-                supabase.table("divergencias")
-                .select("*")
-                .is_("ficha_id", "null")
-                .not_("codigo_ficha", "is", "null")
-                .execute()
-            )
-            divergencias = response.data if response.data else []
-
-        if not divergencias:
-            logging.info("Nenhuma divergência para atualizar")
-            return True
-
-        # Coleta todos os códigos de ficha únicos
-        codigos_ficha = list(set(
-            div["codigo_ficha"] 
-            for div in divergencias 
-            if div.get("codigo_ficha")
-        ))
-        
-        if not codigos_ficha:
-            return True
-
-        # Busca todas as fichas correspondentes de uma vez
-        fichas_response = (
-            supabase.table("fichas_presenca")
-            .select("id,codigo_ficha")
-            .in_("codigo_ficha", codigos_ficha)
-            .execute()
-        )
-        
-        # Mapeia código_ficha -> dados da ficha
-        mapa_fichas = {
-            f["codigo_ficha"]: f["id"] 
-            for f in fichas_response.data or []
-        }
-
-        # Atualiza cada divergência individualmente
-        count = 0
-        for div in divergencias:
-            if div.get("codigo_ficha") in mapa_fichas:
-                ficha_id = mapa_fichas[div["codigo_ficha"]]
-                try:
-                    response = (
-                        supabase.table("divergencias")
-                        .update({"ficha_id": ficha_id})
-                        .eq("id", div["id"])
-                        .execute()
-                    )
-                    if response.data:
-                        count += 1
-                except Exception as e:
-                    logging.error(f"Erro ao atualizar divergência {div['id']}: {e}")
-                    continue
-
-        logging.info(f"Atualizadas {count} divergências com ficha_id")
-        return True
-
-    except Exception as e:
-        logging.error(f"Erro ao atualizar ficha_ids: {str(e)}")
-        traceback.print_exc()
-        return False

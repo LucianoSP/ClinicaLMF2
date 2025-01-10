@@ -17,21 +17,22 @@ from database_supabase import (
     listar_guias,
     buscar_guia,
     limpar_banco,
-    registrar_divergencia,
-    listar_divergencias,
-    atualizar_status_divergencia,
     atualizar_execucao,
     salvar_ficha_presenca,
     buscar_ficha_presenca,
     excluir_ficha_presenca,
     listar_fichas_presenca,
     limpar_fichas_presenca,
-    obter_ultima_auditoria,
-    excluir_ficha_presenca,
-    listar_fichas_presenca,
-    limpar_fichas_presenca,
-    obter_ultima_auditoria,
-    listar_guias_paciente,  # Adicione esta linha
+    listar_guias_paciente,
+    atualizar_ficha_ids_divergencias
+)
+from auditoria_repository import (
+    registrar_divergencia,
+    listar_divergencias,
+    atualizar_status_divergencia,
+    obter_ultima_auditoria,  # Moved from database_supabase
+    limpar_divergencias_db,
+    atualizar_ficha_ids_divergencias  # Adicione esta importação
 )
 from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2
@@ -719,8 +720,8 @@ async def upload_pdf(
                     for i, registro in enumerate(dados_guia["registros"], 1):
                         # Só cria registro se tiver data de atendimento
                         if registro["data_execucao"]:
-                            # Gera um código único para esta linha da ficha
-                            codigo_ficha_linha = f"{dados_guia['codigo_ficha']}_L{i}"
+                            # Usa o código da ficha exatamente como extraído, sem adicionar sufixo
+                            codigo_ficha_linha = dados_guia["codigo_ficha"]
 
                             # Salvar registro no banco
                             ficha_id = salvar_ficha_presenca(
@@ -729,7 +730,7 @@ async def upload_pdf(
                                     "paciente_carteirinha": registro["paciente_carteirinha"],
                                     "paciente_nome": registro["paciente_nome"],
                                     "numero_guia": registro["guia_id"],
-                                    "codigo_ficha": codigo_ficha_linha,  # Código único por linha
+                                    "codigo_ficha": codigo_ficha_linha,  # Usa o mesmo código para todas as sessões
                                     "possui_assinatura": registro["possui_assinatura"],
                                     "arquivo_url": arquivo_url if arquivo_url else None,
                                 }
@@ -951,71 +952,6 @@ async def clear_execucoes():
         )
 
 
-# @app.get("/auditoria/divergencias", response_model=DivergenciasListResponse)
-# async def get_divergencias(
-#     page: int = Query(1, ge=1, description="Página atual"),
-#     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-#     data_inicio: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
-#     data_fim: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
-#     status: Optional[str] = Query(None, description="Status da divergência"),
-#     tipo_divergencia: Optional[str] = Query(None, description="Tipo de divergência"),
-#     prioridade: Optional[str] = Query(None, description="Prioridade (ALTA/MEDIA)"),
-# ):
-#     """Lista as divergências encontradas na auditoria com suporte a paginação e filtros"""
-#     try:
-#         logger.info(
-#             f"Buscando divergências - página: {page}, por página: {per_page}, "
-#             f"data_inicio: {data_inicio}, data_fim: {data_fim}, status: {status}"
-#         )
-
-#         # Busca as divergências com os filtros aplicados
-#         resultado = listar_divergencias(
-#             data_inicio=data_inicio,
-#             data_fim=data_fim,
-#             status=status,
-#             tipo_divergencia=tipo_divergencia,
-#             prioridade=prioridade,
-#             limit=per_page,
-#             offset=(page - 1) * per_page,
-#         )
-
-#         if resultado is None:
-#             raise HTTPException(status_code=500, detail="Erro ao buscar divergências")
-
-#         # Calcula resumo por tipo e prioridade
-#         resumo = {
-#             "total": resultado["total"],
-#             "por_tipo": {},
-#             "por_prioridade": {"ALTA": 0, "MEDIA": 0},
-#             "por_status": {"pendente": 0, "em_analise": 0, "resolvida": 0},
-#         }
-
-#         # Processa cada divergência
-#         for div in resultado["divergencias"]:
-#             tipo = div["tipo_divergencia"]
-#             if tipo not in resumo["por_tipo"]:
-#                 resumo["por_tipo"][tipo] = 0
-#             resumo["por_tipo"][tipo] += 1
-
-#             prioridade = div.get("prioridade", "MEDIA")
-#             resumo["por_prioridade"][prioridade] += 1
-
-#             status = div.get("status", "pendente")
-#             resumo["por_status"][status] += 1
-
-#         return {
-#             "success": True,
-#             "divergencias": resultado["divergencias"],
-#             "total": resultado["total"],
-#             "paginas": resultado["paginas"],
-#             "resumo": resumo,
-#         }
-
-#     except Exception as e:
-#         logger.error(f"Erro ao buscar divergências: {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/auditoria/iniciar")
 async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
     try:
@@ -1030,7 +966,12 @@ async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
         if data_final and "/" not in data_final:
             data_final = datetime.strptime(data_final, "%Y-%m-%d").strftime("%d/%m/%Y")
 
+        # Realiza a auditoria
         realizar_auditoria_fichas_execucoes(data_inicial, data_final)
+        
+        # Atualiza os ficha_ids das divergências usando a função do auditoria_repository
+        atualizar_ficha_ids_divergencias()
+        
         ultima_auditoria = obter_ultima_auditoria()
         return {"message": "Auditoria realizada com sucesso", "data": ultima_auditoria}
     except Exception as e:
@@ -1346,37 +1287,6 @@ async def excluir_ficha(ficha_id: str):
         raise HTTPException(status_code=500, detail="Erro ao excluir ficha de presença")
 
 
-@app.get("/auditoria/divergencias")
-async def buscar_divergencias(
-    page: int = Query(1, description="Página atual"),
-    per_page: int = Query(10, description="Itens por página"),
-    data_inicio: Optional[str] = Query(None),
-    data_fim: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    tipo_divergencia: Optional[str] = Query(None),
-    prioridade: Optional[str] = Query(None),
-):
-    try:
-        logger.info(
-            f"[Auditoria] Buscando divergências: page={page}, per_page={per_page}, "
-            f"tipo_divergencia={tipo_divergencia}, status={status}"
-        )
-
-        resultado = listar_divergencias(
-            page=page,
-            per_page=per_page,
-            data_inicio=data_inicio,
-            data_fim=data_fim,
-            status=status,
-            tipo_divergencia=tipo_divergencia,
-            prioridade=prioridade,
-        )
-        return resultado
-    except Exception as e:
-        logger.error(f"Erro ao listar divergências: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.get("/auditoria/ultima")
 async def obter_ultima_auditoria_endpoint():
     try:
@@ -1505,3 +1415,8 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
 
 # uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
+
+from auditoria import router as auditoria_router
+
+# Add the router from auditoria.py
+app.include_router(auditoria_router, prefix="/auditoria")
