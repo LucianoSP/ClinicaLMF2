@@ -160,11 +160,20 @@ def buscar_divergencias_view(
         response = query.execute()
         divergencias = response.data if response.data else []
         
-        # Formata datas para exibição
+        # Formata datas para exibição com validação extra
         for div in divergencias:
             for campo in ["data_execucao", "data_atendimento", "data_identificacao", "data_resolucao"]:
-                if div.get(campo):
-                    div[campo] = formatar_data(div[campo])
+                try:
+                    if div.get(campo):
+                        data = div[campo]
+                        # Garante que é uma data válida
+                        datetime.strptime(data, "%Y-%m-%d")
+                        div[campo] = formatar_data(data)
+                    else:
+                        div[campo] = None
+                except (ValueError, TypeError) as e:
+                    logging.error(f"Data inválida em {campo}: {div.get(campo)}")
+                    div[campo] = None
         
         # Atualiza ficha_ids se necessário usando a nova função
         divergencias_sem_ficha = [
@@ -195,49 +204,42 @@ def buscar_divergencias_view(
         }
 
 def registrar_divergencia_detalhada(divergencia: Dict) -> bool:
-    """
-    Registra uma divergência com detalhes específicos.
-    Nunca preenche data_execucao automaticamente.
-    """
+    """Registra uma divergência com detalhes específicos."""
     try:
         tipo = divergencia["tipo_divergencia"]
         paciente_nome = divergencia.get("paciente_nome", "PACIENTE NÃO IDENTIFICADO")
         numero_guia = divergencia.get("numero_guia", "SEM_GUIA")
         
+        # Mantém as datas no formato original (YYYY-MM-DD) do banco
+        data_atendimento = divergencia.get("data_atendimento")
+        data_execucao = divergencia.get("data_execucao")
+
+        # Log das datas para debug
+        logging.info(f"Datas recebidas - data_atendimento: {data_atendimento}, data_execucao: {data_execucao}")
+        
         # Base comum para todos os tipos de divergência
-        dados_base = {
+        dados = {
             "numero_guia": numero_guia,
+            "tipo_divergencia": tipo,
             "paciente_nome": paciente_nome,
             "codigo_ficha": divergencia.get("codigo_ficha"),
-            "data_atendimento": divergencia.get("data_atendimento"),
-            "prioridade": divergencia.get("prioridade", "MEDIA"),
+            "data_atendimento": data_atendimento,  # Mantém o formato YYYY-MM-DD
+            "data_execucao": data_execucao,  # Mantém o formato YYYY-MM-DD
             "carteirinha": divergencia.get("carteirinha"),
+            "prioridade": divergencia.get("prioridade", "MEDIA"),
+            "status": divergencia.get("status", "pendente"),
+            "descricao": divergencia.get("descricao", "Sem descrição"),
             "detalhes": divergencia.get("detalhes"),
             "ficha_id": divergencia.get("ficha_id"),
-            "execucao_id": divergencia.get("execucao_id"),
+            "execucao_id": divergencia.get("execucao_id")
         }
-        
-        # Se não tem data_execucao
-        if not divergencia.get("data_execucao"):
-            dados = {
-                **dados_base,
-                "tipo_divergencia": "falta_data_execucao",
-                "descricao": "Data de execução não informada",
-                "prioridade": "ALTA",
-            }
-        else:
-            # Caso tenha data_execucao
-            dados = {
-                **dados_base,
-                "tipo_divergencia": tipo,
-                "descricao": divergencia["descricao"],
-                "data_execucao": divergencia["data_execucao"],
-            }
 
         # Remove campos None para evitar erro de tipo no banco
         dados = {k: v for k, v in dados.items() if v is not None}
 
+        # Log dos dados antes do insert para debug
         logging.info(f"Registrando divergência: {dados}")
+        
         return registrar_divergencia(**dados)
 
     except Exception as e:
@@ -428,16 +430,36 @@ def registrar_divergencia(
 ) -> bool:
     """Registra uma nova divergência."""
     try:
+        # Validação de campos obrigatórios
+        if not all([numero_guia, tipo_divergencia, descricao, paciente_nome]):
+            logging.error("Campos obrigatórios faltando")
+            return False
+
+        # Dados base da divergência
         dados = {
             "numero_guia": numero_guia,
             "tipo_divergencia": tipo_divergencia,
             "descricao": descricao,
             "status": status,
             "data_identificacao": datetime.now(timezone.utc).isoformat(),
-            "paciente_nome": paciente_nome,
+            "paciente_nome": paciente_nome.upper(),
             "prioridade": prioridade
         }
 
+        # Formatar datas se estiverem presentes
+        if data_execucao:
+            try:
+                data_execucao = formatar_data(data_execucao)
+            except ValueError as e:
+                logging.error(f"Erro ao formatar data_execucao: {e}")
+                
+        if data_atendimento:
+            try:
+                data_atendimento = formatar_data(data_atendimento)
+            except ValueError as e:
+                logging.error(f"Erro ao formatar data_atendimento: {e}")
+
+        # Campos opcionais com validação
         campos_opcionais = {
             "codigo_ficha": codigo_ficha,
             "data_execucao": data_execucao,
@@ -448,15 +470,25 @@ def registrar_divergencia(
             "execucao_id": execucao_id
         }
 
+        # Adiciona campos opcionais que não são None
         for campo, valor in campos_opcionais.items():
             if valor is not None:
                 dados[campo] = valor
 
-        supabase.table("divergencias").insert(dados).execute()
+        # Log dos dados antes do insert
+        logging.info(f"Registrando divergência: {dados}")
+
+        # Insere no banco
+        response = supabase.table("divergencias").insert(dados).execute()
+        
+        if not response.data:
+            logging.error("Erro: Resposta vazia do Supabase")
+            return False
+
         return True
 
     except Exception as e:
-        print(f"Erro ao registrar divergência: {e}")
+        logging.error(f"Erro ao registrar divergência: {e}")
         traceback.print_exc()
         return False
 
@@ -467,11 +499,12 @@ def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) 
     """
     try:
         if divergencias == None:
+            # Correção da sintaxe do Supabase para buscar divergências sem ficha_id
             response = (
                 supabase.table("divergencias")
                 .select("*")
                 .is_("ficha_id", "null")
-                .not_("codigo_ficha", "is", "null")
+                .not_.is_("codigo_ficha", "null")  # Correção aqui
                 .execute()
             )
             divergencias = response.data if response.data else []

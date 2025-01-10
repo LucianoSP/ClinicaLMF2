@@ -954,3 +954,26 @@ def atualizar_execucao(codigo_ficha: str, dados: Dict) -> bool:
     except Exception as e:
         print(f"Erro ao atualizar execucao: {e}")
         raise e
+
+def verificar_formatos_data_banco():
+    """Retorna uma amostra de datas de cada tabela para verificação"""
+    try:
+        amostras = {}
+        
+        # Verifica fichas_presenca
+        fichas = supabase.table("fichas_presenca").select("id,data_atendimento").limit(5).execute()
+        amostras["fichas_presenca"] = [(f["id"], f["data_atendimento"]) for f in fichas.data]
+        
+        # Verifica execucoes
+        execucoes = supabase.table("execucoes").select("id,data_execucao").limit(5).execute()
+        amostras["execucoes"] = [(e["id"], e["data_execucao"]) for e in execucoes.data]
+        
+        # Verifica divergencias 
+        divergencias = supabase.table("divergencias").select("id,data_execucao,data_atendimento").limit(5).execute()
+        amostras["divergencias"] = [(d["id"], d["data_execucao"], d["data_atendimento"]) for d in divergencias.data]
+        
+        return amostras
+        
+    except Exception as e:
+        print(f"Erro ao verificar formatos: {e}")
+        return None

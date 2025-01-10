@@ -957,22 +957,30 @@ async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
         logger.info(
             f"Iniciando auditoria com data_inicial={request.data_inicio}, data_final={request.data_fim}"
         )
-        # Converte as datas para o formato correto se necessário
+
+        # Remover a conversão de datas aqui - elas devem permanecer em YYYY-MM-DD
         data_inicial = request.data_inicio
         data_final = request.data_fim
-        if data_inicial and "/" not in data_inicial:
-            data_inicial = datetime.strptime(data_inicial, "%Y-%m-%d").strftime("%d/%m/%Y")
-        if data_final and "/" not in data_final:
-            data_final = datetime.strptime(data_final, "%Y-%m-%d").strftime("%d/%m/%Y")
 
-        # Realiza a auditoria
-        realizar_auditoria_fichas_execucoes(data_inicial, data_final)
+        # Realizar a auditoria com as datas no formato do banco
+        resultado = realizar_auditoria_fichas_execucoes(data_inicial, data_final)
         
-        # Atualiza os ficha_ids das divergências usando a função do auditoria_repository
+        if not resultado.get("success"):
+            raise HTTPException(
+                status_code=500, 
+                detail=resultado.get("error", "Erro ao realizar auditoria")
+            )
+        
+        # Atualiza os ficha_ids das divergências
         atualizar_ficha_ids_divergencias()
         
         ultima_auditoria = obter_ultima_auditoria()
-        return {"message": "Auditoria realizada com sucesso", "data": ultima_auditoria}
+        return {
+            "success": True,
+            "message": "Auditoria realizada com sucesso", 
+            "data": ultima_auditoria
+        }
+
     except Exception as e:
         logger.error(f"Erro ao realizar auditoria: {str(e)}")
         logger.error(traceback.format_exc())
@@ -1404,6 +1412,17 @@ async def conferir_ficha(ficha_id: str):
             return {"message": "Ficha marcada como conferida com sucesso"}
         else:
             raise HTTPException(status_code=400, detail="Falha ao conferir ficha")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/verificar-datas")
+async def verificar_datas():
+    """Endpoint para verificar formato das datas no banco"""
+    try:
+        from database_supabase import verificar_formatos_data_banco
+        resultado = verificar_formatos_data_banco()
+        return {"success": True, "amostras": resultado}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
