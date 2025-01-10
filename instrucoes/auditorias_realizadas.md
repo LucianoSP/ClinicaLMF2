@@ -277,3 +277,50 @@ A ideia é:
 - Interface/Exibição: sempre DD/MM/YYYY usando formatar_data() ao ler os dados
 
 Made changes.
+
+o1.
+
+Respire fundo.
+Olhando essa função, toda a lógica de inserir o campo data_atendimento depende do parâmetro data_atendimento que chega nela. Se esse parâmetro chega vazio (ou None), então você insere NULL na tabela.
+
+Logo, o problema não está na função em si (ela até faz a formatação da data se presente). O problema ocorre antes de chamá-la: você precisa garantir que data_atendimento seja carregada de fichas_presenca.
+
+Possível Correção
+Antes de chamar registrar_divergencia(...), consulte a tabela fichas_presenca para obter data_atendimento. Exemplo:
+
+python
+Copiar código
+# Exemplo: busca o data_atendimento em fichas_presenca, caso não tenha vindo
+if codigo_ficha and not data_atendimento:
+    ficheiro = supabase.table("fichas_presenca") \
+                       .select("data_atendimento") \
+                       .eq("codigo_ficha", codigo_ficha) \
+                       .single() \
+                       .execute()
+    if ficheiro.data:
+        data_atendimento = ficheiro.data["data_atendimento"]
+
+# Agora você chama a função com data_atendimento preenchido
+registrar_divergencia(
+    numero_guia=numero_guia,
+    tipo_divergencia=tipo_divergencia,
+    descricao=descricao,
+    paciente_nome=paciente_nome,
+    codigo_ficha=codigo_ficha,
+    data_execucao=data_execucao,
+    data_atendimento=data_atendimento,  # já não é mais None
+    ...
+)
+Com isso, o valor que chega em registrar_divergencia() já estará corretamente populado, e a coluna data_atendimento deixará de ficar nula.
+
+
+
+
+
+
+
+
+
+
+
+
