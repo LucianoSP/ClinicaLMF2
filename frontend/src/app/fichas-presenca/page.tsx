@@ -644,9 +644,9 @@ export default function FichasPresenca() {
     {
       key: 'actions',
       label: 'Ações',
-      className: 'w-[180px] text-center', // Aumentei a largura para garantir espaço para os três botões
+      className: 'w-[100px] text-center', // Mesma largura da tabela de fichas
       render: (_, sessao) => (
-        <div className="flex items-center justify-center gap-3"> {/* Aumentei o gap entre os botões */}
+        <div className="flex items-center justify-center gap-2"> {/* Reduzido o gap de 3 para 2 */}
           <Button
             variant="ghost"
             size="sm"

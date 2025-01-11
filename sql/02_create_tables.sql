@@ -106,7 +106,7 @@ CREATE TABLE sessoes (
 CREATE TABLE execucoes (
     id uuid PRIMARY KEY,
     guia_id uuid REFERENCES guias(id),
-    sessao_id uuid REFERENCES sessoes(id),
+    sessao_id uuid REFERENCES sessoes(id) ON DELETE CASCADE,
     data_execucao date NOT NULL,
     usuario_executante uuid REFERENCES usuarios(id),
     created_at timestamptz DEFAULT now(),

@@ -1502,8 +1502,12 @@ async def conferir_sessao(sessao_id: str):
 
 @app.delete("/sessoes/{sessao_id}")
 async def deletar_sessao(sessao_id: str):
-    """Deleta uma sessão específica"""
+    """Deleta uma sessão específica e suas execuções relacionadas"""
     try:
+        # Primeiro deleta as execuções relacionadas
+        supabase.table("execucoes").delete().eq("sessao_id", sessao_id).execute()
+        
+        # Depois deleta a sessão
         response = supabase.table("sessoes").delete().eq("id", sessao_id).execute()
         
         if not response.data:
