@@ -18,14 +18,14 @@ import Pagination from '@/components/Pagination';
 
 interface FichaPresenca {
   id: string;
-  data_atendimento: string;
-  paciente_carteirinha: string;
-  paciente_nome: string;
-  numero_guia: string;
   codigo_ficha: string;
-  possui_assinatura: boolean;
+  numero_guia: string;
+  paciente_nome: string;
+  paciente_carteirinha: string;
   arquivo_digitalizado?: string;
   observacoes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function FichasPresenca() {
@@ -80,24 +80,14 @@ export default function FichasPresenca() {
     if (!selectedFicha || !editedFicha) return;
 
     try {
-      // Converter a data do formato YYYY-MM-DD para DD/MM/YYYY
-      const [ano, mes, dia] = editedFicha.data_atendimento.split('-');
-      const dataFormatada = `${dia}/${mes}/${ano}`;
-
-      // Construindo o payload com a data no formato correto
-      const payload = JSON.stringify({
-        data_atendimento: dataFormatada,
-        paciente_carteirinha: editedFicha.paciente_carteirinha,
-        paciente_nome: editedFicha.paciente_nome,
-        numero_guia: editedFicha.numero_guia,
+      const payload = {
         codigo_ficha: editedFicha.codigo_ficha,
-        possui_assinatura: editedFicha.possui_assinatura,
-        arquivo_digitalizado: editedFicha.arquivo_digitalizado || null
-      });
-
-      console.log('Data original:', editedFicha.data_atendimento);
-      console.log('Data formatada:', dataFormatada);
-      console.log('Payload a ser enviado:', JSON.parse(payload));
+        numero_guia: editedFicha.numero_guia,
+        paciente_nome: editedFicha.paciente_nome,
+        paciente_carteirinha: editedFicha.paciente_carteirinha,
+        arquivo_digitalizado: editedFicha.arquivo_digitalizado,
+        observacoes: editedFicha.observacoes
+      };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${selectedFicha.id}`, {
         method: 'PUT',
@@ -105,7 +95,7 @@ export default function FichasPresenca() {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: payload,
+        body: JSON.stringify(payload),
       });
 
       const responseData = await response.json();
@@ -221,12 +211,11 @@ export default function FichasPresenca() {
 
     // Convert the data to the format we want to export
     const exportData = fichas.map(ficha => ({
-      'Data': ficha.data_atendimento,
+      'Data': ficha.created_at,
       'Paciente': ficha.paciente_nome,
       'Carteirinha': ficha.paciente_carteirinha,
       'Guia': ficha.numero_guia,
       'Código Ficha': ficha.codigo_ficha,
-      'Assinatura': ficha.possui_assinatura ? 'Sim' : 'Não'
     }));
 
     // Create worksheet
@@ -297,32 +286,31 @@ export default function FichasPresenca() {
         console.log('Processando ficha:', ficha);
         let dataFormatada = '';
         
-        if (ficha.data_atendimento) {
+        if (ficha.created_at) {
           try {
             // Se a data vier como DD/MM/YYYY
-            if (ficha.data_atendimento.includes('/')) {
-              const [dia, mes, ano] = ficha.data_atendimento.split('/');
+            if (ficha.created_at.includes('/')) {
+              const [dia, mes, ano] = ficha.created_at.split('/');
               dataFormatada = `${dia}/${mes}/${ano}`;
             } else {
               // Se vier em outro formato (ISO ou MM/DD/YYYY)
-              const data = new Date(ficha.data_atendimento);
+              const data = new Date(ficha.created_at);
               if (!isNaN(data.getTime())) {
                 dataFormatada = format(data, 'dd/MM/yyyy');
               } else {
-                console.error('Data inválida:', ficha.data_atendimento);
-                dataFormatada = ficha.data_atendimento;
+                console.error('Data inválida:', ficha.created_at);
+                dataFormatada = ficha.created_at;
               }
             }
           } catch (error) {
-            console.error('Erro ao formatar data:', error, ficha.data_atendimento);
-            dataFormatada = ficha.data_atendimento;
+            console.error('Erro ao formatar data:', error, ficha.created_at);
+            dataFormatada = ficha.created_at;
           }
         }
 
         return {
           ...ficha,
-          possui_assinatura: Boolean(ficha.possui_assinatura),
-          data_atendimento: dataFormatada
+          created_at: dataFormatada
         };
       });
 
@@ -396,7 +384,6 @@ export default function FichasPresenca() {
             setSelectedFicha(item);
             setEditedFicha({
               ...item,
-              data_atendimento: item.data_atendimento.split('/').reverse().join('-')
             });
             setShowEditDialog(true);
           }}
@@ -436,52 +423,15 @@ export default function FichasPresenca() {
       className: 'w-[250px] text-center'
     },
     {
-      key: 'data_atendimento',
-      label: 'Data',
-      className: 'w-[130px] text-center',
-      render: (value) => value || ''
-    },
-    {
       key: 'numero_guia',
       label: 'Guia',
       className: 'w-[150px] text-center'
     },
     {
-      key: 'possui_assinatura',
-      label: 'Assinado',
-      className: 'w-[100px] text-center',
-      type: 'boolean',
-      render: (value) => (
-        <div className="flex items-center justify-center">
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-            value ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
-          }`}>
-            {value ? (
-              <><FiCheck className="w-3 h-3" />Sim</>
-            ) : (
-              <><FiX className="w-3 h-3" />Não</>
-            )}
-          </span>
-        </div>
-      )
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      className: 'w-[100px] text-center',
-      render: (value) => (
-        <div className="flex items-center justify-center">
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-            value === 'conferida' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
-          }`}>
-            {value === 'conferida' ? (
-              <><FiCheck className="w-3 h-3" />Conferida</>
-            ) : (
-              <><FiX className="w-3 h-3" />Pendente</>
-            )}
-          </span>
-        </div>
-      )
+      key: 'created_at',
+      label: 'Data Cadastro',
+      className: 'w-[130px] text-center',
+      render: (value) => format(new Date(value), 'dd/MM/yyyy')
     },
     {
       key: 'actions',
@@ -653,16 +603,15 @@ export default function FichasPresenca() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="data" className="text-right">
-                Data Atendimento
+              <Label htmlFor="codigo" className="text-right">
+                Código Ficha
               </Label>
               <Input
-                id="data"
-                type="date"
-                value={editedFicha.data_atendimento || ''}
+                id="codigo"
+                value={editedFicha.codigo_ficha}
                 onChange={(e) => setEditedFicha({
                   ...editedFicha,
-                  data_atendimento: e.target.value
+                  codigo_ficha: e.target.value
                 })}
                 className="col-span-3"
               />
@@ -710,35 +659,18 @@ export default function FichasPresenca() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="codigo" className="text-right">
-                Código Ficha
+              <Label htmlFor="observacoes" className="text-right">
+                Observações
               </Label>
-              <Input
-                id="codigo"
-                value={editedFicha.codigo_ficha}
+              <textarea
+                id="observacoes"
+                value={editedFicha.observacoes}
                 onChange={(e) => setEditedFicha({
                   ...editedFicha,
-                  codigo_ficha: e.target.value
+                  observacoes: e.target.value
                 })}
-                className="col-span-3"
+                className="col-span-3 min-h-[100px] rounded-md border border-input bg-background px-3 py-2"
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="assinatura" className="text-right">
-                Assinatura
-              </Label>
-              <div className="col-span-3 flex items-center">
-                <input
-                  type="checkbox"
-                  id="assinatura"
-                  checked={editedFicha.possui_assinatura}
-                  onChange={(e) => setEditedFicha({
-                    ...editedFicha,
-                    possui_assinatura: e.target.checked
-                  })}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-              </div>
             </div>
           </div>
           <DialogFooter>

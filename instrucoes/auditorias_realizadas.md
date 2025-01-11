@@ -3,7 +3,7 @@
 ## Tipos de Divergências (tipo_divergencia)
 
 1. `data_divergente`: Quando a data_execucao é diferente da data_atendimento
-2. `ficha_sem_assinatura`: Quando falta assinatura na ficha
+2. `sessao_sem_assinatura`: Quando uma sessão específica na ficha não possui assinatura
 3. `execucao_sem_ficha`: Quando há execução sem ficha correspondente
 4. `ficha_sem_execucao`: Quando há ficha sem execução correspondente
 5. `quantidade_excedida`: Quando excede quantidade autorizada na guia
@@ -31,13 +31,13 @@
   * execucoes.data_execucao (obrigatório)
   * fichas_presenca.data_atendimento (opcional)
 
-## 2. Ficha sem Assinatura (ficha_sem_assinatura)
+## 2. Sessão sem Assinatura (sessao_sem_assinatura)
 
-* Descrição: Quando uma ficha de presença não possui assinatura ou arquivo digitalizado
-* Campo chave: codigo_ficha
+* Descrição: Quando uma sessão específica dentro da ficha não possui assinatura do paciente
+* Campo chave: codigo_ficha + data_sessao
 * Campos verificados:
-  * fichas_presenca.possui_assinatura
-  * fichas_presenca.arquivo_digitalizado
+  * fichas_presenca.assinaturas_sessoes (JSON contendo status de assinatura por data)
+  * execucoes.data_execucao
 
 ## 3. Execução sem Ficha (execucao_sem_ficha)
 
@@ -132,7 +132,7 @@ CREATE TABLE fichas_presenca (
 
 status_divergencia:	pendente, em_analise, resolvida, cancelada
 status_guia:	pendente, em_andamento, concluida, cancelada
-tipo_divergencia:	ficha_sem_execucao, execucao_sem_ficha, ficha_sem_assinatura, data_divergente, guia_vencida, quantidade_excedida, falta_data_execucao
+tipo_divergencia:	ficha_sem_execucao, execucao_sem_ficha, sessao_sem_assinatura, data_divergente, guia_vencida, quantidade_excedida, falta_data_execucao
 tipo_guia:	sp_sadt, consulta
 
 ## Arquivos 

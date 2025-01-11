@@ -2,317 +2,168 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+import uuid
 
 # Carrega variáveis de ambiente
 load_dotenv()
 
-# Inicializa cliente Supabase
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+# Configurações do Supabase
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+def limpar_protocolos_excel() -> bool:
+    """Limpa a tabela de execucoes."""
+    try:
+        supabase.table("execucoes").delete().execute()
+        print("Tabela execucoes limpa com sucesso!")
+        return True
+    except Exception as e:
+        print(f"Erro ao limpar tabela execucoes: {e}")
+        return False
 
 def limpar_tabelas():
-    """Limpa as tabelas na ordem correta para evitar problemas de foreign key"""
+    """Limpa todas as tabelas na ordem correta"""
     print("Limpando tabelas...")
-
+    
     # Ordem de limpeza respeitando foreign keys
     tabelas = [
         "divergencias",
-        "execucoes",
+        "execucoes", 
+        "sessoes",
         "fichas_presenca",
         "guias",
         "carteirinhas",
         "pacientes",
         "planos_saude",
+        "usuarios"
     ]
-
+    
     for tabela in tabelas:
-        print(f"Limpando tabela {tabela}...")
-        supabase.table(tabela).delete().neq(
-            "id", "00000000-0000-0000-0000-000000000000"
-        ).execute()
+        try:
+            print(f"Limpando tabela {tabela}...")
+            # Usando o padrão correto para UUID
+            supabase.table(tabela).delete().gt(
+                "id", "00000000-0000-0000-0000-000000000000"
+            ).execute()
+            print(f"Tabela {tabela} limpa com sucesso!")
+        except Exception as e:
+            print(f"Erro ao limpar tabela {tabela}: {e}")
+            continue
 
-
-def popular_dados():
-    """Popula as tabelas com dados de teste"""
-    print("Populando tabelas com dados de teste...")
-
-    # Primeiro criamos os pacientes
-    pacientes = [
-        {"nome": "João Silva", "carteirinha": "123456"},
-        {"nome": "Maria Santos", "carteirinha": "789012"},
-        {"nome": "Pedro Oliveira", "carteirinha": "345678"},
-        {"nome": "Ana Costa", "carteirinha": "901234"},
-        {"nome": "Lucas Ferreira", "carteirinha": "567890"},
-        {"nome": "Julia Lima", "carteirinha": "234567"},
-    ]
-
-    pacientes_ids = {}
-    for paciente in pacientes:
-        print(f"Criando paciente {paciente['nome']}...")
-        response = supabase.table("pacientes").insert(paciente).execute()
-        pacientes_ids[paciente["nome"]] = response.data[0]["id"]
-
-    # Criamos os planos de saúde
-    planos_saude = [
-        {"id": "550e8400-e29b-41d4-a716-446655440000", "nome": "Plano Exemplo"}
-    ]
-
-    for plano in planos_saude:
-        print(f"Criando plano de saúde {plano['nome']}...")
-        supabase.table("planos_saude").insert(plano).execute()
-
-    # Depois criamos as carteirinhas
-    carteirinhas = [
-        {
-            "numero_carteirinha": "123456",
-            "paciente_id": pacientes_ids["João Silva"],
-            "plano_saude_id": "550e8400-e29b-41d4-a716-446655440000",
-            "data_validade": "2024-12-31",
-            "titular": True,
-        },
-        {
-            "numero_carteirinha": "789012",
-            "paciente_id": pacientes_ids["Maria Santos"],
-            "plano_saude_id": "550e8400-e29b-41d4-a716-446655440000",
-            "data_validade": "2024-12-31",
-            "titular": True,
-        },
-        {
-            "numero_carteirinha": "345678",
-            "paciente_id": pacientes_ids["Pedro Oliveira"],
-            "plano_saude_id": "550e8400-e29b-41d4-a716-446655440000",
-            "data_validade": "2024-12-31",
-            "titular": False,
-            "nome_titular": "José Oliveira",
-        },
-        {
-            "numero_carteirinha": "901234",
-            "paciente_id": pacientes_ids["Ana Costa"],
-            "plano_saude_id": "550e8400-e29b-41d4-a716-446655440000",
-            "data_validade": "2024-12-31",
-            "titular": True,
-        },
-        {
-            "numero_carteirinha": "567890",
-            "paciente_id": pacientes_ids["Lucas Ferreira"],
-            "plano_saude_id": "550e8400-e29b-41d4-a716-446655440000",
-            "data_validade": "2024-12-31",
-            "titular": True,
-        },
-        {
-            "numero_carteirinha": "234567",
-            "paciente_id": pacientes_ids["Julia Lima"],
-            "plano_saude_id": "550e8400-e29b-41d4-a716-446655440000",
-            "data_validade": "2024-12-31",
-            "titular": True,
-        },
-    ]
-
-    for carteirinha in carteirinhas:
-        print(f"Criando carteirinha {carteirinha['numero_carteirinha']}...")
-        supabase.table("carteirinhas").insert(carteirinha).execute()
-
-    # Criamos as guias
-    guias = [
-        {
-            "numero_guia": "GUIA001/2024",
-            "data_emissao": "2024-01-01",
-            "data_validade": "2024-12-31",
-            "tipo": "sp_sadt",
-            "status": "em_andamento",
-            "paciente_carteirinha": "123456",
-            "paciente_nome": "João Silva",
-            "quantidade_autorizada": 4,
-            "quantidade_executada": 0,
-            "procedimento_codigo": "50000470",
-            "procedimento_nome": "CONSULTA AMBULATORIAL",
-            "profissional_solicitante": "DR. SILVA",
-            "profissional_executante": "DRA. MARIA",
-        },
-        {
-            "numero_guia": "GUIA002/2024",
-            "data_emissao": "2024-01-01",
-            "data_validade": "2024-12-31",
-            "tipo": "sp_sadt",
-            "status": "em_andamento",
-            "paciente_carteirinha": "789012",
-            "paciente_nome": "Maria Santos",
-            "quantidade_autorizada": 4,
-            "quantidade_executada": 0,
-            "procedimento_codigo": "50000470",
-            "procedimento_nome": "CONSULTA AMBULATORIAL",
-        },
-        {
-            "numero_guia": "GUIA003/2024",
-            "data_emissao": "2024-01-01",
-            "data_validade": "2024-12-31",
-            "tipo": "sp_sadt",
-            "status": "em_andamento",
-            "paciente_carteirinha": "345678",
-            "paciente_nome": "Pedro Oliveira",
-            "quantidade_autorizada": 4,
-            "quantidade_executada": 0,
-            "procedimento_codigo": "50000470",
-            "procedimento_nome": "CONSULTA AMBULATORIAL",
-        },
-        {
-            "numero_guia": "GUIA004/2024",
-            "data_emissao": "2024-01-01",
-            "data_validade": "2024-12-31",
-            "tipo": "sp_sadt",
-            "status": "em_andamento",
-            "paciente_carteirinha": "901234",
-            "paciente_nome": "Ana Costa",
-            "quantidade_autorizada": 4,
-            "quantidade_executada": 0,
-            "procedimento_codigo": "50000470",
-            "procedimento_nome": "CONSULTA AMBULATORIAL",
-        },
-        {
-            "numero_guia": "GUIA005/2024",
-            "data_emissao": "2023-01-01",
-            "data_validade": "2024-01-01",  # Guia vencida
-            "tipo": "sp_sadt",
-            "status": "cancelada",
-            "paciente_carteirinha": "567890",
-            "paciente_nome": "Lucas Ferreira",
-            "quantidade_autorizada": 4,
-            "quantidade_executada": 0,
-            "procedimento_codigo": "50000470",
-            "procedimento_nome": "CONSULTA AMBULATORIAL",
-        },
-        {
-            "numero_guia": "GUIA006/2024",
-            "data_emissao": "2024-01-01",
-            "data_validade": "2024-12-31",
-            "tipo": "sp_sadt",
-            "status": "em_andamento",
-            "paciente_carteirinha": "234567",
-            "paciente_nome": "Julia Lima",
-            "quantidade_autorizada": 4,
-            "quantidade_executada": 5,  # Quantidade excedida
-            "procedimento_codigo": "50000470",
-            "procedimento_nome": "CONSULTA AMBULATORIAL",
-        },
-    ]
-
-    for guia in guias:
-        print(f"Criando guia {guia['numero_guia']}...")
-        supabase.table("guias").insert(guia).execute()
-
-    # Criamos as fichas de presença
-    fichas = [
-        {
-            "data_atendimento": "2024-01-10",  # Mesma data da execução
-            "paciente_carteirinha": "123456",
-            "paciente_nome": "João Silva",
-            "numero_guia": "GUIA001/2024",
-            "codigo_ficha": "FICHA001/2024",
-            "possui_assinatura": True,
-            "arquivo_digitalizado": "ficha001.pdf",
-        },
-        {
-            "data_atendimento": None,  # Data de atendimento não preenchida
-            "paciente_carteirinha": "789012",
-            "paciente_nome": "Maria Santos",
-            "numero_guia": "GUIA002/2024",
-            "codigo_ficha": "FICHA002/2024",
-            "possui_assinatura": False,
-            "arquivo_digitalizado": "ficha002.pdf",
-        },
-        {
-            "data_atendimento": "2024-01-14",  # Data diferente da execução (13/01)
-            "paciente_carteirinha": "901234",
-            "paciente_nome": "Ana Costa",
-            "numero_guia": "GUIA004/2024",
-            "codigo_ficha": "FICHA004/2024",
-            "possui_assinatura": True,
-            "arquivo_digitalizado": "ficha004.pdf",
-        },
-        {
-            "data_atendimento": None,  # Outra ficha sem data de atendimento
-            "paciente_carteirinha": "567890",
-            "paciente_nome": "Lucas Ferreira",
-            "numero_guia": "GUIA005/2024",
-            "codigo_ficha": "FICHA005/2024",
-            "possui_assinatura": True,
-            "arquivo_digitalizado": "ficha005.pdf",
-        },
-        {
-            "data_atendimento": "2024-01-15",
-            "paciente_carteirinha": "234567",
-            "paciente_nome": "Julia Lima",
-            "numero_guia": "GUIA006/2024",
-            "codigo_ficha": "FICHA006/2024",
-            "possui_assinatura": True,
-            "arquivo_digitalizado": "ficha006.pdf",
-        },
-    ]
-
-    for ficha in fichas:
-        print(f"Criando ficha {ficha['codigo_ficha']}...")
-        supabase.table("fichas_presenca").insert(ficha).execute()
-
-    # Criamos as execuções
-    execucoes = [
-        {
-            "numero_guia": "GUIA001/2024",
-            "paciente_nome": "João Silva",
-            "data_execucao": "2024-01-10",
-            "paciente_carteirinha": "123456",
-            "codigo_ficha": "FICHA001/2024",
-            "paciente_id": pacientes_ids["João Silva"]
-        },
-        {
-            "numero_guia": "GUIA002/2024",
-            "paciente_nome": "Maria Santos",
-            "data_execucao": None,  # Data de execução não preenchida
-            "paciente_carteirinha": "789012",
-            "codigo_ficha": "FICHA002/2024",
-            "paciente_id": pacientes_ids["Maria Santos"]
-        },
-        {
-            "numero_guia": "GUIA003/2024",
-            "paciente_nome": "Pedro Oliveira",
-            "data_execucao": None,  # Outra execução sem data
-            "paciente_carteirinha": "345678",
-            "paciente_id": pacientes_ids["Pedro Oliveira"]
-        },
-        {
-            "numero_guia": "GUIA004/2024",
-            "paciente_nome": "Ana Costa",
-            "data_execucao": "2024-01-13",
-            "paciente_carteirinha": "901234",
-            "codigo_ficha": "FICHA004/2024",
-            "paciente_id": pacientes_ids["Ana Costa"]
-        },
-        {
-            "numero_guia": "GUIA005/2024",
-            "paciente_nome": "Lucas Ferreira",
-            "data_execucao": "2024-01-14",
-            "paciente_carteirinha": "567890",
-            "codigo_ficha": "FICHA005/2024",
-            "paciente_id": pacientes_ids["Lucas Ferreira"]
-        },
-        {
-            "numero_guia": "GUIA006/2024",
-            "paciente_nome": "Julia Lima",
-            "data_execucao": None,  # Mais uma execução sem data
-            "paciente_carteirinha": "234567",
-            "codigo_ficha": "FICHA006/2024",
-            "paciente_id": pacientes_ids["Julia Lima"]
+def criar_dados_teste():
+    """Cria dados de teste com todos os cenários possíveis"""
+    try:
+        hoje = datetime.now()
+        
+        # 1. Criar usuário administrador
+        usuario = {
+            "id": str(uuid.uuid4()),  # Gera UUID
+            "nome": "Admin Teste",
+            "email": "admin@teste.com",
+            "tipo_usuario": "admin"
         }
-    ]
+        usuario_result = supabase.table("usuarios").insert(usuario).execute()
+        usuario_id = usuario_result.data[0]["id"]
+        print(f"Usuário criado: {usuario_id}")
 
-    for execucao in execucoes:
-        print(f"Criando execução para guia {execucao['numero_guia']}...")
-        supabase.table("execucoes").insert(execucao).execute()
+        # 2. Criar plano de saúde
+        plano = {
+            "id": str(uuid.uuid4()),  # Gera UUID
+            "codigo": "UNIMED001",
+            "nome": "UNIMED TESTE"
+        }
+        plano_result = supabase.table("planos_saude").insert(plano).execute()
+        plano_id = plano_result.data[0]["id"]
+        print(f"Plano criado: {plano_id}")
 
-    print("Dados populados com sucesso!")
+        # 3. Criar paciente de teste
+        paciente = {
+            "id": str(uuid.uuid4()),  # Gera UUID
+            "nome": "João da Silva",
+            "cpf": "12345678901",
+            "data_nascimento": "1980-01-01"
+        }
+        paciente_result = supabase.table("pacientes").insert(paciente).execute()
+        paciente_id = paciente_result.data[0]["id"]
+        print(f"Paciente criado: {paciente_id}")
 
+        # 4. Criar carteirinha
+        carteirinha = {
+            "id": str(uuid.uuid4()),  # Gera UUID
+            "paciente_id": paciente_id,
+            "plano_saude_id": plano_id,
+            "numero_carteirinha": "12345678",
+            "data_validade": (hoje + timedelta(days=365)).date().isoformat(),
+            "titular": True
+        }
+        carteirinha_result = supabase.table("carteirinhas").insert(carteirinha).execute()
+        print("Carteirinha criada")
+
+        # 5. Criar guia
+        guia = {
+            "id": str(uuid.uuid4()),  # Gera UUID
+            "numero_guia": "GUIA001/2024",
+            "data_emissao": hoje.date().isoformat(),
+            "data_validade": (hoje + timedelta(days=30)).date().isoformat(),
+            "tipo": "sp_sadt",
+            "status": "em_andamento",
+            "paciente_nome": paciente["nome"],
+            "paciente_carteirinha": carteirinha["numero_carteirinha"],
+            "quantidade_autorizada": 10,
+            "procedimento_nome": "FISIOTERAPIA"
+        }
+        guia_result = supabase.table("guias").insert(guia).execute()
+        guia_id = guia_result.data[0]["id"]
+        print(f"Guia criada: {guia_id}")
+
+        # 6. Criar ficha de presença
+        ficha = {
+            "id": str(uuid.uuid4()),  # Gera UUID
+            "codigo_ficha": "FICHA001",
+            "numero_guia": guia["numero_guia"],
+            "paciente_nome": paciente["nome"],
+            "paciente_carteirinha": carteirinha["numero_carteirinha"],
+            "arquivo_digitalizado": "ficha001.pdf"
+        }
+        ficha_result = supabase.table("fichas_presenca").insert(ficha).execute()
+        ficha_id = ficha_result.data[0]["id"]
+        print(f"Ficha criada: {ficha_id}")
+
+        # 7. Criar sessões com diferentes cenários
+        for i in range(5):
+            data_sessao = (hoje + timedelta(days=i)).date()
+            sessao = {
+                "id": str(uuid.uuid4()),  # Gera UUID
+                "ficha_presenca_id": ficha_id,
+                "data_sessao": data_sessao.isoformat(),
+                "possui_assinatura": i < 3,  # primeiras 3 com assinatura
+                "tipo_terapia": "FISIOTERAPIA",
+                "executado": i < 4,  # primeiras 4 executadas
+                "data_execucao": data_sessao.isoformat() if i < 4 else None
+            }
+            sessao_result = supabase.table("sessoes").insert(sessao).execute()
+            sessao_id = sessao_result.data[0]["id"]
+            
+            # 8. Criar execução para sessões executadas
+            if sessao["executado"]:
+                execucao = {
+                    "id": str(uuid.uuid4()),  # Gera UUID
+                    "guia_id": guia_id,
+                    "sessao_id": sessao_id,
+                    "data_execucao": sessao["data_execucao"],
+                    "usuario_executante": usuario_id
+                }
+                supabase.table("execucoes").insert(execucao).execute()
+            
+            print(f"Sessão {i+1} criada")
+
+        print("Dados de teste criados com sucesso!")
+        
+    except Exception as e:
+        print(f"Erro ao criar dados de teste: {str(e)}")
+        raise e
 
 if __name__ == "__main__":
     limpar_tabelas()
-    popular_dados()
+    criar_dados_teste()

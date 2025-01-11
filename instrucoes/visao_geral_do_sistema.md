@@ -29,8 +29,6 @@ O sistema foi desenvolvido para automatizar e controlar o processo de auditoria 
 
 ## 3. Estrutura do Banco de Dados
 
-
-
 ### 3.1 Tabelas Principais
 
 #### `pacientes` (Pacientes)
@@ -112,7 +110,6 @@ CREATE TABLE fichas_presenca (
     paciente_carteirinha text,
     numero_guia text,
     codigo_ficha text,
-    possui_assinatura boolean,
     arquivo_digitalizado text,
     observacoes text,
     created_at timestamp with time zone,
@@ -120,8 +117,21 @@ CREATE TABLE fichas_presenca (
 );
 ```
 - Armazena as fichas físicas digitalizadas
-- Controla presença de assinaturas
 - Permite observações sobre o execucao
+
+#### `assinaturas_sessoes` (Assinaturas por Sessão)
+```sql
+CREATE TABLE assinaturas_sessoes (
+    id uuid PRIMARY KEY,
+    ficha_presenca_id uuid REFERENCES fichas_presenca(id),
+    sessao_numero integer,
+    possui_assinatura boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+```
+- Armazena informações sobre assinaturas por sessão
+- Relaciona com fichas de presença
 
 #### `execucoes` (Execuções no Sistema)
 ```sql
@@ -208,7 +218,7 @@ CREATE TABLE agendamentos (
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 );
-``)
+```
 - Controla agendamentos dos pacientes
 - Mantém informações sobre sessões e status
 - Permite controle de faltas e faturamento
@@ -281,8 +291,6 @@ Além disso, a página permite:
 - Visualizar detalhes de cada divergência
 - Marcar divergências como resolvidas
 - Adicionar observações às resoluções
-
-
 
 ### Tipos de Guia
 
