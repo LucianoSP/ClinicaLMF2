@@ -1440,3 +1440,62 @@ from auditoria import router as auditoria_router
 
 # Add the router from auditoria.py
 app.include_router(auditoria_router, prefix="/auditoria")
+
+class SessaoUpdate(BaseModel):
+    data_sessao: str
+    tipo_terapia: str | None = None
+    profissional_executante: str | None = None
+    possui_assinatura: bool = False
+    valor_sessao: float | None = None
+    observacoes_sessao: str | None = None
+
+@app.put("/sessoes/{sessao_id}")
+async def atualizar_sessao(sessao_id: str, sessao: SessaoUpdate):
+    """Atualiza os dados de uma sessão específica"""
+    try:
+        response = supabase.table("sessoes").update({
+            "data_sessao": sessao.data_sessao,
+            "tipo_terapia": sessao.tipo_terapia,
+            "profissional_executante": sessao.profissional_executante,
+            "possui_assinatura": sessao.possui_assinatura,
+            "valor_sessao": sessao.valor_sessao,
+            "observacoes_sessao": sessao.observacoes_sessao
+        }).eq("id", sessao_id).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Sessão não encontrada")
+
+        return {
+            "message": "Sessão atualizada com sucesso",
+            "data": response.data[0]
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao atualizar sessão: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro ao atualizar sessão: {str(e)}"
+        )
+
+@app.put("/sessoes/{sessao_id}/conferir")
+async def conferir_sessao(sessao_id: str):
+    """Marca uma sessão como conferida"""
+    try:
+        response = supabase.table("sessoes").update({
+            "status": "conferida"
+        }).eq("id", sessao_id).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Sessão não encontrada")
+
+        return {
+            "message": "Sessão conferida com sucesso",
+            "data": response.data[0]
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao conferir sessão: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro ao conferir sessão: {str(e)}"
+        )

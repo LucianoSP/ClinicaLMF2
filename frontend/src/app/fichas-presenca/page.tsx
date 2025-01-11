@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FiTrash2, FiEdit, FiDownload, FiUpload, FiSearch, FiCheck, FiX, FiCheckCircle } from 'react-icons/fi';
+import { FiTrash2, FiEdit, FiDownload, FiUpload, FiSearch, FiCheck, FiX, FiCheckCircle, FiEye } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import SortableTable, { Column } from '@/components/SortableTable';
@@ -15,6 +15,29 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import Pagination from '@/components/Pagination';
+
+// Add a helper function for safe date formatting
+const formatDate = (dateStr: string | null | undefined) => {
+  if (!dateStr) return '';
+  
+  try {
+    // If date is already in DD/MM/YYYY format
+    if (dateStr.includes('/')) {
+      return dateStr;
+    }
+    
+    // If date is in ISO format or other format, try to parse it
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date:', dateStr);
+      return dateStr;
+    }
+    return format(date, 'dd/MM/yyyy');
+  } catch (error) {
+    console.error('Error formatting date:', dateStr, error);
+    return dateStr;
+  }
+};
 
 interface Sessao {
   id: string;
@@ -44,6 +67,10 @@ interface FichaPresenca {
   sessoes?: Sessao[];
 }
 
+interface EditedSessao extends Partial<Sessao> {
+  // ...existing Sessao fields...
+}
+
 export default function FichasPresenca() {
   const [fichas, setFichas] = useState<FichaPresenca[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +90,12 @@ export default function FichasPresenca() {
   const [statusFilter, setStatusFilter] = useState<string>('pendente');
   const [selectedSessoes, setSelectedSessoes] = useState<Sessao[]>([]);
   const [showSessoesDialog, setShowSessoesDialog] = useState(false);
+  const [showFichaDetails, setShowFichaDetails] = useState(false);
+  const [selectedSessao, setSelectedSessao] = useState<Sessao | null>(null);
+  const [showEditSessaoDialog, setShowEditSessaoDialog] = useState(false);
+  const [editedSessao, setEditedSessao] = useState<EditedSessao>({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [sessaoParaConferir, setSessaoParaConferir] = useState<{ id: string, ficha_presenca_id: string } | null>(null);
 
   const handleDelete = async () => {
     if (!selectedFicha) return;
@@ -268,6 +301,11 @@ export default function FichasPresenca() {
   const fetchFichas = async () => {
     setLoading(true);
     try {
+      // Make sure we have the correct API URL
+      if (!process.env.NEXT_PUBLIC_API_URL) {
+        throw new Error('API URL not configured');
+      }
+
       const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca`;
       const params = new URLSearchParams();
       
@@ -275,75 +313,49 @@ export default function FichasPresenca() {
       params.append('offset', ((page - 1) * perPage).toString());
       params.append('order', 'created_at.desc');
       
-      // Only add status filter if not showing all
       if (statusFilter !== 'todas') {
         params.append('status', statusFilter);
       }
 
       if (debouncedSearchTerm.trim().length >= 2) {
-        params.append('search', debouncedSearchTerm.trim());  // Changed from paciente_nome to search
+        params.append('search', debouncedSearchTerm.trim());
       }
 
       const url = `${baseUrl}?${params.toString()}`;
-      console.log('URL da requisição:', url);
-      
-      const response = await fetch(url);
+      console.log('Fetching from URL:', url); // Debug log
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Falha ao carregar fichas');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('Resposta da API:', result);
-
+      
       if (!result.fichas || !Array.isArray(result.fichas)) {
-        console.error('Formato inválido da resposta:', result);
-        throw new Error('Formato inválido da resposta da API');
+        console.error('Invalid response format:', result);
+        throw new Error('Invalid API response format');
       }
 
-      // Formatando os dados recebidos
-      const fichasFormatadas = result.fichas.map((ficha: any) => {
-        console.log('Processando ficha:', ficha);
-        let dataFormatada = '';
-        
-        if (ficha.created_at) {
-          try {
-            // Se a data vier como DD/MM/YYYY
-            if (ficha.created_at.includes('/')) {
-              const [dia, mes, ano] = ficha.created_at.split('/');
-              dataFormatada = `${dia}/${mes}/${ano}`;
-            } else {
-              // Se vier em outro formato (ISO ou MM/DD/YYYY)
-              const data = new Date(ficha.created_at);
-              if (!isNaN(data.getTime())) {
-                dataFormatada = format(data, 'dd/MM/yyyy');
-              } else {
-                console.error('Data inválida:', ficha.created_at);
-                dataFormatada = ficha.created_at;
-              }
-            }
-          } catch (error) {
-            console.error('Erro ao formatar data:', error, ficha.created_at);
-            dataFormatada = ficha.created_at;
-          }
-        }
+      // Format the data
+      const fichasFormatadas = result.fichas.map((ficha: FichaPresenca) => ({
+        ...ficha,
+        created_at: formatDate(ficha.created_at)
+      }));
 
-        return {
-          ...ficha,
-          created_at: dataFormatada
-        };
-      });
-
-      console.log('Fichas formatadas:', fichasFormatadas);
       setFichas(fichasFormatadas);
-      
-      // Calculando o total de páginas
-      const totalPages = Math.ceil(result.total / perPage);
-      setTotalPages(totalPages);
+      setTotalPages(Math.ceil(result.total / perPage));
       setTotalRecords(result.total);
 
     } catch (error) {
-      console.error('Erro ao buscar fichas:', error);
+      console.error('Error fetching fichas:', error);
       toast({
         title: "Erro",
         description: error.message || "Falha ao carregar as fichas de presença",
@@ -392,20 +404,21 @@ export default function FichasPresenca() {
     }
   };
 
-  const handleViewSessoes = (ficha: FichaPresenca) => {
-    setSelectedSessoes(ficha.sessoes || []);
-    setShowSessoesDialog(true);
+  const handleSessaoClick = (sessao: Sessao) => {
+    setSelectedSessao(sessao.id === selectedSessao?.id ? null : sessao);
   };
 
   const handleActions = (item: FichaPresenca) => {
     return (
       <div className="flex items-center justify-center gap-4">
         <button
-          onClick={() => handleViewSessoes(item)}
+          onClick={() => {
+            setSelectedFicha(item); // Apenas seleciona a ficha para mostrar sessões
+          }}
           className="text-blue-600 hover:text-blue-700"
           title="Ver Sessões"
         >
-          <DocumentIcon className="w-4 h-4" />
+          <FiEye className="w-4 h-4" />
         </button>
         <button
           onClick={() => handleConferir(item.id)}
@@ -415,20 +428,20 @@ export default function FichasPresenca() {
           <FiCheckCircle className="w-4 h-4" />
         </button>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation(); // Previne a seleção da ficha
             setSelectedFicha(item);
-            setEditedFicha({
-              ...item,
-            });
+            setEditedFicha({...item});
             setShowEditDialog(true);
           }}
           className="text-[#b49d6b] hover:text-[#a08b5f]"
-          title="Editar"
+          title="Editar Ficha"
         >
           <FiEdit className="w-4 h-4" />
         </button>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation(); // Previne a seleção da ficha
             setSelectedFicha(item);
             setShowDeleteDialog(true);
           }}
@@ -441,7 +454,7 @@ export default function FichasPresenca() {
     );
   };
 
-  const columns: Column<FichaPresenca>[] = [
+  const fichasColumns: Column<FichaPresenca>[] = [
     {
       key: 'codigo_ficha',
       label: 'Código Ficha',
@@ -476,6 +489,19 @@ export default function FichasPresenca() {
       }
     },
     {
+      key: 'sessoes',
+      label: 'Sessões',
+      className: 'w-[100px] text-center',
+      render: (_, item) => (
+        <div className="text-center">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium 
+            ${item.sessoes?.length ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+            {item.sessoes?.length || 0}
+          </span>
+        </div>
+      )
+    },
+    {
       key: 'actions',
       label: 'Ações',
       className: 'w-[100px] text-center',
@@ -483,17 +509,53 @@ export default function FichasPresenca() {
     }
   ];
 
+  const handleEditSessao = async (sessao: Sessao) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessoes/${sessao.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data_sessao: sessao.data_sessao,
+          tipo_terapia: sessao.tipo_terapia,
+          profissional_executante: sessao.profissional_executante,
+          possui_assinatura: sessao.possui_assinatura,
+          valor_sessao: sessao.valor_sessao,
+          observacoes_sessao: sessao.observacoes_sessao
+        }),
+      });
+
+      if (!response.ok) throw new Error('Falha ao atualizar sessão');
+
+      toast({
+        title: "Sucesso",
+        description: "Sessão atualizada com sucesso",
+      });
+      
+      // Atualiza a ficha para mostrar as alterações
+      fetchFichas();
+      
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar sessão",
+        variant: "destructive",
+      });
+    }
+  };
+
   const sessoesColumns: Column<Sessao>[] = [
     {
       key: 'data_sessao',
       label: 'Data',
-      className: 'w-[130px] text-center',
-      render: (value) => format(new Date(value), 'dd/MM/yyyy')
+      className: 'w-[120px] text-center',
+      render: (value) => formatDate(value)
     },
     {
       key: 'tipo_terapia',
       label: 'Terapia',
-      className: 'w-[200px] text-center'
+      className: 'w-[150px] text-center'
     },
     {
       key: 'profissional_executante',
@@ -506,9 +568,9 @@ export default function FichasPresenca() {
       className: 'w-[100px] text-center',
       render: (value) => (
         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-          value ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
+          value ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
         }`}>
-          {value ? <><FiCheck className="w-3 h-3" />Sim</> : <><FiX className="w-3 h-3" />Não</>}
+          {value ? <FiCheck className="w-3 h-3" /> : <FiX className="w-3 h-3" />}
         </span>
       )
     },
@@ -518,327 +580,514 @@ export default function FichasPresenca() {
       className: 'w-[100px] text-center',
       render: (value) => (
         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-          value === 'conferida' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
+          value === 'conferida' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
         }`}>
-          {value === 'conferida' ? 'Conferida' : 'Pendente'}
+          {value}
         </span>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Ações',
+      className: 'w-[120px] text-center',
+      render: (_, sessao) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedSessao(sessao);
+              setEditedSessao(sessao);
+              setShowEditSessaoDialog(true);
+            }}
+            title="Editar Sessão"
+          >
+            <FiEdit className="w-4 h-4 text-[#b49d6b]" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleConferirSessao(sessao);
+            }}
+            disabled={sessao.status === 'conferida'}
+            title="Confirmar Sessão"
+          >
+            <FiCheckCircle className={`w-4 h-4 ${
+              sessao.status === 'conferida' ? 'text-green-600' : 'text-gray-400'
+            }`} />
+          </Button>
+        </div>
       )
     }
   ];
 
-  if (loading) {
+  const handleConferirSessao = async (sessao: Sessao) => {
+    setSessaoParaConferir({ 
+      id: sessao.id, 
+      ficha_presenca_id: sessao.ficha_presenca_id 
+    });
+    setShowConfirmDialog(true);
+  };
+
+  const confirmarSessao = async () => {
+    if (!sessaoParaConferir) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/sessoes/${sessaoParaConferir.id}/conferir`, 
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+
+      if (!response.ok) throw new Error('Falha ao conferir sessão');
+
+      toast({
+        title: "Sucesso",
+        description: "Sessão conferida com sucesso",
+      });
+
+      // Update the session status in the selected ficha
+      if (selectedFicha) {
+        const updatedSessoes = selectedFicha.sessoes?.map(s => 
+          s.id === sessaoParaConferir.id ? { ...s, status: 'conferida' } : s
+        );
+        setSelectedFicha({
+          ...selectedFicha,
+          sessoes: updatedSessoes
+        });
+
+        // Also update in the main fichas list
+        setFichas(prevFichas => 
+          prevFichas.map(ficha => 
+            ficha.id === selectedFicha.id 
+              ? { ...ficha, sessoes: updatedSessoes }
+              : ficha
+          )
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao conferir sessão",
+        variant: "destructive",
+      });
+    } finally {
+      setShowConfirmDialog(false);
+      setSessaoParaConferir(null);
+    }
+  };
+
+  const handleRowClick = (ficha: FichaPresenca) => {
+    setSelectedFicha(ficha);
+    console.log('Ficha selecionada:', ficha);
+    console.log('Sessões:', ficha.sessoes);
+  };
+
+  const handleCloseSessoes = () => {
+    setSelectedFicha(null);
+    setSelectedSessao(null);
+  };
+
+  const handleEditSessaoSubmit = async () => {
+    if (!selectedSessao || !editedSessao) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessoes/${selectedSessao.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editedSessao),
+      });
+
+      if (!response.ok) throw new Error('Falha ao atualizar sessão');
+
+      toast({
+        title: "Sucesso",
+        description: "Sessão atualizada com sucesso",
+      });
+      
+      // Update local state
+      if (selectedFicha) {
+        const updatedSessoes = selectedFicha.sessoes?.map(s => 
+          s.id === selectedSessao.id ? { ...s, ...editedSessao } : s
+        );
+        setSelectedFicha({ ...selectedFicha, sessoes: updatedSessoes });
+      }
+      setShowEditSessaoDialog(false);
+      
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar sessão",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6b342f]" />
+        </div>
+      );
+    }
+
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6b342f]"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
-        <div className="p-6 flex flex-col gap-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Fichas de Presença</h2>
-            <div className="flex gap-2">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept=".pdf"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={(e) => {
-                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                    if (input) input.click();
-                  }}
-                  disabled={uploading}
-                >
-                  {uploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#6b342f]"></div>
-                      <span>Enviando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FiUpload className="h-4 w-4" />
-                      <span>Upload PDF</span>
-                    </>
-                  )}
+      <div className="flex flex-col gap-6">
+        {/* Header com upload e filtros - mantém o mesmo */}
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="p-6 flex flex-col gap-8">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Fichas de Presença</h2>
+              <div className="flex gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      if (input) input.click();
+                    }}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#6b342f]" />
+                        <span>Enviando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiUpload className="h-4 w-4" />
+                        <span>Upload PDF</span>
+                      </>
+                    )}
+                  </Button>
+                </label>
+                <Button variant="outline" className="gap-2" onClick={handleExportExcel}>
+                  <FiDownload className="h-4 w-4" />
+                  Exportar Excel
                 </Button>
-              </label>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={handleExportExcel}
-              >
-                <FiDownload className="h-4 w-4" />
-                Exportar Excel
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => setShowClearDialog(true)}
-              >
-                <TrashIcon className="h-4 w-4" />
-                Limpar Fichas
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar por nome..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                <FiSearch className="absolute left-2 top-3 text-muted-foreground" />
+                <Button variant="outline" className="gap-2" onClick={() => setShowClearDialog(true)}>
+                  <TrashIcon className="h-4 w-4" />
+                  Limpar Fichas
+                </Button>
               </div>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1); // Reset para primeira página ao mudar filtro
-                }}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2"
-              >
-                <option value="pendente">Pendentes</option>
-                <option value="conferida">Conferidas</option>
-                <option value="todas">Todas</option>
-              </select>
-              <select
-                value={perPage}
-                onChange={handlePerPageChange}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2"
-              >
-                <option value={10}>10 por página</option>
-                <option value={25}>25 por página</option>
-                <option value={50}>50 por página</option>
-              </select>
             </div>
-          </div>
 
-          <div className="rounded-md border">
-            <SortableTable
-              data={fichas}
-              columns={columns}
-              loading={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-muted-foreground">
-              Total: {totalRecords} registros
-            </p>
-            {totalPages > 1 && (
+            {/* Filters */}
+            <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1 || loading}
-                >
-                  Anterior
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <Button
-                      key={pageNum}
-                      variant={pageNum === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPage(pageNum)}
-                      disabled={loading}
-                      className={pageNum === page ? "bg-[#b49d6b] text-white" : ""}
-                    >
-                      {pageNum}
-                    </Button>
-                  ))}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <FiSearch className="absolute left-2 top-3 text-muted-foreground" />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
-                  disabled={page === totalPages || loading}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="h-10 rounded-md border border-input bg-background px-3 py-2"
                 >
-                  Próxima
-                </Button>
+                  <option value="pendente">Pendentes</option>
+                  <option value="conferida">Conferidas</option>
+                  <option value="todas">Todas</option>
+                </select>
+                <select
+                  value={perPage}
+                  onChange={handlePerPageChange}
+                  className="h-10 rounded-md border border-input bg-background px-3 py-2"
+                >
+                  <option value={10}>10 por página</option>
+                  <option value={25}>25 por página</option>
+                  <option value={50}>50 por página</option>
+                </select>
               </div>
-            )}
+            </div>
           </div>
         </div>
+
+        {/* Layout Principal - Modificado para layout vertical */}
+        <div className="flex flex-col gap-4">
+          {/* Tabela de Fichas */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-4">Fichas de Presença</h3>
+            <SortableTable
+              data={fichas}
+              columns={fichasColumns}
+              loading={loading}
+              onRowClick={handleRowClick}
+              rowClassName={(item) => 
+                item.id === selectedFicha?.id ? 'bg-blue-50 cursor-pointer' : 'cursor-pointer hover:bg-gray-50'
+              }
+            />
+            
+            {/* Paginação e contadores */}
+            <div className="mt-4 flex justify-between items-center">
+              <div className="text-sm text-gray-500">
+                Total de registros: {totalRecords}
+              </div>
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          </div>
+
+          {/* Tabela de Sessões */}
+          {selectedFicha && (
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-gray-700">Ficha:</span>
+                  <span className="text-gray-900">{selectedFicha.codigo_ficha}</span>
+                  <span className="text-gray-400">|</span>
+                  <span className="font-medium text-gray-700">Paciente:</span>
+                  <span className="text-gray-900">{selectedFicha.paciente_nome}</span>
+                  <span className="text-gray-400">|</span>
+                  <span className="font-medium text-gray-700">Guia:</span>
+                  <span className="text-gray-900">{selectedFicha.numero_guia}</span>
+                  <span className="text-gray-400">|</span>
+                  <span className="font-medium text-gray-700">Carteirinha:</span>
+                  <span className="text-gray-900">{selectedFicha.paciente_carteirinha}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloseSessoes}
+                  className="hover:bg-gray-100"
+                >
+                  <FiX className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <SortableTable
+                  data={selectedFicha.sessoes || []}
+                  columns={sessoesColumns}
+                  loading={false}
+                  onRowClick={handleSessaoClick}
+                  rowClassName={(sessao) => 
+                    sessao.id === selectedSessao?.id 
+                      ? 'bg-blue-50 cursor-pointer' 
+                      : 'cursor-pointer hover:bg-gray-50'
+                  }
+                />
+              </div>
+
+              <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
+                <span>Total de sessões: {selectedFicha.sessoes?.length || 0}</span>
+                <span>
+                  Conferidas: {selectedFicha.sessoes?.filter(s => s.status === 'conferida').length || 0}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dialog para Detalhes da Ficha */}
+        <Dialog open={showFichaDetails} onOpenChange={setShowFichaDetails}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Detalhes da Ficha</DialogTitle>
+            </DialogHeader>
+            {/* ...detalhes da ficha... */}
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialogs */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          {/* ...existing edit dialog content... */}
+        </Dialog>
+
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          {/* ...existing delete dialog content... */}
+        </Dialog>
+
+        <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+          {/* ...existing clear dialog content... */}
+        </Dialog>
+
+        <Dialog open={showSessoesDialog} onOpenChange={setShowSessoesDialog}>
+          <DialogContent className="bg-white max-w-5xl">
+            <DialogHeader>
+              <DialogTitle>Sessões da Ficha</DialogTitle>
+              <DialogDescription>
+                Confira cada sessão individualmente
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="mt-4">
+              <div className="rounded-md border">
+                <SortableTable
+                  data={selectedSessoes}
+                  columns={sessoesColumns}
+                  loading={false}
+                />
+              </div>
+              {selectedSessoes.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">
+                  Nenhuma sessão encontrada para esta ficha.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-between items-center">
+              <div className="text-sm text-muted-foreground">
+                Total de sessões: {selectedSessoes.length}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Conferidas: {selectedSessoes.filter(s => s.status === 'conferida').length}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSessoesDialog(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Edit Session Dialog */}
+        <Dialog open={showEditSessaoDialog} onOpenChange={setShowEditSessaoDialog}>
+          <DialogContent className="sm:max-w-[425px] bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-gray-900">
+                Editar Sessão
+              </DialogTitle>
+              <DialogDescription className="text-sm text-gray-500">
+                Altere os dados da sessão. Clique em salvar quando terminar.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="data_sessao" className="text-sm font-medium text-gray-700">
+                  Data da Sessão
+                </Label>
+                <Input
+                  id="data_sessao"
+                  type="date"
+                  value={editedSessao.data_sessao ? editedSessao.data_sessao.split('T')[0] : ''}
+                  onChange={(e) => setEditedSessao({ ...editedSessao, data_sessao: e.target.value })}
+                  className="border rounded-md p-2"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="tipo_terapia" className="text-sm font-medium text-gray-700">
+                  Tipo de Terapia
+                </Label>
+                <Input
+                  id="tipo_terapia"
+                  value={editedSessao.tipo_terapia || ''}
+                  onChange={(e) => setEditedSessao({ ...editedSessao, tipo_terapia: e.target.value })}
+                  className="border rounded-md p-2"
+                  placeholder="Ex: Fisioterapia"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="profissional" className="text-sm font-medium text-gray-700">
+                  Profissional
+                </Label>
+                <Input
+                  id="profissional"
+                  value={editedSessao.profissional_executante || ''}
+                  onChange={(e) => setEditedSessao({ ...editedSessao, profissional_executante: e.target.value })}
+                  className="border rounded-md p-2"
+                  placeholder="Nome do profissional"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Label htmlFor="possui_assinatura" className="text-sm font-medium text-gray-700">
+                  Possui Assinatura
+                </Label>
+                <input
+                  id="possui_assinatura"
+                  type="checkbox"
+                  checked={editedSessao.possui_assinatura || false}
+                  onChange={(e) => setEditedSessao({ ...editedSessao, possui_assinatura: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="observacoes" className="text-sm font-medium text-gray-700">
+                  Observações
+                </Label>
+                <textarea
+                  id="observacoes"
+                  value={editedSessao.observacoes_sessao || ''}
+                  onChange={(e) => setEditedSessao({ ...editedSessao, observacoes_sessao: e.target.value })}
+                  className="min-h-[80px] w-full p-2 border rounded-md"
+                  placeholder="Observações sobre a sessão..."
+                />
+              </div>
+            </div>
+            
+            <DialogFooter className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowEditSessaoDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleEditSessaoSubmit}>
+                Salvar Alterações
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmation Dialog */}
+        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <DialogContent className="sm:max-w-[425px] bg-white">
+            <DialogHeader>
+              <DialogTitle>Confirmar Ação</DialogTitle>
+              <DialogDescription>
+                Deseja marcar esta sessão como conferida? 
+                Esta ação não poderá ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowConfirmDialog(false);
+                  setSessaoParaConferir(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={confirmarSessao}>
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+    );
+  };
 
-      {/* Modal de Edição */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-white">
-          <DialogHeader>
-            <DialogTitle>Editar Ficha de Presença</DialogTitle>
-            <DialogDescription>
-              Faça as alterações necessárias nos campos abaixo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="codigo" className="text-right">
-                Código Ficha
-              </Label>
-              <Input
-                id="codigo"
-                value={editedFicha.codigo_ficha}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  codigo_ficha: e.target.value
-                })}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="paciente" className="text-right">
-                Paciente
-              </Label>
-              <Input
-                id="paciente"
-                value={editedFicha.paciente_nome}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  paciente_nome: e.target.value
-                })}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="carteirinha" className="text-right">
-                Carteirinha
-              </Label>
-              <Input
-                id="carteirinha"
-                value={editedFicha.paciente_carteirinha}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  paciente_carteirinha: e.target.value
-                })}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="guia" className="text-right">
-                Guia
-              </Label>
-              <Input
-                id="guia"
-                value={editedFicha.numero_guia}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  numero_guia: e.target.value
-                })}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="observacoes" className="text-right">
-                Observações
-              </Label>
-              <textarea
-                id="observacoes"
-                value={editedFicha.observacoes}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  observacoes: e.target.value
-                })}
-                className="col-span-3 min-h-[100px] rounded-md border border-input bg-background px-3 py-2"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Exclusão */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-white">
-          <DialogHeader>
-            <DialogTitle>Excluir Ficha de Presença</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir esta ficha de presença? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Clear Dialog */}
-      <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <DialogContent className="bg-white">
-          <DialogHeader>
-            <DialogTitle>Limpar Fichas de Presença</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir todas as fichas de presença? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowClearDialog(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleClear}>
-              Limpar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Sessões Dialog */}
-      <Dialog open={showSessoesDialog} onOpenChange={setShowSessoesDialog}>
-        <DialogContent className="bg-white max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Sessões da Ficha</DialogTitle>
-            <DialogDescription>
-              Lista de sessões identificadas nesta ficha de presença.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4">
-            <div className="rounded-md border">
-              <SortableTable
-                data={selectedSessoes}
-                columns={sessoesColumns}
-                loading={false}
-              />
-            </div>
-            {selectedSessoes.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">
-                Nenhuma sessão encontrada para esta ficha.
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSessoesDialog(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+  // Return the component
+  return renderContent();
 }
