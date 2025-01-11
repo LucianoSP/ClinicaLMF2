@@ -16,6 +16,21 @@ import * as XLSX from 'xlsx';
 import { CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import Pagination from '@/components/Pagination';
 
+interface Sessao {
+  id: string;
+  ficha_presenca_id: string;
+  data_sessao: string;
+  possui_assinatura: boolean;
+  tipo_terapia: string;
+  profissional_executante: string;
+  valor_sessao?: number;
+  status: 'pendente' | 'conferida';
+  observacoes_sessao?: string;
+  executado: boolean;
+  data_execucao?: string;
+  executado_por?: string;
+}
+
 interface FichaPresenca {
   id: string;
   codigo_ficha: string;
@@ -26,6 +41,7 @@ interface FichaPresenca {
   observacoes?: string;
   created_at: string;
   updated_at: string;
+  sessoes?: Sessao[];
 }
 
 export default function FichasPresenca() {
@@ -45,6 +61,8 @@ export default function FichasPresenca() {
   const [editedFicha, setEditedFicha] = useState<Partial<FichaPresenca>>({});
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>('pendente');
+  const [selectedSessoes, setSelectedSessoes] = useState<Sessao[]>([]);
+  const [showSessoesDialog, setShowSessoesDialog] = useState(false);
 
   const handleDelete = async () => {
     if (!selectedFicha) return;
@@ -253,24 +271,26 @@ export default function FichasPresenca() {
       const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca`;
       const params = new URLSearchParams();
       
-      // Convertendo page/perPage para limit/offset
-      const limit = perPage;
-      const offset = (page - 1) * perPage;
+      params.append('limit', perPage.toString());
+      params.append('offset', ((page - 1) * perPage).toString());
+      params.append('order', 'created_at.desc');
       
-      params.append('limit', limit.toString());
-      params.append('offset', offset.toString());
-      params.append('status', statusFilter);
+      // Only add status filter if not showing all
+      if (statusFilter !== 'todas') {
+        params.append('status', statusFilter);
+      }
 
       if (debouncedSearchTerm.trim().length >= 2) {
-        params.append('paciente_nome', debouncedSearchTerm.trim());
+        params.append('search', debouncedSearchTerm.trim());  // Changed from paciente_nome to search
       }
 
       const url = `${baseUrl}?${params.toString()}`;
-      console.log('URL da requisição:', url, { page, perPage, limit, offset });
+      console.log('URL da requisição:', url);
       
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('Falha ao carregar fichas');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Falha ao carregar fichas');
       }
 
       const result = await response.json();
@@ -326,7 +346,7 @@ export default function FichasPresenca() {
       console.error('Erro ao buscar fichas:', error);
       toast({
         title: "Erro",
-        description: "Falha ao carregar as fichas de presença",
+        description: error.message || "Falha ao carregar as fichas de presença",
         variant: "destructive",
       });
       setFichas([]);
@@ -344,8 +364,14 @@ export default function FichasPresenca() {
 
   const handleConferir = async (id: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${id}/conferir`, {
-        method: 'PUT',
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'conferida'
+        }),
       });
 
       if (response.ok) {
@@ -353,10 +379,7 @@ export default function FichasPresenca() {
           title: "Sucesso",
           description: "Ficha marcada como conferida",
         });
-        // Remove a ficha da lista localmente
-        setFichas(fichas.filter(ficha => ficha.id !== id));
-        // Atualiza o total
-        setTotalRecords(prev => prev - 1);
+        fetchFichas(); // Refresh the list instead of removing locally
       } else {
         throw new Error('Falha ao conferir ficha');
       }
@@ -369,9 +392,21 @@ export default function FichasPresenca() {
     }
   };
 
+  const handleViewSessoes = (ficha: FichaPresenca) => {
+    setSelectedSessoes(ficha.sessoes || []);
+    setShowSessoesDialog(true);
+  };
+
   const handleActions = (item: FichaPresenca) => {
     return (
       <div className="flex items-center justify-center gap-4">
+        <button
+          onClick={() => handleViewSessoes(item)}
+          className="text-blue-600 hover:text-blue-700"
+          title="Ver Sessões"
+        >
+          <DocumentIcon className="w-4 h-4" />
+        </button>
         <button
           onClick={() => handleConferir(item.id)}
           className="text-green-600 hover:text-green-700"
@@ -431,13 +466,63 @@ export default function FichasPresenca() {
       key: 'created_at',
       label: 'Data Cadastro',
       className: 'w-[130px] text-center',
-      render: (value) => format(new Date(value), 'dd/MM/yyyy')
+      render: (value) => {
+        try {
+          return format(new Date(value), 'dd/MM/yyyy');
+        } catch (error) {
+          console.error('Error formatting date:', value);
+          return value;
+        }
+      }
     },
     {
       key: 'actions',
       label: 'Ações',
       className: 'w-[100px] text-center',
       render: (value, item) => handleActions(item)
+    }
+  ];
+
+  const sessoesColumns: Column<Sessao>[] = [
+    {
+      key: 'data_sessao',
+      label: 'Data',
+      className: 'w-[130px] text-center',
+      render: (value) => format(new Date(value), 'dd/MM/yyyy')
+    },
+    {
+      key: 'tipo_terapia',
+      label: 'Terapia',
+      className: 'w-[200px] text-center'
+    },
+    {
+      key: 'profissional_executante',
+      label: 'Profissional',
+      className: 'w-[200px] text-center'
+    },
+    {
+      key: 'possui_assinatura',
+      label: 'Assinado',
+      className: 'w-[100px] text-center',
+      render: (value) => (
+        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+          value ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
+        }`}>
+          {value ? <><FiCheck className="w-3 h-3" />Sim</> : <><FiX className="w-3 h-3" />Não</>}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      className: 'w-[100px] text-center',
+      render: (value) => (
+        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+          value === 'conferida' ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef9c3] text-[#854d0e]'
+        }`}>
+          {value === 'conferida' ? 'Conferida' : 'Pendente'}
+        </span>
+      )
     }
   ];
 
@@ -719,6 +804,37 @@ export default function FichasPresenca() {
             </Button>
             <Button variant="destructive" onClick={handleClear}>
               Limpar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sessões Dialog */}
+      <Dialog open={showSessoesDialog} onOpenChange={setShowSessoesDialog}>
+        <DialogContent className="bg-white max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Sessões da Ficha</DialogTitle>
+            <DialogDescription>
+              Lista de sessões identificadas nesta ficha de presença.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <div className="rounded-md border">
+              <SortableTable
+                data={selectedSessoes}
+                columns={sessoesColumns}
+                loading={false}
+              />
+            </div>
+            {selectedSessoes.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">
+                Nenhuma sessão encontrada para esta ficha.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSessoesDialog(false)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>

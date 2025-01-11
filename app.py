@@ -1213,16 +1213,18 @@ async def download_all_files():
 async def listar_fichas(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
-    status: str = Query("pendente", description="Filtrar por status (pendente, conferida, todas)")
+    search: str = Query(None, description="Buscar por nome do paciente"),
+    status: str = Query("pendente", description="Filtrar por status (pendente, conferida, todas)"),
+    order: str = Query("created_at.desc", description="Ordenação dos resultados")
 ):
     """Lista todas as fichas de presença com suporte a paginação e filtros"""
     try:
         result = listar_fichas_presenca(
             limit=limit, 
             offset=offset, 
-            paciente_nome=paciente_nome,
-            status=status
+            search=search,  # Changed from paciente_nome to search
+            status=status,
+            order=order
         )
         return result
     except Exception as e:

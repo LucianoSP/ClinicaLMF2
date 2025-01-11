@@ -77,6 +77,7 @@ CREATE TABLE fichas_presenca (
     paciente_carteirinha text,
     arquivo_digitalizado text,
     observacoes text,
+    status text DEFAULT 'pendente',  -- Add this line
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );

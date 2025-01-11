@@ -355,24 +355,42 @@ def limpar_banco() -> None:
         print(f"Erro ao limpar banco: {e}")
 
 def salvar_ficha_presenca(info: Dict) -> Optional[str]:
-    """Salva as informações da ficha de presença no Supabase."""
+    """Salva as informações da ficha de presença e suas sessões no Supabase."""
     try:
-        dados = {
-            "data_atendimento": info["data_atendimento"],
-            "paciente_carteirinha": info["paciente_carteirinha"],
-            "paciente_nome": info["paciente_nome"].upper(),
-            "numero_guia": info["numero_guia"],
+        # Dados da ficha
+        dados_ficha = {
             "codigo_ficha": info["codigo_ficha"],
-            "possui_assinatura": info.get("possui_assinatura", False),
+            "numero_guia": info["numero_guia"],
+            "paciente_nome": info["paciente_nome"].upper(),
+            "paciente_carteirinha": info["paciente_carteirinha"],
             "arquivo_digitalizado": info.get("arquivo_digitalizado"),
+            "observacoes": info.get("observacoes"),
             "status": "pendente"
         }
 
-        response = supabase.table("fichas_presenca").insert(dados).execute()
+        # Insere a ficha e obtém o ID
+        response = supabase.table("fichas_presenca").insert(dados_ficha).execute()
+        if not response.data:
+            return None
+            
+        ficha_id = response.data[0]["id"]
+        
+        # Se houver sessões, insere cada uma
+        if info.get("sessoes"):
+            for sessao in info["sessoes"]:
+                dados_sessao = {
+                    "ficha_presenca_id": ficha_id,
+                    "data_sessao": sessao["data_sessao"],
+                    "possui_assinatura": sessao.get("possui_assinatura", False),
+                    "tipo_terapia": sessao.get("tipo_terapia"),
+                    "profissional_executante": sessao.get("profissional_executante"),
+                    "valor_sessao": sessao.get("valor_sessao"),
+                    "status": "pendente",
+                    "observacoes_sessao": sessao.get("observacoes"),
+                }
+                supabase.table("sessoes").insert(dados_sessao).execute()
 
-        if response.data:
-            return response.data[0].get("id")
-        return None
+        return ficha_id
 
     except Exception as e:
         print(f"Erro ao salvar ficha de presença: {e}")
@@ -382,36 +400,59 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
 def listar_fichas_presenca(
     limit: int = 100, 
     offset: int = 0, 
-    paciente_nome: Optional[str] = None,
-    status: Optional[str] = None
+    search: Optional[str] = None,  # Changed from paciente_nome to search
+    status: Optional[str] = None,
+    order: Optional[str] = None  # Added order parameter
 ) -> Dict:
-    """Retorna as fichas de presença com suporte a paginação e filtros."""
+    """Retorna as fichas de presença com suas sessões."""
     try:
-        query = supabase.table("fichas_presenca").select("*")
+        # Query base para fichas
+        query = supabase.table("fichas_presenca").select(
+            "*,sessoes(*)"  # Inclui todas as sessões relacionadas
+        )
 
-        if status and status.lower() != "todas":
-            query = query.eq("status", status.lower())
+        # Aplica filtros
+        if status and status != "todas":
+            query = query.eq("status", status)
 
-        if paciente_nome and isinstance(paciente_nome, str):
-            query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
+        if search:
+            query = query.ilike("paciente_nome", f"%{search.upper()}%")
 
-        count_response = query.execute()
-        total = len(count_response.data)
+        # Aplica ordenação
+        if order:
+            field, direction = order.split('.')
+            query = query.order(field, desc=(direction == 'desc'))
+        else:
+            query = query.order('created_at', desc=True)
 
-        query = query.order("data_atendimento", desc=True)
+        # Obtém contagem total antes da paginação
+        total = len(query.execute().data)
+
+        # Aplica paginação
         if limit > 0:
             query = query.range(offset, offset + limit - 1)
 
         response = query.execute()
-        fichas = response.data
-
-        for ficha in fichas:
-            if ficha.get("data_atendimento"):
-                try:
-                    data = datetime.strptime(ficha["data_atendimento"], "%Y-%m-%d")
-                    ficha["data_atendimento"] = data.strftime("%d/%m/%Y")
-                except ValueError:
-                    pass
+        
+        # Formata os dados
+        fichas = []
+        for ficha in response.data:
+            sessoes = ficha.pop("sessoes", [])  # Remove e armazena sessões
+            
+            # Formata datas da ficha
+            ficha["created_at"] = format_date(ficha.get("created_at"))
+            ficha["updated_at"] = format_date(ficha.get("updated_at"))
+            
+            # Formata sessões
+            sessoes_formatadas = []
+            for sessao in sessoes:
+                if sessao:  # Verifica se a sessão não é None
+                    sessao["data_sessao"] = format_date(sessao.get("data_sessao"))
+                    sessao["data_execucao"] = format_date(sessao.get("data_execucao"))
+                    sessoes_formatadas.append(sessao)
+            
+            ficha["sessoes"] = sessoes_formatadas
+            fichas.append(ficha)
 
         return {
             "fichas": fichas,
@@ -424,34 +465,51 @@ def listar_fichas_presenca(
         traceback.print_exc()
         return {"fichas": [], "total": 0, "total_pages": 1}
 
-def atualizar_status_ficha(id: str, novo_status: str) -> bool:
-    """
-    Atualiza o status de uma ficha de presença.
-    
-    Args:
-        id: ID da ficha
-        novo_status: Novo status ('pendente' ou 'conferida')
+def format_date(date_str: Optional[str]) -> Optional[str]:
+    """Formata uma data para o padrão DD/MM/YYYY."""
+    if not date_str:
+        return None
         
-    Returns:
-        bool indicando sucesso da operação
-    """
     try:
-        response = (
+        if isinstance(date_str, str):
+            if 'T' in date_str:
+                date_str = date_str.split('T')[0]
+            
+            if '/' in date_str:
+                return date_str
+                
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            return date_obj.strftime('%d/%m/%Y')
+            
+        return date_str
+        
+    except Exception as e:
+        print(f"Erro ao formatar data {date_str}: {e}")
+        return date_str
+
+def atualizar_status_ficha(id: str, novo_status: str) -> bool:
+    """Atualiza o status de uma ficha e suas sessões."""
+    try:
+        # Atualiza a ficha
+        ficha_response = (
             supabase.table("fichas_presenca")
             .update({"status": novo_status})
             .eq("id", id)
             .execute()
         )
         
-        if response.data:
-            print(f"Status da ficha {id} atualizado para {novo_status}")
-            return True
-        else:
-            print("Erro: Resposta vazia do Supabase")
-            return False
+        # Atualiza todas as sessões da ficha
+        sessoes_response = (
+            supabase.table("sessoes")
+            .update({"status": novo_status})
+            .eq("ficha_presenca_id", id)
+            .execute()
+        )
+        
+        return bool(ficha_response.data)
             
     except Exception as e:
-        print(f"Erro ao atualizar status da ficha: {e}")
+        print(f"Erro ao atualizar status: {e}")
         traceback.print_exc()
         return False
 
