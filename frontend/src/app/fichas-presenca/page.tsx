@@ -137,7 +137,9 @@ export default function FichasPresenca() {
         paciente_nome: editedFicha.paciente_nome,
         paciente_carteirinha: editedFicha.paciente_carteirinha,
         arquivo_digitalizado: editedFicha.arquivo_digitalizado,
-        observacoes: editedFicha.observacoes
+        observacoes: editedFicha.observacoes,
+        // Adicionar data_atendimento usando a data atual ou a data existente
+        data_atendimento: selectedFicha.created_at || format(new Date(), 'yyyy-MM-dd')
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${selectedFicha.id}`, {
@@ -413,7 +415,7 @@ export default function FichasPresenca() {
       <div className="flex items-center justify-center gap-4">
         <button
           onClick={() => {
-            setSelectedFicha(item); // Apenas seleciona a ficha para mostrar sessões
+            setSelectedFicha(item);
           }}
           className="text-blue-600 hover:text-blue-700"
           title="Ver Sessões"
@@ -429,7 +431,7 @@ export default function FichasPresenca() {
         </button>
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Previne a seleção da ficha
+            e.stopPropagation();
             setSelectedFicha(item);
             setEditedFicha({...item});
             setShowEditDialog(true);
@@ -441,7 +443,7 @@ export default function FichasPresenca() {
         </button>
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Previne a seleção da ficha
+            e.stopPropagation();
             setSelectedFicha(item);
             setShowDeleteDialog(true);
           }}
@@ -491,15 +493,26 @@ export default function FichasPresenca() {
     {
       key: 'sessoes',
       label: 'Sessões',
-      className: 'w-[100px] text-center',
-      render: (_, item) => (
-        <div className="text-center">
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium 
-            ${item.sessoes?.length ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
-            {item.sessoes?.length || 0}
-          </span>
-        </div>
-      )
+      className: 'w-[120px] text-center',
+      render: (_, item) => {
+        const total = item.sessoes?.length || 0;
+        const conferidas = item.sessoes?.filter(s => s.status === 'conferida').length || 0;
+        const porcentagem = total > 0 ? (conferidas / total) * 100 : 0;
+
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <div className="text-xs font-medium">
+              {conferidas}/{total}
+            </div>
+            <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-300"
+                style={{ width: `${porcentagem}%` }}
+              />
+            </div>
+          </div>
+        );
+      }
     },
     {
       key: 'actions',
@@ -540,6 +553,48 @@ export default function FichasPresenca() {
       toast({
         title: "Erro",
         description: "Falha ao atualizar sessão",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteSessao = async (sessao: Sessao) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/sessoes/${sessao.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) throw new Error('Falha ao deletar sessão');
+
+      toast({
+        title: "Sucesso",
+        description: "Sessão deletada com sucesso",
+      });
+
+      // Atualizar estado local removendo a sessão
+      if (selectedFicha) {
+        const updatedSessoes = selectedFicha.sessoes?.filter(s => s.id !== sessao.id);
+        setSelectedFicha({
+          ...selectedFicha,
+          sessoes: updatedSessoes
+        });
+
+        // Atualizar lista principal de fichas
+        setFichas(prevFichas => 
+          prevFichas.map(ficha => 
+            ficha.id === selectedFicha.id 
+              ? { ...ficha, sessoes: updatedSessoes }
+              : ficha
+          )
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao deletar sessão",
         variant: "destructive",
       });
     }
@@ -589,9 +644,9 @@ export default function FichasPresenca() {
     {
       key: 'actions',
       label: 'Ações',
-      className: 'w-[120px] text-center',
+      className: 'w-[180px] text-center', // Aumentei a largura para garantir espaço para os três botões
       render: (_, sessao) => (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3"> {/* Aumentei o gap entre os botões */}
           <Button
             variant="ghost"
             size="sm"
@@ -618,6 +673,19 @@ export default function FichasPresenca() {
             <FiCheckCircle className={`w-4 h-4 ${
               sessao.status === 'conferida' ? 'text-green-600' : 'text-gray-400'
             }`} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm('Tem certeza que deseja deletar esta sessão?')) {
+                handleDeleteSessao(sessao);
+              }
+            }}
+            title="Deletar Sessão"
+          >
+            <FiTrash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
           </Button>
         </div>
       )
@@ -917,7 +985,80 @@ export default function FichasPresenca() {
 
         {/* Dialogs */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          {/* ...existing edit dialog content... */}
+          <DialogContent className="sm:max-w-[425px] bg-white">
+            <DialogHeader>
+              <DialogTitle>Editar Ficha</DialogTitle>
+              <DialogDescription>
+                Altere os dados da ficha de presença
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="codigo_ficha">Código da Ficha</Label>
+                <Input
+                  id="codigo_ficha"
+                  value={editedFicha.codigo_ficha || ''}
+                  onChange={(e) => setEditedFicha({ ...editedFicha, codigo_ficha: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="numero_guia">Número da Guia</Label>
+                <Input
+                  id="numero_guia"
+                  value={editedFicha.numero_guia || ''}
+                  onChange={(e) => setEditedFicha({ ...editedFicha, numero_guia: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="paciente_nome">Nome do Paciente</Label>
+                <Input
+                  id="paciente_nome"
+                  value={editedFicha.paciente_nome || ''}
+                  onChange={(e) => setEditedFicha({ ...editedFicha, paciente_nome: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="paciente_carteirinha">Carteirinha</Label>
+                <Input
+                  id="paciente_carteirinha"
+                  value={editedFicha.paciente_carteirinha || ''}
+                  onChange={(e) => setEditedFicha({ ...editedFicha, paciente_carteirinha: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="observacoes">Observações</Label>
+                <textarea
+                  id="observacoes"
+                  className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2"
+                  value={editedFicha.observacoes || ''}
+                  onChange={(e) => setEditedFicha({ ...editedFicha, observacoes: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="data_atendimento">Data de Atendimento</Label>
+                <Input
+                  id="data_atendimento"
+                  type="date"
+                  value={editedFicha.data_atendimento ? editedFicha.data_atendimento.split('T')[0] : ''}
+                  onChange={(e) => setEditedFicha({ ...editedFicha, data_atendimento: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave}>
+                Salvar alterações
+              </Button>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
 
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

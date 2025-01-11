@@ -1499,3 +1499,18 @@ async def conferir_sessao(sessao_id: str):
             status_code=500, 
             detail=f"Erro ao conferir sessão: {str(e)}"
         )
+
+@app.delete("/sessoes/{sessao_id}")
+async def deletar_sessao(sessao_id: str):
+    """Deleta uma sessão específica"""
+    try:
+        response = supabase.table("sessoes").delete().eq("id", sessao_id).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Sessão não encontrada")
+            
+        return {"message": "Sessão deletada com sucesso"}
+        
+    except Exception as e:
+        logger.error(f"Erro ao deletar sessão: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar sessão: {str(e)}")
