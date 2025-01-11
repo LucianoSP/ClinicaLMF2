@@ -431,7 +431,7 @@ export default function FichasPresenca() {
         </button>
         <button
           onClick={(e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Impede a propagação do evento
             setSelectedFicha(item);
             setEditedFicha({...item});
             setShowEditDialog(true);
@@ -443,9 +443,10 @@ export default function FichasPresenca() {
         </button>
         <button
           onClick={(e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Impede a propagação do evento
             setSelectedFicha(item);
             setShowDeleteDialog(true);
+            setShowSessoesDialog(false); // Garante que o diálogo de sessões está fechado
           }}
           className="text-red-600 hover:text-red-700"
           title="Excluir"
@@ -751,9 +752,11 @@ export default function FichasPresenca() {
   };
 
   const handleRowClick = (ficha: FichaPresenca) => {
-    setSelectedFicha(ficha);
-    console.log('Ficha selecionada:', ficha);
-    console.log('Sessões:', ficha.sessoes);
+    if (!showDeleteDialog && !showEditDialog) { // Só seleciona a ficha se não estiver em modo de exclusão ou edição
+      setSelectedFicha(ficha);
+      console.log('Ficha selecionada:', ficha);
+      console.log('Sessões:', ficha.sessoes);
+    }
   };
 
   const handleCloseSessoes = () => {
@@ -1062,7 +1065,27 @@ export default function FichasPresenca() {
         </Dialog>
 
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          {/* ...existing delete dialog content... */}
+          <DialogContent className="bg-white">  {/* Adicionado className="bg-white" */}
+            <DialogHeader>
+              <DialogTitle>Confirmar Exclusão</DialogTitle>
+              <DialogDescription>
+                Você está prestes a excluir a ficha {selectedFicha?.codigo_ficha}.
+                Esta ação também excluirá todas as {selectedFicha?.sessoes?.length || 0} sessões vinculadas.
+                Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDelete}
+              >
+                Excluir Ficha e Sessões
+              </Button>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
 
         <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>

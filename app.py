@@ -47,6 +47,7 @@ import logging
 import uvicorn
 import sqlite3  # Adicionando importação do sqlite3
 import traceback
+import uuid  # Adicionar esta importação
 
 from google import genai
 from google.genai import types
@@ -647,26 +648,23 @@ async def upload_pdf(
 ):
     """
     Recebe um ou mais arquivos PDF, extrai informações e salva no banco de dados.
-    Para cada linha assinada/datada da ficha, cria um registro separado.
+    Para cada ficha, cria uma entrada na tabela fichas_presenca e suas respectivas sessões.
     """
     if not files:
         raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
 
     results = []
-    processed_files = set()  # Para evitar processar o mesmo arquivo mais de uma vez
+    processed_files = set()
 
     for file in files:
         if not file.filename.endswith(".pdf"):
-            results.append(
-                {
-                    "status": "error",
-                    "filename": file.filename,
-                    "message": "Apenas arquivos PDF são permitidos",
-                }
-            )
+            results.append({
+                "status": "error",
+                "filename": file.filename,
+                "message": "Apenas arquivos PDF são permitidos",
+            })
             continue
 
-        # Evita processar o mesmo arquivo mais de uma vez
         if file.filename in processed_files:
             continue
         processed_files.add(file.filename)
@@ -674,87 +672,86 @@ async def upload_pdf(
         try:
             # Salvar o arquivo temporariamente
             temp_pdf_path = os.path.join(TEMP_DIR, file.filename)
-            try:
-                with open(temp_pdf_path, "wb") as temp_file:
-                    content = await file.read()
-                    temp_file.write(content)
+            with open(temp_pdf_path, "wb") as temp_file:
+                content = await file.read()
+                temp_file.write(content)
 
-                print(f"Iniciando upload do arquivo {file.filename}")
-                print(f"Arquivo lido com sucesso. Tamanho: {len(content)} bytes")
+            logger.info(f"Iniciando processamento do arquivo {file.filename}")
 
-                # Extrair informações do PDF
-                info = await extract_info_from_pdf(temp_pdf_path)
+            # Extrair informações do PDF
+            info = await extract_info_from_pdf(temp_pdf_path)
 
-                if info.get("status_validacao") == "falha":
-                    raise Exception(
-                        info.get("erro", "Erro desconhecido ao processar PDF")
-                    )
+            if info.get("status_validacao") == "falha":
+                raise Exception(info.get("erro", "Erro desconhecido ao processar PDF"))
 
-                # Prepara o resultado
-                result = {
-                    "status": "success",
-                    "filename": file.filename,
-                    "saved_ids": [],
-                    "uploaded_files": [],
+            result = {
+                "status": "success",
+                "filename": file.filename,
+                "ficha_id": None,
+                "uploaded_file": None,
+                "num_sessoes": 0
+            }
+
+            dados_guia = info["json"]
+            if not dados_guia["registros"]:
+                raise Exception("Nenhum registro encontrado no PDF")
+
+            # Upload do arquivo PDF
+            primeira_linha = dados_guia["registros"][0]
+            data_formatada = primeira_linha["data_execucao"].replace("/", "-")
+            novo_nome = f"{dados_guia['codigo_ficha']}-{data_formatada}.pdf"
+            arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
+
+            if arquivo_url:
+                result["uploaded_file"] = {"nome": novo_nome, "url": arquivo_url}
+
+            # Criar a ficha de presença
+            ficha_data = {
+                "codigo_ficha": dados_guia["codigo_ficha"],
+                "numero_guia": primeira_linha["guia_id"],
+                "paciente_nome": primeira_linha["paciente_nome"],
+                "paciente_carteirinha": primeira_linha["paciente_carteirinha"],
+                "arquivo_digitalizado": arquivo_url,
+                "data_atendimento": primeira_linha["data_execucao"],
+                "status": "pendente"
+            }
+
+            ficha_id = salvar_ficha_presenca(ficha_data)
+            if not ficha_id:
+                raise Exception("Erro ao criar ficha de presença")
+
+            result["ficha_id"] = ficha_id
+
+            # Criar as sessões associadas à ficha
+            for registro in dados_guia["registros"]:
+                sessao_id = str(uuid.uuid4())  # Gerar UUID v4
+                sessao_data = {
+                    "id": sessao_id,  # Incluir o ID gerado
+                    "ficha_presenca_id": ficha_id,
+                    "data_sessao": registro["data_execucao"],
+                    "possui_assinatura": registro["possui_assinatura"],
+                    "status": "pendente"
                 }
+                
+                response = supabase.table("sessoes").insert(sessao_data).execute()
+                if not response.data:
+                    logger.warning(f"Falha ao criar sessão para data {registro['data_execucao']}")
+                else:
+                    result["num_sessoes"] += 1
 
-                # Faz upload do arquivo para o Storage apenas se tiver pelo menos uma linha válida
-                dados_guia = info["json"]
-                if dados_guia["registros"]:
-                    # Gera o novo nome do arquivo com o padrão: Guia-Data-Paciente usando dados da primeira linha
-                    primeira_linha = dados_guia["registros"][0]
-                    data_formatada = primeira_linha["data_execucao"].replace("/", "-")
-                    paciente_nome = primeira_linha["paciente_nome"]
-                    novo_nome = f"{dados_guia['codigo_ficha']}-{data_formatada}-{paciente_nome}.pdf"
-
-                    # Faz upload do arquivo
-                    arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
-                    if arquivo_url:
-                        result["uploaded_files"].append(
-                            {"nome": novo_nome, "url": arquivo_url}
-                        )
-
-                    # Para cada linha do PDF que tem data e assinatura, cria um registro
-                    saved_ids = []
-                    for i, registro in enumerate(dados_guia["registros"], 1):
-                        # Só cria registro se tiver data de atendimento
-                        if registro["data_execucao"]:
-                            # Usa o código da ficha exatamente como extraído, sem adicionar sufixo
-                            codigo_ficha_linha = dados_guia["codigo_ficha"]
-
-                            # Salvar registro no banco
-                            ficha_id = salvar_ficha_presenca(
-                                {
-                                    "data_atendimento": registro["data_execucao"],
-                                    "paciente_carteirinha": registro["paciente_carteirinha"],
-                                    "paciente_nome": registro["paciente_nome"],
-                                    "numero_guia": registro["guia_id"],
-                                    "codigo_ficha": codigo_ficha_linha,  # Usa o mesmo código para todas as sessões
-                                    "possui_assinatura": registro["possui_assinatura"],
-                                    "arquivo_url": arquivo_url if arquivo_url else None,
-                                }
-                            )
-                            if ficha_id:
-                                saved_ids.append(ficha_id)
-
-                    result["saved_ids"] = saved_ids
-
-                results.append(result)
-
-            finally:
-                # Limpar arquivo temporário
-                if os.path.exists(temp_pdf_path):
-                    os.remove(temp_pdf_path)
+            results.append(result)
 
         except Exception as e:
-            results.append(
-                {
-                    "status": "error",
-                    "filename": file.filename,
-                    "message": str(e),
-                }
-            )
-            continue
+            logger.error(f"Erro ao processar arquivo {file.filename}: {str(e)}")
+            results.append({
+                "status": "error",
+                "filename": file.filename,
+                "message": str(e),
+            })
+        finally:
+            # Limpar arquivo temporário
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
 
     return results
 
@@ -1384,7 +1381,7 @@ async def listar_guias_paciente_endpoint(paciente_id: str):
     """Busca as guias e informações do plano de um paciente específico"""
     try:
         resultado = listar_guias_paciente(paciente_id)
-        if not resultado or not resultado["items"]:
+        if not resultado or not resultado["items"]:  # Corrigido aqui: || -> or
             raise HTTPException(status_code=404, detail="Paciente não encontrado ou sem guias")
         return resultado
     except Exception as e:

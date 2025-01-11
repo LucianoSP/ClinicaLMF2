@@ -85,8 +85,8 @@ CREATE TABLE fichas_presenca (
 
 -- Sessões
 CREATE TABLE sessoes (
-    id uuid PRIMARY KEY,
-    ficha_presenca_id uuid REFERENCES fichas_presenca(id),
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),  -- Adicionar DEFAULT para gerar UUID automaticamente
+    ficha_presenca_id uuid REFERENCES fichas_presenca(id) ON DELETE CASCADE,  -- Confirmar que esta linha existe
     data_sessao date NOT NULL,
     possui_assinatura boolean DEFAULT false,
     tipo_terapia text,
