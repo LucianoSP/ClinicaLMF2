@@ -20,7 +20,7 @@ interface ExcelData {
   data_execucao: string;
   paciente_carteirinha: string;
   paciente_id: string;
-  codigo_ficha: string | null;
+  codigo_ficha: string;
   usuario_executante: string | null;
   created_at: string;
   updated_at: string | null;
@@ -71,7 +71,6 @@ export default function ExcelPage() {
       if (result.success) {
         const formattedData = result.data.registros.map((item: any) => ({
           ...item,
-          numero_guia: item.guia_id,
           data_execucao: formatDate(item.data_execucao),
           created_at: formatDate(item.created_at)
         }));
@@ -122,12 +121,11 @@ export default function ExcelPage() {
     try {
       // Preparar os dados para exportação
       const exportData = data.map(item => ({
-        'Código Ficha': item.codigo_ficha || '',
         'Guia': item.numero_guia,
         'Paciente': item.paciente_nome,
-        'Data': item.data_execucao,
-        'Número da carteirinha': item.paciente_carteirinha,
-        'Data importação': item.created_at,
+        'Data Execução': item.data_execucao,
+        'Carteirinha': item.paciente_carteirinha,
+        'Código Ficha': item.codigo_ficha || '',
       }));
 
       // Criar uma nova planilha
@@ -224,11 +222,6 @@ export default function ExcelPage() {
 
   const columns: Column<ExcelData>[] = [
     {
-      key: 'codigo_ficha',
-      label: 'Código Ficha',
-      className: 'py-1.5'
-    },
-    {
       key: 'numero_guia',
       label: 'Guia',
       className: 'py-1.5'
@@ -240,7 +233,7 @@ export default function ExcelPage() {
     },
     {
       key: 'data_execucao',
-      label: 'Data',
+      label: 'Data Execução',
       className: 'py-1.5'
     },
     {
@@ -249,8 +242,8 @@ export default function ExcelPage() {
       className: 'py-1.5'
     },
     {
-      key: 'created_at',
-      label: 'Data importação',
+      key: 'codigo_ficha',
+      label: 'Código Ficha',
       className: 'py-1.5'
     }
   ];

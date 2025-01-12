@@ -887,7 +887,7 @@ async def get_guia(numero_guia: str):
 
 
 @app.get("/excel")
-def list_excel(
+async def list_excel(
     page: int = Query(1, description="Página atual"),
     per_page: int = Query(10, description="Itens por página"),
     paciente_nome: str = Query(None, description="Filtrar por nome do beneficiário"),
@@ -899,14 +899,26 @@ def list_excel(
 
         # Busca os dados no banco
         resultado = listar_dados_excel(
-            limit=per_page, offset=offset, paciente_nome=paciente_nome
+            limit=per_page, 
+            offset=offset, 
+            paciente_nome=paciente_nome
         )
 
-        # Retorna o resultado diretamente, pois já está no formato esperado
+        # Verifica se a busca foi bem sucedida
+        if not resultado["success"]:
+            raise HTTPException(
+                status_code=500, 
+                detail="Erro ao buscar dados das execuções"
+            )
+
         return resultado
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Erro ao listar execuções: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=str(e)
+        )
 
 
 @app.post("/clear-database/")

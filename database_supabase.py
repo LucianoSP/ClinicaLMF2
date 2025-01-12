@@ -162,15 +162,28 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
         # Processa execuções
         execucoes = [
             {
+                "id": str(uuid.uuid4()),
                 "numero_guia": str(registro["guia_id"]),
                 "paciente_nome": str(registro["paciente_nome"]).upper(),
                 "data_execucao": registro["data_execucao"],
                 "paciente_carteirinha": str(registro["paciente_carteirinha"]),
-                "paciente_id": id_para_uuid[str(registro["paciente_id"])],
-                "codigo_ficha": None,
+                "codigo_ficha": str(registro.get("codigo_ficha", f"F{random.randint(10000, 99999)}")),  # Generate if missing
+                "guia_id": None,  # Will be linked after guia creation
+                "sessao_id": None  # Will be linked if needed
             }
             for registro in registros
         ]
+
+        # Update guia_id for each execucao
+        for execucao in execucoes:
+            guia_response = (
+                supabase.table("guias")
+                .select("id")
+                .eq("numero_guia", execucao["numero_guia"])
+                .execute()
+            )
+            if guia_response.data:
+                execucao["guia_id"] = guia_response.data[0]["id"]
 
         supabase.table("execucoes").insert(execucoes).execute()
 
@@ -189,36 +202,50 @@ def listar_dados_excel(
 ) -> Dict:
     """Retorna os dados da tabela execucoes com suporte a paginação e filtro"""
     try:
-        query = supabase.table("execucoes").select("*")
+        # Construir query base apenas com colunas que existem na tabela
+        query = supabase.table("execucoes").select(
+            "id",
+            "numero_guia",
+            "paciente_nome",
+            "data_execucao",
+            "paciente_carteirinha",
+            "codigo_ficha"
+        )
 
+        # Aplicar filtro de nome se existir
         if paciente_nome:
             query = query.ilike("paciente_nome", f"%{paciente_nome.upper()}%")
 
-        count_response = query.execute()
-        total = len(count_response.data)
+        # Obter contagem total antes da paginação
+        total_response = query.execute()
+        total = len(total_response.data)
 
-        query = query.order("created_at", desc=True)
+        # Aplicar ordenação e paginação
+        query = query.order('created_at', desc=True)
         if limit > 0:
             query = query.range(offset, offset + limit - 1)
 
+        # Executar query final
         response = query.execute()
-        registros = response.data
 
-        registros_formatados = [
-            {
-                "id": reg["id"],
-                "guia_id": reg["numero_guia"],
-                "paciente_nome": reg["paciente_nome"],
-                "data_execucao": reg["data_execucao"],
-                "paciente_carteirinha": reg["paciente_carteirinha"],
-                "paciente_id": reg["paciente_id"],
-                "codigo_ficha": reg.get("codigo_ficha"),
-                "usuario_executante": reg.get("usuario_executante"),
-                "created_at": reg["created_at"],
-                "updated_at": reg.get("updated_at"),
-            }
-            for reg in registros
-        ]
+        # Formatar dados mantendo compatibilidade com frontend
+        registros_formatados = []
+        for reg in response.data:
+            try:
+                data_execucao = formatar_data(reg.get("data_execucao"))
+                
+                registro = {
+                    "id": reg["id"],
+                    "numero_guia": reg.get("numero_guia"),  # Mantém nome original para compatibilidade
+                    "paciente_nome": reg.get("paciente_nome"), # Mantém nome original
+                    "data_execucao": data_execucao,
+                    "paciente_carteirinha": reg.get("paciente_carteirinha"), # Mantém nome original
+                    "codigo_ficha": reg.get("codigo_ficha")
+                }
+                registros_formatados.append(registro)
+            except Exception as e:
+                print(f"Erro ao formatar registro: {e}")
+                continue
 
         return {
             "success": True,

@@ -104,16 +104,27 @@ CREATE TABLE sessoes (
 
 -- Execuções
 CREATE TABLE execucoes (
-    id uuid PRIMARY KEY,
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     guia_id uuid REFERENCES guias(id),
     sessao_id uuid REFERENCES sessoes(id) ON DELETE CASCADE,
     data_execucao date NOT NULL,
+    paciente_nome text NOT NULL,
+    paciente_carteirinha text NOT NULL,
+    numero_guia text NOT NULL,
+    codigo_ficha text NOT NULL,  -- Changed from nullable to NOT NULL
     usuario_executante uuid REFERENCES usuarios(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
     CONSTRAINT fk_guia FOREIGN KEY (guia_id) 
         REFERENCES guias(id) ON DELETE CASCADE
 );
+
+-- Create indexes for better query performance
+CREATE INDEX idx_execucoes_paciente_nome ON execucoes(paciente_nome);
+CREATE INDEX idx_execucoes_paciente_carteirinha ON execucoes(paciente_carteirinha);
+CREATE INDEX idx_execucoes_numero_guia ON execucoes(numero_guia);
+CREATE INDEX idx_execucoes_codigo_ficha ON execucoes(codigo_ficha);
+CREATE INDEX idx_execucoes_data_execucao ON execucoes(data_execucao);
 
 -- Divergências
 CREATE TABLE divergencias (
