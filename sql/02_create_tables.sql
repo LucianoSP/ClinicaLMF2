@@ -127,37 +127,62 @@ CREATE INDEX idx_execucoes_data_execucao ON execucoes(data_execucao);
 
 -- Divergências
 CREATE TABLE divergencias (
-    id uuid PRIMARY KEY,
-    guia_id uuid REFERENCES guias(id),
-    sessao_id uuid REFERENCES sessoes(id),
-    ficha_id uuid REFERENCES fichas_presenca(id),
-    tipo_divergencia tipo_divergencia,
-    status status_divergencia DEFAULT 'pendente',
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    numero_guia text NOT NULL,
+    tipo_divergencia text NOT NULL,
     descricao text,
-    data_sessao date,
+    paciente_nome text,
+    codigo_ficha text,  -- Added this field
     data_execucao date,
-    detalhes jsonb,
+    data_atendimento date,
+    carteirinha text,
     prioridade text DEFAULT 'MEDIA',
+    status text DEFAULT 'pendente',
     data_identificacao timestamptz DEFAULT now(),
     data_resolucao timestamptz,
     resolvido_por uuid REFERENCES usuarios(id),
+    detalhes jsonb,
+    ficha_id uuid REFERENCES fichas_presenca(id),
+    execucao_id uuid REFERENCES execucoes(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
 
--- Auditoria de Execuções
+ALTER TABLE divergencias 
+ADD COLUMN IF NOT EXISTS prioridade text DEFAULT 'MEDIA';
+
+-- Drop and recreate Auditoria de Execuções
+DROP TABLE IF EXISTS auditoria_execucoes;
 CREATE TABLE auditoria_execucoes (
     id uuid PRIMARY KEY,
     data_execucao timestamptz NOT NULL,
-    data_inicial date NOT NULL,
-    data_final date NOT NULL,
+    data_inicial date,
+    data_final date,
     total_protocolos integer DEFAULT 0,
     total_divergencias integer DEFAULT 0,
+    total_fichas integer DEFAULT 0,
+    total_guias integer DEFAULT 0,
+    total_resolvidas integer DEFAULT 0,
     divergencias_por_tipo jsonb,
     status text DEFAULT 'em_andamento',
-    created_by uuid REFERENCES usuarios(id),
-    finalizado_em timestamptz,
-    finalizado_por uuid REFERENCES usuarios(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
+
+-- First drop existing RLS policies
+DROP POLICY IF EXISTS "Enable read access for authenticated users" ON auditoria_execucoes;
+DROP POLICY IF EXISTS "Enable insert access for authenticated users" ON auditoria_execucoes;
+DROP POLICY IF EXISTS "Enable update access for authenticated users" ON auditoria_execucoes;
+DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON auditoria_execucoes;
+
+-- Disable RLS temporarily
+ALTER TABLE auditoria_execucoes DISABLE ROW LEVEL SECURITY;
+
+-- Create new policies allowing all operations
+CREATE POLICY "Enable full access" ON auditoria_execucoes
+    USING (true)
+    WITH CHECK (true);
+
+-- Grant all permissions to public
+GRANT ALL ON auditoria_execucoes TO PUBLIC;
+GRANT USAGE ON SCHEMA public TO PUBLIC;

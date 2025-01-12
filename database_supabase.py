@@ -1052,3 +1052,59 @@ def verificar_formatos_data_banco():
     except Exception as e:
         print(f"Erro ao verificar formatos: {e}")
         return None
+
+def listar_divergencias(
+    page: int = 1,
+    per_page: int = 10,
+    data_inicio: Optional[str] = None,
+    data_fim: Optional[str] = None,
+    status: Optional[str] = None,
+    tipo_divergencia: Optional[str] = None,
+    prioridade: Optional[str] = None  # Added priority parameter
+) -> Dict:
+    """Lista divergências com filtros."""
+    try:
+        query = supabase.table("divergencias").select("*")
+
+        # Aplica filtros
+        if data_inicio:
+            query = query.gte("data_identificacao", data_inicio)
+        if data_fim:
+            query = query.lte("data_identificacao", data_fim)
+        if status and status != "todos":
+            query = query.eq("status", status)
+        if tipo_divergencia and tipo_divergencia != "todos":
+            query = query.eq("tipo_divergencia", tipo_divergencia)
+        if prioridade and prioridade != "todas":  # Added priority filter
+            query = query.eq("prioridade", prioridade)
+
+        # Ordenação por prioridade e data
+        query = query.order("prioridade", desc=True).order("data_identificacao", desc=True)
+
+        # Paginação
+        total = len(query.execute().data)
+        if per_page > 0:
+            offset = (page - 1) * per_page
+            query = query.range(offset, offset + per_page - 1)
+
+        response = query.execute()
+
+        # Formata datas
+        divergencias = []
+        for div in response.data:
+            div["data_identificacao"] = formatar_data(div["data_identificacao"])
+            div["data_execucao"] = formatar_data(div["data_execucao"])
+            div["data_atendimento"] = formatar_data(div["data_atendimento"])
+            div["data_resolucao"] = formatar_data(div["data_resolucao"])
+            divergencias.append(div)
+
+        return {
+            "divergencias": divergencias,
+            "total": total,
+            "total_pages": ceil(total / per_page) if per_page > 0 else 1
+        }
+
+    except Exception as e:
+        logging.error(f"Erro ao listar divergências: {e}")
+        traceback.print_exc()
+        return {"divergencias": [], "total": 0, "total_pages": 1}

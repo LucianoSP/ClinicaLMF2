@@ -25,6 +25,7 @@ export interface Divergencia {
   status: string;
   tipo_divergencia: string;
   descricao: string;
+  prioridade: string;  // Added priority field
   observacoes?: string;
   resolvido_por?: string;
   data_resolucao?: string;
@@ -35,6 +36,7 @@ export default function AuditoriaPage() {
   const [dataFinal, setDataFinal] = useState<Date | null>(null);
   const [statusFiltro, setStatusFiltro] = useState<string>('todos');
   const [tipoDivergencia, setTipoDivergencia] = useState<string>('todos');
+  const [prioridade, setPrioridade] = useState<string>('todas');  // Added priority state
   const [resultadoAuditoria, setResultadoAuditoria] = useState<AuditoriaResultado | null>(null);
   const [divergencias, setDivergencias] = useState<Divergencia[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,6 +98,7 @@ export default function AuditoriaPage() {
       if (dataFinal) params.set('data_fim', formatarData(dataFinal));
       if (statusFiltro !== 'todos') params.set('status', statusFiltro);
       if (tipoDivergencia !== 'todos') params.set('tipo_divergencia', tipoDivergencia);
+      if (prioridade !== 'todas') params.set('prioridade', prioridade);  // Added priority param
       params.set('page', page.toString());
       params.set('per_page', perPage.toString());
 
@@ -190,7 +193,7 @@ export default function AuditoriaPage() {
   // Buscar divergências quando os filtros mudarem
   useEffect(() => {
     buscarDivergencias();
-  }, [statusFiltro, tipoDivergencia, page, perPage]);
+  }, [statusFiltro, tipoDivergencia, prioridade, page, perPage]);
 
   // Buscar última auditoria ao carregar a página
   useEffect(() => {
@@ -224,6 +227,8 @@ export default function AuditoriaPage() {
           setStatusFiltro={setStatusFiltro}
           tipoDivergencia={tipoDivergencia}
           setTipoDivergencia={setTipoDivergencia}
+          prioridade={prioridade}  // Added priority prop
+          setPrioridade={setPrioridade}  // Added priority setter
           onAuditoria={handleAuditoria}
           onGerarRelatorio={gerarRelatorio}
           loading={loading}

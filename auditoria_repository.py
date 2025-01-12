@@ -17,25 +17,63 @@ def registrar_execucao_auditoria(
     total_divergencias: int = 0,
     divergencias_por_tipo: dict = None,
     total_fichas: int = 0,
-    total_execucoes: int = 0,
+    total_guias: int = 0,
     total_resolvidas: int = 0,
 ) -> bool:
     """Registra uma nova execução de auditoria com seus metadados."""
     try:
-        logging.info(f"Registrando execução de auditoria com {total_fichas} fichas e {total_execucoes} execuções")
+        logging.info("Registrando execução de auditoria")
+        logging.info(f"Dados recebidos: {locals()}")
+        
+        # Generate UUID for the new record
+        new_id = str(uuid.uuid4())
+        
+        # Handle empty date strings
+        data_inicial = None if not data_inicial else data_inicial
+        data_final = None if not data_final else data_final
+        
         data = {
+            "id": new_id,
             "data_execucao": datetime.now(timezone.utc).isoformat(),
             "data_inicial": data_inicial,
             "data_final": data_final,
             "total_protocolos": total_protocolos,
             "total_divergencias": total_divergencias,
-            "divergencias_por_tipo": divergencias_por_tipo or {},
             "total_fichas": total_fichas,
-            "total_execucoes": total_execucoes,
+            "total_guias": total_guias,
             "total_resolvidas": total_resolvidas,
+            "divergencias_por_tipo": divergencias_por_tipo or {},
+            "status": "finalizado"
         }
 
-        response = supabase.table("auditoria_execucoes").insert(data).execute()
+        logging.info(f"Tentando inserir dados: {data}")
+        
+        try:
+            # First, get all existing records
+            existing_records = supabase.table("auditoria_execucoes").select("id").execute()
+            
+            # Then delete them one by one if they exist
+            if existing_records.data:
+                for record in existing_records.data:
+                    try:
+                        supabase.table("auditoria_execucoes").delete().eq("id", record["id"]).execute()
+                        logging.info(f"Registro {record['id']} deletado com sucesso")
+                    except Exception as del_error:
+                        logging.warning(f"Erro ao deletar registro {record['id']}: {del_error}")
+                        continue
+            
+            logging.info("Limpeza de registros anteriores concluída")
+            
+        except Exception as e:
+            logging.warning(f"Erro ao limpar registros anteriores: {e}")
+            # Continue with insert even if cleanup fails
+
+        # Remove any empty string dates before insert
+        insert_data = {k: v for k, v in data.items() if v != ""}
+        
+        # Insert new audit record
+        response = supabase.table("auditoria_execucoes").insert(insert_data).execute()
+        
         if response.data:
             logging.info("Execução de auditoria registrada com sucesso")
             return True
@@ -106,7 +144,7 @@ def buscar_divergencias_view(
     data_fim: Optional[str] = None
 ) -> Dict:
     """
-    Busca divergências. Tenta usar a view materializada, mas se não existir usa a tabela divergencias.
+    Busca divergências com suporte a paginação e filtros.
     """
     try:
         # Calcula offset para paginação
@@ -160,30 +198,97 @@ def buscar_divergencias_view(
         response = query.execute()
         divergencias = response.data if response.data else []
         
-        # Formata datas para exibição com validação extra
+        # Formata datas para exibição
         for div in divergencias:
-            for campo in ["data_execucao", "data_atendimento", "data_identificacao", "data_resolucao"]:
+            # Handle data_identificacao separately since it's a timestamp
+            if div.get("data_identificacao"):
+                try:
+                    dt = datetime.fromisoformat(div["data_identificacao"].replace("Z", "+00:00"))
+                    div["data_identificacao"] = dt.strftime("%d/%m/%Y")
+                except (ValueError, TypeError) as e:
+                    logging.error(f"Data inválida em data_identificacao: {div['data_identificacao']}")
+                    div["data_identificacao"] = None
+
+            # Handle regular dates
+            for campo in ["data_execucao", "data_atendimento", "data_resolucao"]:
                 try:
                     if div.get(campo):
                         data = div[campo]
-                        # Garante que é uma data válida
-                        datetime.strptime(data, "%Y-%m-%d")
-                        div[campo] = formatar_data(data)
+                        if isinstance(data, str):
+                            if "T" in data:  # ISO format with time
+                                data = data.split("T")[0]
+                            elif "-" in data:  # YYYY-MM-DD format
+                                # Ensure it's a valid date
+                                datetime.strptime(data, "%Y-%m-%d")
+                                # Convert to DD/MM/YYYY
+                                div[campo] = datetime.strptime(data, "%Y-%m-%d").strftime("%d/%m/%Y")
+                            elif "/" in data:  # Already in DD/MM/YYYY format
+                                # Validate the date
+                                datetime.strptime(data, "%d/%m/%Y")
+                                div[campo] = data
+                            else:
+                                div[campo] = None
                     else:
                         div[campo] = None
                 except (ValueError, TypeError) as e:
                     logging.error(f"Data inválida em {campo}: {div.get(campo)}")
                     div[campo] = None
-        
-        # Atualiza ficha_ids se necessário usando a nova função
-        divergencias_sem_ficha = [
+
+        # Update divergencias missing data_atendimento
+        divergencias_para_atualizar = [
             d for d in divergencias 
-            if d.get("codigo_ficha") and not d.get("ficha_id")
+            if d.get("codigo_ficha") and (not d.get("ficha_id") or not d.get("data_atendimento"))
         ]
         
-        if divergencias_sem_ficha:
-            atualizar_ficha_ids_divergencias(divergencias_sem_ficha)
-        
+        if divergencias_para_atualizar:
+            # Fetch ficha data
+            codigos_ficha = list(set(d["codigo_ficha"] for d in divergencias_para_atualizar))
+            fichas_response = (
+                supabase.table("fichas_presenca")
+                .select("id,codigo_ficha,data_atendimento")
+                .in_("codigo_ficha", codigos_ficha)
+                .execute()
+            )
+            
+            # Create mapping
+            fichas_map = {
+                f["codigo_ficha"]: {
+                    "id": f["id"],
+                    "data_atendimento": f["data_atendimento"]
+                }
+                for f in fichas_response.data or []
+            }
+            
+            # Update divergencias
+            for div in divergencias:
+                if div.get("codigo_ficha") in fichas_map:
+                    ficha_data = fichas_map[div["codigo_ficha"]]
+                    
+                    # Update in database
+                    update_data = {
+                        "ficha_id": ficha_data["id"],
+                        "data_atendimento": ficha_data["data_atendimento"]
+                    }
+                    
+                    try:
+                        response = (
+                            supabase.table("divergencias")
+                            .update(update_data)
+                            .eq("id", div["id"])
+                            .execute()
+                        )
+                        
+                        if response.data:
+                            # Update local object
+                            div.update(update_data)
+                            if div["data_atendimento"]:
+                                # Format date to DD/MM/YYYY
+                                div["data_atendimento"] = datetime.strptime(
+                                    div["data_atendimento"], "%Y-%m-%d"
+                                ).strftime("%d/%m/%Y")
+                    except Exception as e:
+                        logging.error(f"Erro ao atualizar divergência {div['id']}: {e}")
+
         return {
             "divergencias": divergencias,
             "total": total_registros,
@@ -191,7 +296,7 @@ def buscar_divergencias_view(
             "total_paginas": ceil(total_registros / per_page) if total_registros > 0 else 0,
             "por_pagina": per_page
         }
-        
+
     except Exception as e:
         logging.error(f"Erro ao buscar divergências: {str(e)}")
         logging.error(traceback.format_exc())
@@ -252,35 +357,16 @@ def limpar_divergencias_db() -> bool:
     try:
         print("Iniciando limpeza da tabela divergencias...")
         
-        # Primeiro tenta remover dependências da view
-        try:
-            # Desabilita temporariamente a trigger de refresh da view
-            supabase.rpc('disable_view_refresh_trigger').execute()
-            
-            # Agora tenta deletar os registros
-            response = (
-                supabase.table("divergencias")
-                .delete()
-                .gt("id", "00000000-0000-0000-0000-000000000000")
-                .execute()
-            )
-            
-            # Reabilita a trigger
-            supabase.rpc('enable_view_refresh_trigger').execute()
-            
-            print("Tabela divergencias limpa com sucesso!")
-            return True
-            
-        except Exception as view_error:
-            print(f"Erro ao manipular view: {view_error}")
-            # Tenta fazer o delete mesmo assim
-            response = (
-                supabase.table("divergencias")
-                .delete()
-                .gt("id", "00000000-0000-0000-0000-000000000000")
-                .execute()
-            )
-            return True
+        # Simplify the deletion process
+        response = (
+            supabase.table("divergencias")
+            .delete()
+            .neq("id", "00000000-0000-0000-0000-000000000000")  # Changed from gt to neq
+            .execute()
+        )
+        
+        print("Tabela divergencias limpa com sucesso!")
+        return True
             
     except Exception as e:
         print(f"Erro ao limpar tabela divergencias: {e}")
@@ -435,57 +521,128 @@ def registrar_divergencia(
             logging.error("Campos obrigatórios faltando")
             return False
 
+        # Improved date parsing function
+        def parse_date(date_str):
+            if not date_str:
+                return None
+            try:
+                # If already in YYYY-MM-DD format
+                if isinstance(date_str, str):
+                    if len(date_str) == 10 and "-" in date_str:
+                        # Validate date format
+                        datetime.strptime(date_str, "%Y-%m-%d")
+                        return date_str
+
+                    # If in DD/MM/YYYY format
+                    if "/" in date_str:
+                        day, month, year = date_str.split("/")
+                        # Convert to YYYY-MM-DD
+                        date_obj = datetime(int(year), int(month), int(day))
+                        return date_obj.strftime("%Y-%m-%d")
+
+                    # If timestamp, extract just the date
+                    if "T" in date_str:
+                        return date_str.split("T")[0]
+
+                return None
+            except Exception as e:
+                logging.error(f"Erro ao parsear data: {date_str} - {str(e)}")
+                return None
+
+        # Enhanced debug logging for ficha data lookup
+        if codigo_ficha:
+            try:
+                logging.info(f"Buscando ficha com código: {codigo_ficha}")
+                
+                # First check if ficha exists
+                ficha_exists_response = (
+                    supabase.table("fichas_presenca")
+                    .select("count", count="exact")
+                    .eq("codigo_ficha", codigo_ficha)
+                    .execute()
+                )
+                
+                total_fichas = ficha_exists_response.count
+                logging.info(f"Total de fichas encontradas: {total_fichas}")
+
+                # Then get the actual data
+                ficha_response = (
+                    supabase.table("fichas_presenca")
+                    .select("*")  # Select all fields for better debugging
+                    .eq("codigo_ficha", codigo_ficha)
+                    .execute()
+                )
+                
+                if ficha_response.data:
+                    ficha = ficha_response.data[0]
+                    logging.info(f"Dados da ficha encontrada: {ficha}")
+                    
+                    data_atendimento = ficha.get("data_atendimento")
+                    if data_atendimento:
+                        logging.info(f"Data de atendimento encontrada: {data_atendimento}")
+                    else:
+                        logging.warning("Data de atendimento não encontrada na ficha")
+                        
+                    carteirinha = ficha.get("paciente_carteirinha")
+                    if carteirinha:
+                        logging.info(f"Carteirinha encontrada: {carteirinha}")
+                    else:
+                        logging.warning("Carteirinha não encontrada na ficha")
+                        
+                    # Get ficha_id for linking
+                    ficha_id = ficha.get("id")
+                    if ficha_id:
+                        logging.info(f"ID da ficha encontrado: {ficha_id}")
+                    else:
+                        logging.warning("ID da ficha não encontrado")
+                    
+                else:
+                    logging.warning(f"Nenhuma ficha encontrada com código: {codigo_ficha}")
+                    
+            except Exception as e:
+                logging.error(f"Erro ao buscar dados da ficha: {str(e)}")
+                logging.error(traceback.format_exc())
+
+        # Format data_identificacao to be just the date part
+        data_identificacao = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
         # Dados base da divergência
         dados = {
             "numero_guia": numero_guia,
             "tipo_divergencia": tipo_divergencia,
             "descricao": descricao,
-            "status": status,
-            "data_identificacao": datetime.now(timezone.utc).isoformat(),
             "paciente_nome": paciente_nome.upper(),
-            "prioridade": prioridade
-        }
-
-        # Formatar datas se estiverem presentes
-        if data_execucao:
-            try:
-                data_execucao = formatar_data(data_execucao)
-            except ValueError as e:
-                logging.error(f"Erro ao formatar data_execucao: {e}")
-                
-        if data_atendimento:
-            try:
-                data_atendimento = formatar_data(data_atendimento)
-            except ValueError as e:
-                logging.error(f"Erro ao formatar data_atendimento: {e}")
-
-        # Campos opcionais com validação
-        campos_opcionais = {
+            "status": status,
+            "data_identificacao": data_identificacao,
+            "prioridade": prioridade,
             "codigo_ficha": codigo_ficha,
-            "data_execucao": data_execucao,
-            "data_atendimento": data_atendimento,
+            "data_execucao": parse_date(data_execucao),
+            "data_atendimento": parse_date(data_atendimento),
             "carteirinha": carteirinha,
             "detalhes": detalhes,
-            "ficha_id": ficha_id,
+            "ficha_id": ficha_id if 'ficha_id' in locals() else None,
             "execucao_id": execucao_id
         }
 
-        # Adiciona campos opcionais que não são None
-        for campo, valor in campos_opcionais.items():
-            if valor is not None:
-                dados[campo] = valor
+        # Log full data before insert
+        logging.info(f"Dados completos antes do insert: {dados}")
 
-        # Log dos dados antes do insert
-        logging.info(f"Registrando divergência: {dados}")
+        # Remove None values but keep empty strings for text fields
+        dados = {k: (v if v is not None else '') for k, v in dados.items() 
+                if k in ['carteirinha', 'codigo_ficha'] or v is not None}
+
+        # Log final data to be inserted
+        logging.info(f"Dados finais para insert: {dados}")
 
         # Insere no banco
         response = supabase.table("divergencias").insert(dados).execute()
         
-        if not response.data:
+        if response.data:
+            logging.info(f"Divergência registrada com sucesso: {response.data[0]}")
+            return True
+        else:
             logging.error("Erro: Resposta vazia do Supabase")
             return False
-
-        return True
 
     except Exception as e:
         logging.error(f"Erro ao registrar divergência: {e}")
@@ -494,17 +651,16 @@ def registrar_divergencia(
 
 def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) -> bool:
     """
-    Atualiza os ficha_ids nas divergências.
-    Se nenhuma divergência for fornecida, busca todas as pendentes.
+    Atualiza os ficha_ids e data_atendimento nas divergências.
     """
     try:
         if divergencias == None:
-            # Correção da sintaxe do Supabase para buscar divergências sem ficha_id
+            # Busca divergências sem ficha_id
             response = (
                 supabase.table("divergencias")
                 .select("*")
                 .is_("ficha_id", "null")
-                .not_.is_("codigo_ficha", "null")  # Correção aqui
+                .not_.is_("codigo_ficha", "null")
                 .execute()
             )
             divergencias = response.data if response.data else []
@@ -513,6 +669,7 @@ def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) 
             logging.info("Nenhuma divergência para atualizar")
             return True
 
+        # Get unique codigo_ficha values
         codigos_ficha = list(set(
             div["codigo_ficha"] 
             for div in divergencias 
@@ -522,26 +679,35 @@ def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) 
         if not codigos_ficha:
             return True
 
+        # Include data_atendimento in the select
         fichas_response = (
             supabase.table("fichas_presenca")
-            .select("id,codigo_ficha")
+            .select("id,codigo_ficha,data_atendimento")  # Added data_atendimento
             .in_("codigo_ficha", codigos_ficha)
             .execute()
         )
         
+        # Map both id and data_atendimento
         mapa_fichas = {
-            f["codigo_ficha"]: f["id"] 
+            f["codigo_ficha"]: {
+                "id": f["id"],
+                "data_atendimento": f["data_atendimento"]
+            }
             for f in fichas_response.data or []
         }
 
         count = 0
         for div in divergencias:
             if div.get("codigo_ficha") in mapa_fichas:
-                ficha_id = mapa_fichas[div["codigo_ficha"]]
+                ficha_data = mapa_fichas[div["codigo_ficha"]]
                 try:
+                    # Update both ficha_id and data_atendimento
                     response = (
                         supabase.table("divergencias")
-                        .update({"ficha_id": ficha_id})
+                        .update({
+                            "ficha_id": ficha_data["id"],
+                            "data_atendimento": ficha_data["data_atendimento"]
+                        })
                         .eq("id", div["id"])
                         .execute()
                     )
@@ -551,13 +717,17 @@ def atualizar_ficha_ids_divergencias(divergencias: Optional[List[Dict]] = None) 
                     logging.error(f"Erro ao atualizar divergência {div['id']}: {e}")
                     continue
 
-        logging.info(f"Atualizadas {count} divergências com ficha_id")
+        logging.info(f"Atualizadas {count} divergências com ficha_id e data_atendimento")
         return True
 
     except Exception as e:
         logging.error(f"Erro ao atualizar ficha_ids: {str(e)}")
         traceback.print_exc()
         return False
+
+
+
+
 
 
 

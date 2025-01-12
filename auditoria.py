@@ -192,6 +192,18 @@ def safe_get_value(dict_obj: Dict, key: str, default=None):
         logging.warning(f"Erro ao acessar {key}: {e}")
         return default
 
+def get_divergencia_priority(tipo_divergencia: str) -> str:
+    """Determina a prioridade baseada no tipo de divergência."""
+    prioridades = {
+        "ficha_sem_assinatura": "ALTA",
+        "execucao_sem_ficha": "ALTA",
+        "ficha_sem_execucao": "ALTA",
+        "guia_vencida": "ALTA",
+        "quantidade_excedida": "ALTA",
+        "data_divergente": "MEDIA",
+    }
+    return prioridades.get(tipo_divergencia, "MEDIA")
+
 def registrar_divergencia_detalhada(divergencia: Dict) -> bool:
     """Registra uma divergência com detalhes específicos."""
     try:
@@ -201,12 +213,17 @@ def registrar_divergencia_detalhada(divergencia: Dict) -> bool:
             logging.warning("Tentativa de registrar divergência sem número de guia")
             numero_guia = "SEM_GUIA"
 
+        tipo_divergencia = divergencia.get("tipo_divergencia", "execucao_sem_ficha")
+        
+        # Define prioridade baseada no tipo se não foi especificada
+        prioridade = divergencia.get("prioridade") or get_divergencia_priority(tipo_divergencia)
+
         dados = {
             "numero_guia": numero_guia,
-            "tipo_divergencia": divergencia.get("tipo_divergencia", "execucao_sem_ficha"),
+            "tipo_divergencia": tipo_divergencia,
             "descricao": divergencia.get("descricao", "Divergência sem descrição"),
             "paciente_nome": divergencia.get("paciente_nome", "PACIENTE NÃO IDENTIFICADO"),
-            "prioridade": divergencia.get("prioridade", "MEDIA"),
+            "prioridade": prioridade,
             "status": divergencia.get("status", "pendente")
         }
 
@@ -425,7 +442,46 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None, data_final: st
                         "status": "pendente"
                     })
 
-        return {"success": True}
+        # Calculate statistics
+        stats = {
+            "total_fichas": len(fichas),
+            "total_execucoes": len(execucoes),  # This will be used as total_guias in frontend
+            "divergencias_por_tipo": {
+                "execucao_sem_ficha": 0,
+                "ficha_sem_execucao": 0,
+                "data_divergente": 0,
+                "ficha_sem_assinatura": 0,
+                "guia_vencida": 0,
+                "quantidade_excedida": 0
+            },
+            "total_divergencias": 0,
+            "total_resolvidas": 0
+        }
+
+        # Update counters during audit checks
+        for codigo_ficha, execucao in mapa_execucoes.items():
+            ficha = mapa_fichas.get(codigo_ficha)
+            
+            if not ficha:
+                stats["divergencias_por_tipo"]["execucao_sem_ficha"] += 1
+                stats["total_divergencias"] += 1
+            elif ficha.get("data_atendimento") != execucao.get("data_execucao"):
+                stats["divergencias_por_tipo"]["data_divergente"] += 1
+                stats["total_divergencias"] += 1
+
+        # After all checks, register the audit execution with complete stats
+        registrar_execucao_auditoria(
+            data_inicial=data_inicial,
+            data_final=data_final,
+            total_protocolos=stats["total_execucoes"],
+            total_divergencias=stats["total_divergencias"],
+            divergencias_por_tipo=stats["divergencias_por_tipo"],
+            total_fichas=stats["total_fichas"],
+            total_guias=stats["total_execucoes"],  # Changed from total_execucoes
+            total_resolvidas=stats["total_resolvidas"]
+        )
+
+        return {"success": True, "stats": stats}
 
     except Exception as e:
         logging.error(f"Erro na auditoria: {str(e)}")
@@ -440,7 +496,7 @@ def listar_divergencias_route(
     data_fim: Optional[str] = None,
     status: Optional[str] = None,
     tipo_divergencia: Optional[str] = None,
-    prioridade: Optional[str] = None,
+    prioridade: Optional[str] = None,  # Added priority parameter
 ):
     """
     Lista as divergências encontradas na auditoria
@@ -453,7 +509,7 @@ def listar_divergencias_route(
             data_fim=data_fim,
             status=status,
             tipo_divergencia=tipo_divergencia,
-            prioridade=prioridade,
+            prioridade=prioridade,  # Added priority parameter
         )
     except Exception as e:
         logging.error(f"Erro ao listar divergências: {str(e)}")
