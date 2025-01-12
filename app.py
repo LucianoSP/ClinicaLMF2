@@ -699,7 +699,13 @@ async def upload_pdf(
             # Upload do arquivo PDF
             primeira_linha = dados_guia["registros"][0]
             data_formatada = primeira_linha["data_execucao"].replace("/", "-")
-            novo_nome = f"{dados_guia['codigo_ficha']}-{data_formatada}.pdf"
+            # Formatar o nome do paciente removendo espaços extras e caracteres especiais
+            nome_paciente = primeira_linha["paciente_nome"].strip()
+            nome_paciente = ''.join(c for c in nome_paciente if c.isalnum() or c.isspace())
+            nome_paciente = nome_paciente.replace(" ", "-")
+            
+            # Criar o novo nome do arquivo com o padrão Ficha-Nome-Data
+            novo_nome = f"{dados_guia['codigo_ficha']}-{nome_paciente}-{data_formatada}.pdf"
             arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
 
             if arquivo_url:
