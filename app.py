@@ -699,12 +699,10 @@ async def upload_pdf(
             # Upload do arquivo PDF
             primeira_linha = dados_guia["registros"][0]
             data_formatada = primeira_linha["data_execucao"].replace("/", "-")
-            # Formatar o nome do paciente removendo espaços extras e caracteres especiais
             nome_paciente = primeira_linha["paciente_nome"].strip()
             nome_paciente = ''.join(c for c in nome_paciente if c.isalnum() or c.isspace())
             nome_paciente = nome_paciente.replace(" ", "-")
             
-            # Criar o novo nome do arquivo com o padrão Ficha-Nome-Data
             novo_nome = f"{dados_guia['codigo_ficha']}-{nome_paciente}-{data_formatada}.pdf"
             arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
 
@@ -728,22 +726,32 @@ async def upload_pdf(
 
             result["ficha_id"] = ficha_id
 
-            # Criar as sessões associadas à ficha
+            # Criar todas as sessões associadas à ficha
             for registro in dados_guia["registros"]:
-                sessao_id = str(uuid.uuid4())  # Gerar UUID v4
+                # Converter a data do formato DD/MM/YYYY para YYYY-MM-DD
+                data_sessao = datetime.strptime(registro["data_execucao"], "%d/%m/%Y").strftime("%Y-%m-%d")
+                
+                sessao_id = str(uuid.uuid4())
                 sessao_data = {
-                    "id": sessao_id,  # Incluir o ID gerado
+                    "id": sessao_id,
                     "ficha_presenca_id": ficha_id,
-                    "data_sessao": registro["data_execucao"],
+                    "data_sessao": data_sessao,  # Use a data convertida
                     "possui_assinatura": registro["possui_assinatura"],
-                    "status": "pendente"
+                    "status": "pendente",
+                    "tipo_terapia": None,  # Pode ser atualizado posteriormente
+                    "profissional_executante": None,  # Pode ser atualizado posteriormente
+                    "valor_sessao": None  # Pode ser atualizado posteriormente
                 }
                 
-                response = supabase.table("sessoes").insert(sessao_data).execute()
-                if not response.data:
-                    logger.warning(f"Falha ao criar sessão para data {registro['data_execucao']}")
-                else:
-                    result["num_sessoes"] += 1
+                try:
+                    response = supabase.table("sessoes").insert(sessao_data).execute()
+                    if response.data:
+                        result["num_sessoes"] += 1
+                    else:
+                        logger.warning(f"Falha ao criar sessão para data {data_sessao}")
+                except Exception as e:
+                    logger.error(f"Erro ao criar sessão: {str(e)}")
+                    continue
 
             results.append(result)
 

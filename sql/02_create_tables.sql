@@ -98,8 +98,7 @@ CREATE TABLE sessoes (
     data_execucao date,
     executado_por uuid REFERENCES usuarios(id),
     created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now(),
-    UNIQUE(ficha_presenca_id, data_sessao)
+    updated_at timestamptz DEFAULT now()
 );
 
 -- Execuções

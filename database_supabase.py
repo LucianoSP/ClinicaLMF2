@@ -384,28 +384,50 @@ def limpar_banco() -> None:
 def salvar_ficha_presenca(info: Dict) -> Optional[str]:
     """Salva as informações da ficha de presença e suas sessões no Supabase."""
     try:
-        # Gerar UUID para a ficha
-        ficha_id = str(uuid.uuid4())
+        # Verificar se já existe uma ficha com o mesmo código
+        existing = (
+            supabase.table("fichas_presenca")
+            .select("id, codigo_ficha")
+            .eq("codigo_ficha", info["codigo_ficha"])
+            .execute()
+        )
 
-        # Dados da ficha
-        dados_ficha = {
-            "id": ficha_id,  # Adicionando o ID gerado
-            "codigo_ficha": info["codigo_ficha"],
-            "numero_guia": info["numero_guia"],
-            "paciente_nome": info["paciente_nome"].upper(),
-            "paciente_carteirinha": info["paciente_carteirinha"],
-            "arquivo_digitalizado": info.get("arquivo_digitalizado"),
-            "observacoes": info.get("observacoes"),
-            "status": "pendente",
-            "data_atendimento": info.get("data_atendimento")
-        }
-
-        # Insere a ficha e obtém o ID
-        response = supabase.table("fichas_presenca").insert(dados_ficha).execute()
-        if not response.data:
-            return None
-
-        return ficha_id  # Retorna o ID gerado
+        if existing.data:
+            # Se existe, atualiza a ficha existente
+            ficha_id = existing.data[0]["id"]
+            dados_ficha = {
+                "numero_guia": info["numero_guia"],
+                "paciente_nome": info["paciente_nome"].upper(),
+                "paciente_carteirinha": info["paciente_carteirinha"],
+                "arquivo_digitalizado": info.get("arquivo_digitalizado"),
+                "observacoes": info.get("observacoes"),
+                "status": "pendente",
+                "data_atendimento": info.get("data_atendimento")
+            }
+            
+            supabase.table("fichas_presenca").update(dados_ficha).eq("id", ficha_id).execute()
+            return ficha_id
+            
+        else:
+            # Se não existe, cria uma nova ficha
+            ficha_id = str(uuid.uuid4())
+            dados_ficha = {
+                "id": ficha_id,
+                "codigo_ficha": info["codigo_ficha"],
+                "numero_guia": info["numero_guia"],
+                "paciente_nome": info["paciente_nome"].upper(),
+                "paciente_carteirinha": info["paciente_carteirinha"],
+                "arquivo_digitalizado": info.get("arquivo_digitalizado"),
+                "observacoes": info.get("observacoes"),
+                "status": "pendente",
+                "data_atendimento": info.get("data_atendimento")
+            }
+            
+            response = supabase.table("fichas_presenca").insert(dados_ficha).execute()
+            if not response.data:
+                return None
+                
+            return ficha_id
 
     except Exception as e:
         print(f"Erro ao salvar ficha de presença: {e}")
@@ -586,38 +608,16 @@ def buscar_ficha_presenca(
 def excluir_ficha_presenca(id: str) -> bool:
     """
     Exclui uma ficha de presença e suas sessões associadas.
-    
-    Args:
-        id: ID (UUID) da ficha a ser excluída
-        
-    Returns:
-        bool indicando sucesso da operação
     """
     try:
-        ficha = buscar_ficha_presenca(id, tipo_busca="id")
-        if not ficha:
-            print(f"Ficha não encontrada para exclusão: {id}")
-            return False
-
-        # Exclui o arquivo digitalizado se existir
-        arquivo_digitalizado = ficha.get("arquivo_digitalizado")
-        if arquivo_digitalizado:
-            try:
-                nome_arquivo = arquivo_digitalizado.split("/")[-1]
-                deletar_arquivos_storage([nome_arquivo])
-            except Exception as e:
-                print(f"Erro ao excluir arquivo digitalizado: {e}")
-
-        # As sessões serão excluídas automaticamente devido ao ON DELETE CASCADE
+        # Primeiro, exclui todas as sessões associadas
+        supabase.table("sessoes").delete().eq("ficha_presenca_id", id).execute()
+        
+        # Depois, exclui a ficha
         response = supabase.table("fichas_presenca").delete().eq("id", id).execute()
-
-        if response.data:
-            print(f"Ficha e sessões excluídas com sucesso: {id}")
-            return True
-        else:
-            print("Erro: Resposta vazia do Supabase ao excluir")
-            return False
-
+        
+        return bool(response.data)
+        
     except Exception as e:
         print(f"Erro ao excluir ficha: {e}")
         traceback.print_exc()
