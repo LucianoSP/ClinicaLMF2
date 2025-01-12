@@ -10,7 +10,8 @@ import {
   FileCheck2, 
   AlertTriangle,
   FileWarning,
-  FileX
+  FileX,
+  Copy
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,9 +40,10 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
     ficha_sem_execucao = 0,
     execucao_sem_ficha = 0,
     data_divergente = 0,
-    ficha_sem_assinatura = 0,
+    sessao_sem_assinatura = 0, // Renomeado de ficha_sem_assinatura
     guia_vencida = 0,
-    quantidade_excedida = 0
+    quantidade_excedida = 0,
+    duplicidade = 0 // Novo tipo
   } = divergencias_por_tipo || {};
 
   // Debug logging
@@ -161,6 +163,23 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         <CardWrapper>
           <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold text-red-900">Sessões sem Assinatura</CardTitle>
+              <div className="rounded-full bg-red-100 p-2">
+                <FileSignature className="h-6 w-6 text-red-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-3xl font-bold text-red-800">{sessao_sem_assinatura}</div>
+                <p className="text-xs text-red-600">Sessões executadas sem assinatura</p>
+              </div>
+            </CardContent>
+          </Card>
+        </CardWrapper>
+
+        <CardWrapper>
+          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-red-900">Execuções sem Ficha</CardTitle>
               <div className="rounded-full bg-red-100 p-2">
                 <FileWarning className="h-6 w-6 text-red-600" />
@@ -212,23 +231,6 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
         <CardWrapper>
           <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Sem Assinatura</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <FileSignature className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{ficha_sem_assinatura}</div>
-                <p className="text-xs text-red-600">Fichas sem assinatura</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
-
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold text-red-900">Guias Vencidas</CardTitle>
               <div className="rounded-full bg-red-100 p-2">
                 <AlertCircle className="h-6 w-6 text-red-600" />
@@ -255,6 +257,24 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
               <div className="flex flex-col gap-1">
                 <div className="text-3xl font-bold text-red-800">{quantidade_excedida}</div>
                 <p className="text-xs text-red-600">Quantidade excedida na guia</p>
+              </div>
+            </CardContent>
+          </Card>
+        </CardWrapper>
+
+        {/* Fix the incorrect closing CardWrapper tag structure */}
+        <CardWrapper>
+          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold text-red-900">Duplicidades</CardTitle>
+              <div className="rounded-full bg-red-100 p-2">
+                <Copy className="h-6 w-6 text-red-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-3xl font-bold text-red-800">{duplicidade}</div>
+                <p className="text-xs text-red-600">Execuções duplicadas detectadas</p>
               </div>
             </CardContent>
           </Card>

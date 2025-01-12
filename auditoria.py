@@ -308,6 +308,41 @@ def migrar_divergencias_assinatura():
         return False
 
 
+def verificar_duplicidade_execucoes(execucoes: List[Dict]) -> List[Dict]:
+    """
+    Verifica execuções duplicadas baseado em critérios específicos.
+    Uma execução é considerada duplicada quando:
+    - Mesmo código de ficha
+    - Enviada/processada mais de uma vez
+    """
+    duplicatas = {}
+    for exec in execucoes:
+        codigo_ficha = exec.get("codigo_ficha")
+        if not codigo_ficha:  # Ignora execuções sem código de ficha
+            continue
+            
+        if codigo_ficha in duplicatas:
+            duplicatas[codigo_ficha].append(exec)
+        else:
+            duplicatas[codigo_ficha] = [exec]
+    
+    # Retorna apenas os grupos que têm mais de uma execução do mesmo código_ficha
+    duplicados = [execs for execs in duplicatas.values() if len(execs) > 1]
+    
+    # Log para debug
+    for grupo in duplicados:
+        primeira = grupo[0]
+        logging.info(f"""
+            Duplicidade encontrada:
+            Código Ficha: {primeira.get('codigo_ficha')}
+            Guia: {primeira.get('numero_guia')}
+            Carteirinha: {primeira.get('carteirinha')}
+            Total de duplicatas: {len(grupo)}
+            Datas: {[exec.get('data_execucao') for exec in grupo]}
+        """)
+    
+    return duplicados
+
 def realizar_auditoria_fichas_execucoes(data_inicial: str = None,
                                         data_final: str = None):
     """Realiza auditoria comparando fichas e execuções diretamente das tabelas."""
@@ -577,43 +612,76 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None,
                         "pendente"
                     })
 
-        # Calculate statistics
+        # 6. Verificar duplicidades (Corrigido)
+        duplicatas = verificar_duplicidade_execucoes(execucoes_data)
+        for grupo_duplicado in duplicatas:
+            primeira_exec = grupo_duplicado[0]
+            
+            # Busca a ficha correspondente para obter dados complementares
+            ficha = None
+            if primeira_exec.get("codigo_ficha"):
+                ficha_response = (
+                    supabase.table("fichas_presenca")
+                    .select("*")
+                    .eq("codigo_ficha", primeira_exec["codigo_ficha"])
+                    .execute()
+                )
+                if ficha_response.data:
+                    ficha = ficha_response.data[0]
+
+            registrar_divergencia_detalhada({
+                "numero_guia": primeira_exec["numero_guia"],
+                "tipo_divergencia": "duplicidade",
+                "descricao": (
+                    f"Ficha {primeira_exec['codigo_ficha']} processada {len(grupo_duplicado)} vezes"
+                ),
+                "paciente_nome": primeira_exec["paciente_nome"],
+                "codigo_ficha": primeira_exec.get("codigo_ficha"),
+                "data_execucao": primeira_exec["data_execucao"],
+                "data_atendimento": ficha["data_atendimento"] if ficha else None,
+                "carteirinha": primeira_exec.get("carteirinha"),
+                "prioridade": "ALTA",
+                "detalhes": {
+                    "total_duplicatas": len(grupo_duplicado),
+                    "execucoes_ids": [exec["id"] for exec in grupo_duplicado],
+                    "datas_execucao": [exec["data_execucao"] for exec in grupo_duplicado]
+                }
+            })
+
+        # Atualizar estatísticas incluindo duplicidades
         stats = {
             "total_fichas": len(fichas),
-            "total_execucoes":
-            len(execucoes),  # This will be used as total_guias in frontend
+            "total_execucoes": len(execucoes),
             "divergencias_por_tipo": {
                 "execucao_sem_ficha": 0,
                 "ficha_sem_execucao": 0,
                 "data_divergente": 0,
-                "ficha_sem_assinatura": 0,
+                "sessao_sem_assinatura": 0,  # Atualizado nome
                 "guia_vencida": 0,
-                "quantidade_excedida": 0
+                "quantidade_excedida": 0,
+                "duplicidade": len(duplicatas)  # Novo contador
             },
             "total_divergencias": 0,
             "total_resolvidas": 0
         }
 
-        # Update counters during audit checks
-        for codigo_ficha, execucao in mapa_execucoes.items():
-            ficha = mapa_fichas.get(codigo_ficha)
+        # Buscar contagens da tabela de divergências
+        divergencias_count = (
+            supabase.table("divergencias")
+            .select("tipo_divergencia, status", count="exact")
+            .execute()
+        )
 
-            if not ficha:
-                stats["divergencias_por_tipo"]["execucao_sem_ficha"] += 1
-                stats["total_divergencias"] += 1
-            elif ficha.get("data_atendimento") != execucao.get(
-                    "data_execucao"):
-                stats["divergencias_por_tipo"]["data_divergente"] += 1
-                stats["total_divergencias"] += 1
+        if divergencias_count.data:
+            for div in divergencias_count.data:
+                tipo = div.get("tipo_divergencia")
+                if tipo in stats["divergencias_por_tipo"]:
+                    stats["divergencias_por_tipo"][tipo] += 1
+                    stats["total_divergencias"] += 1
+                if div.get("status") == "resolvida":
+                    stats["total_resolvidas"] += 1
 
-        # Atualizar contadores diretamente da tabela divergencias
-        divergencias_count = (supabase.table("divergencias").select(
-            "tipo_divergencia", count="exact").execute())
-
-        total_divergencias = divergencias_count.count or 0
-        stats["total_divergencias"] = total_divergencias
-
-        # After all checks, register the audit execution with complete stats
+        # Registrar execução da auditoria com estatísticas completas
         registrar_execucao_auditoria(
             data_inicial=data_inicial,
             data_final=data_final,
@@ -621,9 +689,9 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None,
             total_divergencias=stats["total_divergencias"],
             divergencias_por_tipo=stats["divergencias_por_tipo"],
             total_fichas=stats["total_fichas"],
-            total_guias=stats[
-                "total_execucoes"],  # Changed from total_execucoes
-            total_resolvidas=stats["total_resolvidas"])
+            total_execucoes=stats["total_execucoes"],
+            total_resolvidas=stats["total_resolvidas"]
+        )
 
         return {"success": True, "stats": stats}
 
