@@ -671,5 +671,5 @@ if __name__ == "__main__":
     - Total de protocolos processados: {resultado['total_protocolos']}
     - Total de divergências encontradas: {resultado['divergencias_encontradas']}
 
-    Verifique o arquivo auditoria.log para mais detalhes.
+    Verifique o arquivo auditoria.log para mais detalhes. ok
     """)
