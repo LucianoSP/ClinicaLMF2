@@ -36,16 +36,22 @@ interface FichaPresenca {
   arquivo_digitalizado?: string
 }
 
+interface Carteirinha {
+  numero_carteirinha: string
+  nome_titular: string
+  data_validade: string | null
+  plano_saude?: {
+    id: string
+    nome: string
+    codigo: string
+  }
+}
+
 interface PatientDetailsProps {
   patient: {
     id: string
     nome: string
-    carteirinha: string
-    plano?: {
-      id: string
-      nome: string
-      codigo: string
-    }
+    carteirinhas: Carteirinha[]
     guias: Guide[]
     fichas: Array<{
       id: string
@@ -109,21 +115,25 @@ const formatStatus = (status: string) => {
 }
 
 const ProgressBar = ({ value, max }: { value: number; max: number }) => {
+  // Calcula a porcentagem, limitando a 100% mesmo se value > max
   const percentage = Math.min(Math.round((value / max) * 100), 100)
   
   return (
     <div className="flex items-center gap-2">
+      {/* Container da barra */}
       <div className="w-32 bg-gray-100 rounded-full h-4 dark:bg-gray-200">
+        {/* Barra de progresso */}
         <div 
           className={cn(
             "h-4 rounded-full transition-all",
             percentage >= 100 ? "bg-red-500" : // Vermelho se excedeu
             percentage >= 75 ? "bg-yellow-500" : // Amarelo se acima de 75%
-            "bg-black" // Preto (antes era verde)
+            "bg-black" // Preto (padrão)
           )} 
           style={{ width: `${percentage}%` }}
         />
       </div>
+      {/* Contador numérico */}
       <span className="text-sm font-medium whitespace-nowrap">
         {value}/{max}
       </span>
@@ -137,10 +147,12 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
     guias: patient.guias
   });
 
+  const carteirinha = patient.carteirinhas?.[0] // Pega a primeira carteirinha
+
   return (
     <div className="space-y-6">
       {/* Card do Plano */}
-      {patient.plano && (
+      {carteirinha?.plano_saude && (
         <Card className="border-[#e5e7eb] border-[0.5px]">
           <CardHeader>
             <CardTitle className="text-lg text-[#8B4513]">
@@ -152,16 +164,24 @@ export default function PatientDetails({ patient }: PatientDetailsProps) {
               <div>
                 <div className="mb-6">
                   <p className="text-sm font-medium text-muted-foreground">Nome do Plano</p>
-                  <p className="text-base font-medium">{patient.plano.nome}</p>
+                  <p className="text-base font-medium">{carteirinha.plano_saude.nome}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Carteirinha</p>
-                  <p className="text-base font-medium">{patient.carteirinha}</p>
+                  <p className="text-base font-medium">{carteirinha.numero_carteirinha}</p>
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Código</p>
-                <p className="text-base font-medium">{patient.plano.codigo}</p>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Código</p>
+                  <p className="text-base font-medium">{carteirinha.plano_saude.codigo}</p>
+                </div>
+                {carteirinha.data_validade && (
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-muted-foreground">Validade</p>
+                    <p className="text-base font-medium">{formatDate(carteirinha.data_validade)}</p>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

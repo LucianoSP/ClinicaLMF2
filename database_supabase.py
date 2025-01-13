@@ -711,6 +711,7 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
             "planos_saude(*))"  # Dados do plano de saúde
         )
         
+        # Busca dados do paciente com carteirinhas e planos
         paciente_response = (
             supabase.table("pacientes")
             .select(paciente_query)
@@ -726,12 +727,12 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
         carteirinha = paciente["carteirinhas"][0] if paciente.get("carteirinhas") else None
         plano = None
         
-        # Corrigido o operador && para and
         if carteirinha and carteirinha.get("planos_saude"):
             plano = carteirinha["planos_saude"]
 
         numero_carteirinha = carteirinha["numero_carteirinha"] if carteirinha else None
         if numero_carteirinha:
+            # Busca as guias - quantidade_executada já vem do banco
             guias_response = (
                 supabase.table("guias")
                 .select("*")
@@ -740,16 +741,13 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 .execute()
             )
 
-            guias = [
-                {
-                    **guia,
-                    "data_emissao": formatar_data(guia["data_emissao"]) if guia.get("data_emissao") else None,
-                    "data_validade": formatar_data(guia["data_validade"]) if guia.get("data_validade") else None
-                }
-                for guia in guias_response.data
-            ]
+            guias = [{
+                **guia,
+                "data_emissao": formatar_data(guia["data_emissao"]),
+                "data_validade": formatar_data(guia["data_validade"])
+            } for guia in guias_response.data]
 
-            # Buscar fichas de presença
+            # Busca fichas de presença
             fichas_response = (
                 supabase.table("fichas_presenca")
                 .select("*")
@@ -758,13 +756,11 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 .execute()
             )
 
-            fichas = [
-                {
-                    **ficha,
-                    "data_atendimento": formatar_data(ficha["data_atendimento"]) if ficha.get("data_atendimento") else None
-                }
-                for ficha in fichas_response.data
-            ]
+            fichas = [{
+                **ficha,
+                "data_atendimento": formatar_data(ficha["data_atendimento"]) 
+                if ficha.get("data_atendimento") else None
+            } for ficha in fichas_response.data]
 
             return {
                 "items": guias,
@@ -772,9 +768,8 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 "plano": plano,
                 "fichas": fichas
             }
-        else:
-            print("Nenhuma carteirinha encontrada para o paciente")
-            return {"items": [], "total": 0, "plano": None}
+
+        return {"items": [], "total": 0, "plano": None}
 
     except Exception as e:
         print(f"Erro ao listar guias do paciente: {e}")

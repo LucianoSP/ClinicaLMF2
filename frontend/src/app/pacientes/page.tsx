@@ -24,13 +24,18 @@ import { API_URL } from '@/config/api'
 interface Patient {
   id: string
   nome: string
-  carteirinha: string
-  plano?: {
-    id: string
-    nome: string
-    codigo: string
-  }
-  fichas?: any[] // Add fichas to the patient interface
+  carteirinha?: string // Manter compatibilidade com formato antigo
+  carteirinhas?: Array<{
+    numero_carteirinha: string
+    nome_titular: string
+    data_validade: string | null
+    plano_saude?: {
+      id: string
+      nome: string
+      codigo: string
+    }
+  }>
+  fichas?: any[]
 }
 
 interface Guide {
@@ -101,8 +106,13 @@ export default function PatientsPage() {
       // Depois atualiza o paciente com o plano e fichas
       setSelectedPatient(prev => prev ? {
         ...prev,
-        plano: data.plano,
-        fichas: data.fichas || [] // Ensure fichas is an array
+        carteirinhas: data.carteirinhas || [{
+          numero_carteirinha: prev.carteirinha || '',
+          nome_titular: prev.nome,
+          data_validade: null,
+          plano_saude: data.plano
+        }],
+        fichas: data.fichas || []
       } : prev)
     } catch (error) {
       console.error('Erro ao carregar guias:', error)
@@ -200,7 +210,7 @@ export default function PatientsPage() {
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{patient.nome}</span>
                             <span className="text-xs text-muted-foreground">
-                              Carteirinha: {patient.carteirinha}
+                              Carteirinha: {patient.carteirinhas?.[0]?.numero_carteirinha || patient.carteirinha || '-'}
                             </span>
                           </div>
                         </button>
@@ -228,7 +238,7 @@ export default function PatientsPage() {
                 <div className="space-y-1">
                   <h3 className="text-xl font-semibold">{selectedPatient.nome}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Carteirinha: {selectedPatient.carteirinha}
+                    Carteirinha: {selectedPatient.carteirinhas?.[0]?.numero_carteirinha || selectedPatient.carteirinha || '-'}
                   </p>
                 </div>
                 <Button

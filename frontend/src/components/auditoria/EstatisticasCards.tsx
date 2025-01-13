@@ -16,7 +16,27 @@ import {
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const EstatisticasCards = ({ resultadoAuditoria }) => {
+// Type definition for audit data
+interface AuditoriaData {
+  total_protocolos: number;
+  total_divergencias: number;
+  total_fichas: number;
+  total_execucoes: number;
+  total_resolvidas: number;
+  data_execucao: string;
+  tempo_execucao: string;
+  divergencias_por_tipo: {
+    execucao_sem_sessao: number;
+    sessao_sem_execucao: number;
+    data_divergente: number;
+    sessao_sem_assinatura: number;
+    guia_vencida: number;
+    quantidade_excedida: number;
+    duplicidade: number;
+  };
+}
+
+const EstatisticasCards = ({ resultadoAuditoria }: { resultadoAuditoria: AuditoriaData | null }) => {
   if (!resultadoAuditoria) {
     return (
       <div className="text-center p-4">
@@ -29,21 +49,21 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
     total_divergencias = 0,
     total_resolvidas = 0,
     total_fichas = 0,
-    total_execucoes = 0,  // Changed from total_guias
+    total_execucoes = 0,
     data_execucao,
     tempo_execucao,
     divergencias_por_tipo = {}
   } = resultadoAuditoria;
 
-  // Ensure all required fields exist in divergencias_por_tipo
+  // Ensure all required fields exist in divergencias_por_tipo with proper defaults
   const {
-    ficha_sem_execucao = 0,
-    execucao_sem_ficha = 0,
+    execucao_sem_sessao = 0,
+    sessao_sem_execucao = 0,
     data_divergente = 0,
-    sessao_sem_assinatura = 0, // Renomeado de ficha_sem_assinatura
+    sessao_sem_assinatura = 0,
     guia_vencida = 0,
     quantidade_excedida = 0,
-    duplicidade = 0 // Novo tipo
+    duplicidade = 0
   } = divergencias_por_tipo || {};
 
   // Debug logging
@@ -187,8 +207,8 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
             </CardHeader>
             <CardContent className="px-4 pb-4">
               <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{execucao_sem_ficha}</div>
-                <p className="text-xs text-red-600">Fichas não encontradas</p>
+                <div className="text-3xl font-bold text-red-800">{execucao_sem_sessao}</div>
+                <p className="text-xs text-red-600">Execuções sem sessão correspondente</p>
               </div>
             </CardContent>
           </Card>
@@ -204,7 +224,7 @@ const EstatisticasCards = ({ resultadoAuditoria }) => {
             </CardHeader>
             <CardContent className="px-4 pb-4">
               <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{ficha_sem_execucao}</div>
+                <div className="text-3xl font-bold text-red-800">{sessao_sem_execucao}</div>
                 <p className="text-xs text-red-600">Execuções não encontradas</p>
               </div>
             </CardContent>

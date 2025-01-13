@@ -17,7 +17,7 @@ def registrar_execucao_auditoria(
     total_divergencias: int = 0,
     divergencias_por_tipo: dict = None,
     total_fichas: int = 0,
-    total_execucoes: int = 0,
+    total_execucoes: int = 0,  # Changed from total_guias
     total_resolvidas: int = 0,
 ) -> bool:
     """Registra uma nova execução de auditoria com seus metadados."""
@@ -34,8 +34,8 @@ def registrar_execucao_auditoria(
         
         # Garantir que todos os tipos de divergência existam no dicionário
         tipos_base = {
-            "execucao_sem_ficha": 0,
-            "ficha_sem_execucao": 0,
+            "execucao_sem_sessao": 0,
+            "sessao_sem_execucao": 0,
             "data_divergente": 0,
             "sessao_sem_assinatura": 0,
             "guia_vencida": 0,
@@ -55,7 +55,7 @@ def registrar_execucao_auditoria(
             "total_protocolos": total_protocolos,
             "total_divergencias": total_divergencias,
             "total_fichas": total_fichas,
-            "total_guias": total_guias,
+            "total_execucoes": total_execucoes,  # Changed from total_guias
             "total_resolvidas": total_resolvidas,
             "divergencias_por_tipo": tipos_base,
             "status": "finalizado"

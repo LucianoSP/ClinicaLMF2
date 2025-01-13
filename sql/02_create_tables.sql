@@ -1,6 +1,13 @@
+-- Extensões necessárias
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Tipos enumerados
+CREATE TYPE tipo_guia AS ENUM ('sp_sadt', 'consulta', 'internacao');
+CREATE TYPE status_guia AS ENUM ('pendente', 'em_andamento', 'concluida', 'cancelada');
+
 -- Usuários
-CREATE TABLE usuarios (
-    id uuid PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS usuarios (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     auth_user_id uuid UNIQUE,
     nome text NOT NULL,
     email text UNIQUE,
@@ -12,8 +19,8 @@ CREATE TABLE usuarios (
 );
 
 -- Pacientes
-CREATE TABLE pacientes (
-    id uuid PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS pacientes (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome text NOT NULL,
     data_nascimento date,
     cpf character varying(11),
@@ -24,8 +31,8 @@ CREATE TABLE pacientes (
 );
 
 -- Planos de Saúde
-CREATE TABLE planos_saude (
-    id uuid PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS planos_saude (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     codigo character varying(50) UNIQUE,
     nome character varying(255) NOT NULL,
     ativo boolean DEFAULT true,
@@ -34,8 +41,8 @@ CREATE TABLE planos_saude (
 );
 
 -- Carteirinhas
-CREATE TABLE carteirinhas (
-    id uuid PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS carteirinhas (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     paciente_id uuid REFERENCES pacientes(id),
     plano_saude_id uuid REFERENCES planos_saude(id),
     numero_carteirinha character varying(50) NOT NULL,
@@ -49,8 +56,8 @@ CREATE TABLE carteirinhas (
 );
 
 -- Guias
-CREATE TABLE guias (
-    id uuid PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS guias (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     numero_guia text UNIQUE,
     data_emissao date,
     data_validade date,
@@ -59,6 +66,7 @@ CREATE TABLE guias (
     paciente_carteirinha text,
     paciente_nome text,
     quantidade_autorizada integer NOT NULL,
+    quantidade_executada integer DEFAULT 0,
     procedimento_codigo text,
     procedimento_nome text,
     profissional_solicitante text,
@@ -69,8 +77,8 @@ CREATE TABLE guias (
 );
 
 -- Fichas de Presença
-CREATE TABLE fichas_presenca (
-    id uuid PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS fichas_presenca (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     codigo_ficha text UNIQUE,
     numero_guia text,
     paciente_nome text,
@@ -78,15 +86,15 @@ CREATE TABLE fichas_presenca (
     arquivo_digitalizado text,
     observacoes text,
     status text DEFAULT 'pendente',
-    data_atendimento date,  -- Campo adicionado diretamente na criação
+    data_atendimento date,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
 
 -- Sessões
-CREATE TABLE sessoes (
-    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),  -- Adicionar DEFAULT para gerar UUID automaticamente
-    ficha_presenca_id uuid REFERENCES fichas_presenca(id) ON DELETE CASCADE,  -- Confirmar que esta linha existe
+CREATE TABLE IF NOT EXISTS sessoes (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ficha_presenca_id uuid REFERENCES fichas_presenca(id) ON DELETE CASCADE,
     data_sessao date NOT NULL,
     possui_assinatura boolean DEFAULT false,
     tipo_terapia text,
@@ -102,37 +110,28 @@ CREATE TABLE sessoes (
 );
 
 -- Execuções
-CREATE TABLE execucoes (
+CREATE TABLE IF NOT EXISTS execucoes (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    guia_id uuid REFERENCES guias(id),
+    guia_id uuid REFERENCES guias(id) ON DELETE CASCADE,
     sessao_id uuid REFERENCES sessoes(id) ON DELETE CASCADE,
     data_execucao date NOT NULL,
     paciente_nome text NOT NULL,
     paciente_carteirinha text NOT NULL,
     numero_guia text NOT NULL,
-    codigo_ficha text NOT NULL,  -- Changed from nullable to NOT NULL
+    codigo_ficha text NOT NULL,
     usuario_executante uuid REFERENCES usuarios(id),
     created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now(),
-    CONSTRAINT fk_guia FOREIGN KEY (guia_id) 
-        REFERENCES guias(id) ON DELETE CASCADE
+    updated_at timestamptz DEFAULT now()
 );
 
--- Create indexes for better query performance
-CREATE INDEX idx_execucoes_paciente_nome ON execucoes(paciente_nome);
-CREATE INDEX idx_execucoes_paciente_carteirinha ON execucoes(paciente_carteirinha);
-CREATE INDEX idx_execucoes_numero_guia ON execucoes(numero_guia);
-CREATE INDEX idx_execucoes_codigo_ficha ON execucoes(codigo_ficha);
-CREATE INDEX idx_execucoes_data_execucao ON execucoes(data_execucao);
-
 -- Divergências
-CREATE TABLE divergencias (
+CREATE TABLE IF NOT EXISTS divergencias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     numero_guia text NOT NULL,
     tipo_divergencia text NOT NULL,
     descricao text,
     paciente_nome text,
-    codigo_ficha text,  -- Added this field
+    codigo_ficha text,
     data_execucao date,
     data_atendimento date,
     carteirinha text,
@@ -148,13 +147,9 @@ CREATE TABLE divergencias (
     updated_at timestamptz DEFAULT now()
 );
 
-ALTER TABLE divergencias 
-ADD COLUMN IF NOT EXISTS prioridade text DEFAULT 'MEDIA';
-
--- Drop and recreate Auditoria de Execuções
-DROP TABLE IF EXISTS auditoria_execucoes;
-CREATE TABLE auditoria_execucoes (
-    id uuid PRIMARY KEY,
+-- Auditoria de Execuções
+CREATE TABLE IF NOT EXISTS auditoria_execucoes (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     data_execucao timestamptz NOT NULL,
     data_inicial date,
     data_final date,
@@ -169,20 +164,51 @@ CREATE TABLE auditoria_execucoes (
     updated_at timestamptz DEFAULT now()
 );
 
--- First drop existing RLS policies
-DROP POLICY IF EXISTS "Enable read access for authenticated users" ON auditoria_execucoes;
-DROP POLICY IF EXISTS "Enable insert access for authenticated users" ON auditoria_execucoes;
-DROP POLICY IF EXISTS "Enable update access for authenticated users" ON auditoria_execucoes;
-DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON auditoria_execucoes;
+-- Criar índices para melhor performance
+CREATE INDEX IF NOT EXISTS idx_execucoes_paciente_nome ON execucoes(paciente_nome);
+CREATE INDEX IF NOT EXISTS idx_execucoes_paciente_carteirinha ON execucoes(paciente_carteirinha);
+CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia ON execucoes(numero_guia);
+CREATE INDEX IF NOT EXISTS idx_execucoes_codigo_ficha ON execucoes(codigo_ficha);
+CREATE INDEX IF NOT EXISTS idx_execucoes_data_execucao ON execucoes(data_execucao);
 
--- Disable RLS temporarily
+-- Atualizar função trigger para contar todas as execuções, sem distinção por data
+CREATE OR REPLACE FUNCTION update_guia_quantidade_executada()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+        -- Atualiza quantidade_executada baseado no total de execuções
+        UPDATE guias
+        SET quantidade_executada = (
+            SELECT COUNT(*)
+            FROM execucoes
+            WHERE numero_guia = NEW.numero_guia
+        )
+        WHERE numero_guia = NEW.numero_guia;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE guias
+        SET quantidade_executada = (
+            SELECT COUNT(*)
+            FROM execucoes
+            WHERE numero_guia = OLD.numero_guia
+        )
+        WHERE numero_guia = OLD.numero_guia;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Recriar trigger para executar na tabela execucoes ao invés de fichas_presenca
+DROP TRIGGER IF EXISTS trigger_update_guia_quantidade ON fichas_presenca;
+CREATE TRIGGER trigger_update_guia_quantidade
+    AFTER INSERT OR UPDATE OR DELETE ON execucoes
+    FOR EACH ROW
+    EXECUTE FUNCTION update_guia_quantidade_executada();
+
+-- Adicionar índice para melhorar performance do COUNT DISTINCT
+CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia_data 
+ON execucoes(numero_guia, data_execucao);
+
+-- Configurar permissões
+GRANT ALL ON ALL TABLES IN SCHEMA public TO public;
+GRANT USAGE ON SCHEMA public TO public;
 ALTER TABLE auditoria_execucoes DISABLE ROW LEVEL SECURITY;
-
--- Create new policies allowing all operations
-CREATE POLICY "Enable full access" ON auditoria_execucoes
-    USING (true)
-    WITH CHECK (true);
-
--- Grant all permissions to public
-GRANT ALL ON auditoria_execucoes TO PUBLIC;
-GRANT USAGE ON SCHEMA public TO PUBLIC;

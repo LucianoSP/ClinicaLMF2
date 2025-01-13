@@ -345,7 +345,7 @@ def verificar_duplicidade_execucoes(execucoes: List[Dict]) -> List[Dict]:
 
 def realizar_auditoria_fichas_execucoes(data_inicial: str = None,
                                         data_final: str = None):
-    """Realiza auditoria comparando fichas e execuções diretamente das tabelas."""
+    """Realiza auditoria comparando sessões e execuções diretamente das tabelas."""
     try:
         # Limpa divergências antigas
         limpar_divergencias_db()
