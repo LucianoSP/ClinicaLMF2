@@ -78,36 +78,36 @@ export default function SortableTable<T>({
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full">
-        <thead>
-          <tr className="bg-gray-50">
+      <table className="w-full border-collapse bg-white">
+        <thead className="bg-gray-50/80">
+          <tr>
             {columns.map((column) => (
               <th
                 key={String(column.key)}
                 onClick={() => handleSort(column.key)}
-                className={`px-3 py-1.5 cursor-pointer select-none hover:bg-gray-100 transition-colors text-xs font-medium text-gray-500 ${
-                  column.className?.includes('text-center') ? 'text-center' : 'text-left'
+                className={`h-12 px-4 text-left align-middle text-base font-normal hover:bg-gray-100/80 transition-colors [&:has([role=checkbox])]:pr-0 ${
+                  column.className?.includes('text-center') ? 'text-center' : ''
                 } ${column.className || ''}`}
                 style={{ whiteSpace: 'nowrap', ...column.style }}
               >
                 <div className={`flex items-center ${column.className?.includes('text-center') ? 'justify-center' : 'gap-1'}`}>
                   {column.label}
-                  <span className="text-gray-400">
+                  <span className="text-muted-foreground/50 ml-1">
                     {sortKey === column.key ? (
                       sortDirection === 'asc' ? (
-                        <BiSortUp className="w-3 h-3" />
+                        <BiSortUp className="w-4 h-4" />
                       ) : (
-                        <BiSortDown className="w-3 h-3" />
+                        <BiSortDown className="w-4 h-4" />
                       )
                     ) : (
-                      <BiSortAlt2 className="w-3 h-3" />
+                      <BiSortAlt2 className="w-4 h-4 opacity-0 group-hover:opacity-100" />
                     )}
                   </span>
                 </div>
               </th>
             ))}
             {(onEdit || onDelete || onSave || actions) && (
-              <th className="px-3 py-1.5 text-xs font-medium text-gray-500 w-[100px]">
+              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[100px]">
                 <div className="text-center">Ações</div>
               </th>
             )}
@@ -117,14 +117,12 @@ export default function SortableTable<T>({
           {sortedData.map((item, index) => (
             <tr
               key={index}
-              className={`border-t border-gray-200 ${
-                index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-              } hover:bg-gray-100`}
+              className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
             >
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className={`px-3 py-3 text-sm text-gray-900 ${column.className || ''}`}
+                  className={`p-4 align-middle text-sm ${column.className || ''}`}
                   style={column.style}
                 >
                   {column.editable && editingId === (item as any).codigo_ficha ? (
@@ -160,10 +158,11 @@ export default function SortableTable<T>({
                         column.render(item[column.key], item)
                       ) : column.type === 'boolean' ? (
                         <div className="flex items-center">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${item[column.key] === true || String(item[column.key]) === 'true'
-                            ? 'bg-[#dcfce7] text-[#15803d]'
-                            : 'bg-[#fef9c3] text-[#854d0e]'
-                            }`}>
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            item[column.key] === true || String(item[column.key]) === 'true'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}>
                             {item[column.key] === true || String(item[column.key]) === 'true' ? (
                               <><FiCheck className="w-3 h-3" />Sim</>
                             ) : (
@@ -177,7 +176,7 @@ export default function SortableTable<T>({
                 </td>
               ))}
               {(onEdit || onDelete || onSave || actions) && (
-                <td className="px-3 py-3 text-sm text-gray-500 whitespace-nowrap w-[100px]">
+                <td className="px-4 py-2.5 text-sm text-gray-500 whitespace-nowrap w-[100px]">
                   <div className="flex items-center justify-center space-x-2">
                     {actions ? (
                       actions(item)
@@ -212,7 +211,7 @@ export default function SortableTable<T>({
             <tr>
               <td
                 colSpan={columns.length + ((onEdit || onDelete || onSave || actions) ? 1 : 0)}
-                className="px-3 py-1.5 text-center text-xs text-gray-500"
+                className="px-4 py-2.5 text-center text-xs text-gray-500"
               >
                 Nenhum registro encontrado
               </td>

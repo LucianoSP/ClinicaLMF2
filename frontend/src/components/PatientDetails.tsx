@@ -290,30 +290,33 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
     <>
       <div className="space-y-6">
         {/* Perfil Principal */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-start justify-between">
-            {/* Lado Esquerdo - Foto e Info */}
-            <div className="flex gap-4">
-              <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100">
-                <img
-                  src="/imagens/zico.webp"
-                  alt={patient.nome}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold text-gray-800">{patient.nome}</h2>
-                <div className="space-y-1">
-                  {patient.idade && (
-                    <p className="text-gray-600 text-sm">Idade: {patient.idade}</p>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Convênio:</span>
-                    <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded">
-                      <CreditCard className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium">
-                        {carteirinha?.plano_saude?.nome || "Não informado"}
-                      </span>
+        <div className="relative">
+          <div className="absolute inset-x-0 -top-6 h-px bg-gray-200" />
+          <div className="bg-white rounded-lg shadow-sm p-6 relative">
+            <div className="flex items-start justify-between">
+              {/* Lado Esquerdo - Foto e Info */}
+              <div className="flex gap-4">
+                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100">
+                  <img
+                    src="/imagens/zico.webp"
+                    alt={patient.nome}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold text-gray-800">{patient.nome}</h2>
+                  <div className="space-y-1">
+                    {patient.idade && (
+                      <p className="text-gray-600 text-sm">Idade: {patient.idade}</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">Convênio:</span>
+                      <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded">
+                        <CreditCard className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium">
+                          {carteirinha?.plano_saude?.nome || "Não informado"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -367,7 +370,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-medium text-gray-700">Divergências</h3>
-                <p className="text-3xl font-bold text-[#8f732b] mt-2">{stats.divergencias_pendentes}</p>
+                <p className="text-3xl font-bold text-[#8f732b] mt-2">{stats.divergencias_pendentes || 0}</p>
                 <p className="text-sm text-amber-600 mt-1">
                   {stats.divergencias_pendentes === 1 ? 'Divergência pendente' : 'Divergências pendentes'}
                 </p>

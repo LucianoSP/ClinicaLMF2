@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    --background: 30 33% 98%;
-    --foreground: 24 25% 23%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
 
-    --card: 30 33% 98%;
-    --card-foreground: 24 25% 23%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
  
-    --popover: 30 33% 98%;
-    --popover-foreground: 24 25% 23%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
  
     --primary: 0 34% 40%;
     --primary-foreground: 30 33% 98%;
@@ -43,6 +43,30 @@
     min-height: 100vh;
     background-color: #e9e5de;
     color: #4A3C2B;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-normal;
+  }
+
+  h1 {
+    @apply scroll-m-20 text-5xl tracking-tight lg:text-6xl;
+  }
+
+  h2 {
+    @apply scroll-m-20 text-4xl tracking-tight first:mt-0;
+  }
+
+  h3 {
+    @apply scroll-m-20 text-3xl tracking-tight;
+  }
+
+  h4 {
+    @apply scroll-m-20 text-2xl tracking-tight;
+  }
+
+  .section-title {
+    @apply text-base font-normal text-muted-foreground;
   }
 }
 

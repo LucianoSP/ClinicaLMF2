@@ -1,7 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Sidebar } from '@/components/Sidebar'
-import { inter } from './fonts'
+import { outfit } from '@/lib/fonts'
 import { Toaster } from '@/components/ui/toaster'
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -22,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={inter.className}>
+    <html lang="pt-BR" className={outfit.className}>
       <body className="min-h-screen">
         <div className="flex h-full">
           <Sidebar />
