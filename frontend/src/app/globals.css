@@ -13,24 +13,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
  
-    --primary: 0 34% 40%;
-    --primary-foreground: 30 33% 98%;
+    --primary: 220 14% 30%;
+    --primary-foreground: 0 0% 100%;
  
-    --secondary: 35 23% 52%;
-    --secondary-foreground: 30 33% 98%;
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 220 14% 30%;
  
-    --muted: 30 10% 90%;
-    --muted-foreground: 24 5% 45%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 14% 46%;
  
-    --accent: 35 23% 52%;
-    --accent-foreground: 24 25% 23%;
+    --accent: 220 14% 91%;
+    --accent-foreground: 220 14% 30%;
  
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 30 33% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 24 5% 85%;
-    --input: 24 5% 85%;
-    --ring: 24 25% 23%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 14% 30%;
  
     --radius: 0.5rem;
   }
@@ -41,61 +41,64 @@
   
   body {
     min-height: 100vh;
-    background-color: #e9e5de;
-    color: #4A3C2B;
+    background-color: #ffffff;
+    color: #2c3e50;
   }
 
   /* Estilos globais para títulos */
   h1, h2, h3, h4, h5, h6 {
-    @apply text-zinc-900;
     font-family: 'Outfit', sans-serif;
     font-style: normal;
     font-variant: normal;
     font-stretch: 100%;
+    color: #000000;
   }
 
   /* Título principal da página */
   h1, .page-title {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 500;
-    line-height: 32px;
+    line-height: 36px;
+    color: #000000;
   }
 
   /* Títulos de seção e nomes */
   h2, h3, .section-title {
-    font-size: 25px;
+    font-size: 26px;
     font-weight: 400;
-    line-height: 32px;
+    line-height: 34px;
+    color: #000000;
   }
 
   /* Subtítulos */
   h4, h5, h6 {
-    font-size: 25px;
+    font-size: 24px;
     font-weight: 400;
     line-height: 32px;
+    color: #000000;
   }
 
   /* Classes específicas para casos especiais */
   .page-title {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 500;
-    line-height: 32px;
+    line-height: 36px;
     font-family: 'Outfit', sans-serif;
     font-style: normal;
     font-variant: normal;
     font-stretch: 100%;
-    @apply text-zinc-900;
+    color: #000000;
   }
 
   .section-title {
-    font-size: 25px;
+    font-size: 26px;
     font-weight: 400;
-    line-height: 32px;
+    line-height: 34px;
     font-family: 'Outfit', sans-serif;
     font-style: normal;
     font-variant: normal;
     font-stretch: 100%;
-    @apply text-zinc-900;
+    color: #000000;
   }
 
   .patient-name {
@@ -124,7 +127,8 @@
 
 /* Cores personalizadas */
 .sidebar-bg {
-  background-color: #6b342f !important;
+  background: linear-gradient(180deg, #1a365d 0%, #2c5282 100%);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 /* DayPicker custom styles */

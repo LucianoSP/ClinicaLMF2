@@ -218,8 +218,8 @@ export default function PatientsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
-        <div className="p-6 flex flex-col gap-6">
+      <div>
+        <div className="flex flex-col gap-6">
           {/* Header com título */}
           <div>
             <h1 className="page-title">
@@ -322,4 +322,3 @@ export default function PatientsPage() {
     </div>
   )
 }
-
