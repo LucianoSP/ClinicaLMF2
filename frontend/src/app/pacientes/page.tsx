@@ -222,9 +222,9 @@ export default function PatientsPage() {
         <div className="p-6 flex flex-col gap-6">
           {/* Header com título */}
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">
+            <h1 className="page-title">
               Gerenciamento de Pacientes
-            </h2>
+            </h1>
           </div>
 
           {/* Barra de busca e botão novo paciente */}

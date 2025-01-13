@@ -45,28 +45,80 @@
     color: #4A3C2B;
   }
 
+  /* Estilos globais para títulos */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-normal;
+    @apply text-zinc-900;
+    font-family: 'Outfit', sans-serif;
+    font-style: normal;
+    font-variant: normal;
+    font-stretch: 100%;
   }
 
-  h1 {
-    @apply scroll-m-20 text-5xl tracking-tight lg:text-6xl;
+  /* Título principal da página */
+  h1, .page-title {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 32px;
   }
 
-  h2 {
-    @apply scroll-m-20 text-4xl tracking-tight first:mt-0;
+  /* Títulos de seção e nomes */
+  h2, h3, .section-title {
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 32px;
   }
 
-  h3 {
-    @apply scroll-m-20 text-3xl tracking-tight;
+  /* Subtítulos */
+  h4, h5, h6 {
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 32px;
   }
 
-  h4 {
-    @apply scroll-m-20 text-2xl tracking-tight;
+  /* Classes específicas para casos especiais */
+  .page-title {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 32px;
+    font-family: 'Outfit', sans-serif;
+    font-style: normal;
+    font-variant: normal;
+    font-stretch: 100%;
+    @apply text-zinc-900;
   }
 
   .section-title {
-    @apply text-base font-normal text-muted-foreground;
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 32px;
+    font-family: 'Outfit', sans-serif;
+    font-style: normal;
+    font-variant: normal;
+    font-stretch: 100%;
+    @apply text-zinc-900;
+  }
+
+  .patient-name {
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 32px;
+    font-family: 'Outfit', sans-serif;
+    font-style: normal;
+    font-variant: normal;
+    font-stretch: 100%;
+    @apply text-zinc-900;
+  }
+
+  /* Ajuste para todos os títulos dentro de cards */
+  .card-title {
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 32px;
+    font-family: 'Outfit', sans-serif;
+    font-style: normal;
+    font-variant: normal;
+    font-stretch: 100%;
+    @apply text-zinc-900;
   }
 }
 

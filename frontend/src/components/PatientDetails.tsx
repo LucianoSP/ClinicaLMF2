@@ -303,21 +303,11 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold text-gray-800">{patient.nome}</h2>
-                  <div className="space-y-1">
-                    {patient.idade && (
-                      <p className="text-gray-600 text-sm">Idade: {patient.idade}</p>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">Convênio:</span>
-                      <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded">
-                        <CreditCard className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-medium">
-                          {carteirinha?.plano_saude?.nome || "Não informado"}
-                        </span>
-                      </div>
-                    </div>
+                <div className="flex-1">
+                  <h2 className="patient-name">{patient.nome}</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground">Convênio:</span>
+                    <span className="text-sm">{carteirinha?.plano_saude?.nome || 'Não informado'}</span>
                   </div>
                 </div>
               </div>
@@ -382,9 +372,11 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
 
         {/* Plano de Saúde */}
         {carteirinha?.plano_saude && (
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Plano de Saúde</h3>
-            <div className="bg-white rounded-lg shadow-sm p-6">
+          <Card className="mt-8">
+            <CardHeader>
+              <h3 className="section-title">Plano de Saúde</h3>
+            </CardHeader>
+            <CardContent>
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-[#8B4513]" />
@@ -428,8 +420,8 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
                   </dl>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Guias */}
