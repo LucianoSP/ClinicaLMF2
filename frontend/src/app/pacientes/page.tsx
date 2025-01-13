@@ -21,11 +21,11 @@ import PatientDetails from '@/components/PatientDetails'
 import { formatarData } from '@/lib/utils'
 import { API_URL } from '@/config/api'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  Users, 
-  CreditCard, 
-  FileText, 
-  AlertTriangle, 
+import {
+  Users,
+  CreditCard,
+  FileText,
+  AlertTriangle,
   Activity,
   CheckCircle2
 } from 'lucide-react'
@@ -138,13 +138,13 @@ export default function PatientsPage() {
     try {
       const response = await fetch(`${API_URL}/pacientes/${patientId}/guias`)
       if (!response.ok) throw new Error('Falha ao carregar guias')
-      
+
       const data = await response.json()
       console.log('Dados recebidos:', data)
-      
+
       // Atualiza as guias
       setPatientGuides(data.items || [])
-      
+
       // Depois atualiza o paciente com o plano e fichas
       setSelectedPatient(prev => prev ? {
         ...prev,
@@ -245,8 +245,8 @@ export default function PatientsPage() {
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
                 <Command shouldFilter={false}>
-                  <CommandInput 
-                    placeholder="Digite o nome ou carteirinha..." 
+                  <CommandInput
+                    placeholder="Digite o nome ou carteirinha..."
                     value={searchTerm}
                     onValueChange={setSearchTerm}
                   />
@@ -274,7 +274,7 @@ export default function PatientsPage() {
                           />
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{patient.nome}</span>
-                            
+
                           </div>
                         </button>
                       ))}
@@ -284,10 +284,10 @@ export default function PatientsPage() {
               </PopoverContent>
             </Popover>
 
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setIsFormOpen(true)}
-              className="gap-2 hover:bg-[#8B4513] hover:text-white transition-colors"
+              className="gap-2 btn-primary"
             >
               <PlusIcon className="h-4 w-4" />
               Novo Paciente
@@ -297,12 +297,12 @@ export default function PatientsPage() {
           {/* Patient section */}
           {selectedPatient && (
             <div className="mt-6">
-              <PatientDetails 
+              <PatientDetails
                 patient={{
                   ...selectedPatient,
                   guias: patientGuides,
                   fichas: selectedPatient.fichas || []
-                }} 
+                }}
                 stats={patientStats}
                 onGuideCreated={refreshPatientData}
               />

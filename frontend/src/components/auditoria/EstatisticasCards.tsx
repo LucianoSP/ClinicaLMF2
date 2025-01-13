@@ -1,13 +1,13 @@
 import React from 'react';
-import { 
-  ClipboardList, 
-  AlertCircle, 
-  CheckCircle2, 
-  FileSignature, 
+import {
+  ClipboardList,
+  AlertCircle,
+  CheckCircle2,
+  FileSignature,
   Calendar,
-  Clock, 
-  Files, 
-  FileCheck2, 
+  Clock,
+  Files,
+  FileCheck2,
   AlertTriangle,
   FileWarning,
   FileX,

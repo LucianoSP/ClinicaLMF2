@@ -65,13 +65,18 @@
   }
 
   /* Título principal da página */
-h1, .page-title {
-  font-size: 1.5rem; /* text-2xl */
-  font-weight: 600;  /* font-semibold */
-  margin-bottom: 1rem;
-  line-height: 1.2;
-  color: var(--text-primary);
-}
+  h1, .page-title {
+    font-size: 1.5rem; /* text-2xl */
+    font-weight: 500;  /* font-semibold */
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  /* Botões */
+  .btn-primary {
+    @apply hover:bg-primary/10 transition-colors;
+  }
 
   /* Títulos de seção e nomes */
   .section-title {
