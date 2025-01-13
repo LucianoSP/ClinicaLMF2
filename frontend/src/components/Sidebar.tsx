@@ -52,8 +52,8 @@ export function Sidebar() {
   return (
     <div className="flex flex-col w-64 sidebar-bg min-h-screen shadow-lg">
       <div className="flex flex-col flex-grow pt-6">
-        <div className="flex items-start justify-center flex-shrink-0 px-8 mb-2">
-          <BanknotesIcon className="h-12 w-12 text-white/90 mr-4 -mt-1" />
+        <div className="flex items-start justify-center flex-shrink-0 px-8 mb-4">
+          <BanknotesIcon className="h-13 w-13 text-white/90 mr-4 -mt-1" />
           <div className="flex flex-col" style={{ lineHeight: '0.9' }}>
             <h1 className="text-xl text-white font-light tracking-wider">
               Gestão de Faturamento
