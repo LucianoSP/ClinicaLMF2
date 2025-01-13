@@ -57,9 +57,9 @@ const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-lg p-4">
+      <div className="border border-gray-200 rounded-lg shadow-sm bg-white p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold">Filtros</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
           <Button
             variant="ghost"
             size="sm"

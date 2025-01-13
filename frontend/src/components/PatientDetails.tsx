@@ -137,7 +137,7 @@ const ProgressBar = ({ value, max }: { value: number; max: number }) => {
                   "h-4 rounded-full transition-all",
                   percentage >= 100 ? "bg-red-500" :
                     percentage >= 75 ? "bg-yellow-500" :
-                      "bg-black"
+                      "bg-[#D2691E]/60"
                 )}
                 style={{ width: `${percentage}%` }}
               />
@@ -296,7 +296,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
             <div className="flex items-start justify-between">
               {/* Lado Esquerdo - Foto e Info */}
               <div className="flex gap-4">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100">
+                <div className="w-32 h-40 rounded-lg overflow-hidden bg-gray-100">
                   <img
                     src="/imagens/zico.webp"
                     alt={patient.nome}
@@ -374,37 +374,35 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
         {carteirinha?.plano_saude && (
           <>
             <h2 className="section-title">Plano de Saúde</h2>
-            <div className="section-container">
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
-                <span className="section-value">{carteirinha.plano_saude.nome}</span>
-              </div>
+            <div className="border border-gray-200 rounded-lg shadow-sm bg-white p-6">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-base font-medium">{carteirinha.plano_saude.nome}</span>
+                </div>
 
-              <div className="info-grid">
-                <div>
-                  <div className="info-group">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
                     <div>
-                      <p className="section-label">Número da Carteirinha</p>
-                      <p className="section-value">
+                      <p className="text-sm text-muted-foreground">Número da Carteirinha</p>
+                      <p className="text-base mt-1">
                         {patient.guias[0]?.paciente_carteirinha || carteirinha.numero_carteirinha || '-'}
                       </p>
                     </div>
                     <div>
-                      <p className="section-label">Código do Plano</p>
-                      <p className="section-value">{carteirinha.plano_saude.codigo || '-'}</p>
+                      <p className="text-sm text-muted-foreground">Código do Plano</p>
+                      <p className="text-base mt-1">{carteirinha.plano_saude.codigo || '-'}</p>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <div className="info-group">
+                  <div className="space-y-4">
                     <div>
-                      <p className="section-label">Data de Validade</p>
-                      <p className="section-value">{formatDate(carteirinha.data_validade) || '-'}</p>
+                      <p className="text-sm text-muted-foreground">Data de Validade</p>
+                      <p className="text-base mt-1">{formatDate(carteirinha.data_validade) || '-'}</p>
                     </div>
                     <div>
-                      <p className="section-label">Status</p>
-                      <p className="section-value">Ativo</p>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <p className="text-base mt-1">Ativo</p>
                     </div>
                   </div>
                 </div>
@@ -419,7 +417,9 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
             <h3 className="section-title">Guias</h3>
             <Button
               onClick={handleNewGuide}
-              className="gap-2 hover:bg-[#8B4513] hover:text-white transition-colors"
+              variant="outline"
+              size="sm"
+              className="gap-2"
             >
               <PlusIcon className="h-4 w-4" />
               Nova Guia
