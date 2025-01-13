@@ -20,6 +20,15 @@ import { PatientForm } from './components/patient-form'
 import PatientDetails from '@/components/PatientDetails'
 import { formatarData } from '@/lib/utils'
 import { API_URL } from '@/config/api'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { 
+  Users, 
+  CreditCard, 
+  FileText, 
+  AlertTriangle, 
+  Activity,
+  CheckCircle2
+} from 'lucide-react'
 
 interface Patient {
   id: string
@@ -58,6 +67,23 @@ interface Guide {
   updated_at: string
 }
 
+interface PatientStats {
+  total_carteirinhas: number;
+  carteirinhas_ativas: number;
+  total_guias: number;
+  guias_ativas: number;
+  sessoes_autorizadas: number;
+  sessoes_executadas: number;
+  divergencias_pendentes: number;
+  taxa_execucao: number;
+  guias_por_status: {
+    pendente: number;
+    em_andamento: number;
+    concluida: number;
+    cancelada: number;
+  };
+}
+
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>()
@@ -66,6 +92,22 @@ export default function PatientsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [patientStats, setPatientStats] = useState<PatientStats>({
+    total_carteirinhas: 0,
+    carteirinhas_ativas: 0,
+    total_guias: 0,
+    guias_ativas: 0,
+    sessoes_autorizadas: 0,
+    sessoes_executadas: 0,
+    divergencias_pendentes: 0,
+    taxa_execucao: 0,
+    guias_por_status: {
+      pendente: 0,
+      em_andamento: 0,
+      concluida: 0,
+      cancelada: 0
+    }
+  })
 
   // Carregar pacientes
   const loadPatients = useCallback(async (term: string) => {
@@ -120,6 +162,18 @@ export default function PatientsPage() {
     }
   }, [])
 
+  // Função para carregar estatísticas do paciente
+  const loadPatientStats = useCallback(async (patientId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/pacientes/${patientId}/estatisticas`)
+      if (!response.ok) throw new Error('Falha ao carregar estatísticas')
+      const data = await response.json()
+      setPatientStats(data)
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error)
+    }
+  }, [])
+
   // Efeito para atualizar a busca quando o termo muda
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -136,6 +190,7 @@ export default function PatientsPage() {
       loadPatientGuides(selectedPatient.id).then(response => {
         console.log('Resposta do backend - guias:', response) // Verifique os valores aqui
       })
+      loadPatientStats(selectedPatient.id)
     }
   }, [selectedPatient?.id])
 
@@ -234,21 +289,83 @@ export default function PatientsPage() {
           {/* Patient section */}
           {selectedPatient && (
             <div className="mt-6 space-y-6">
-              <div className="flex items-center justify-between pb-4">
-                <div className="space-y-1">
-                  <h3 className="text-xl font-semibold">{selectedPatient.nome}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Carteirinha: {selectedPatient.carteirinhas?.[0]?.numero_carteirinha || selectedPatient.carteirinha || '-'}
-                  </p>
+              <div>
+                <div className="flex items-center justify-between pb-4">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-semibold">{selectedPatient.nome}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Carteirinha: {selectedPatient.carteirinhas?.[0]?.numero_carteirinha || selectedPatient.carteirinha || '-'}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditPatient(selectedPatient)}
+                    className="hover:bg-[#8B4513] hover:text-white transition-colors"
+                  >
+                    Editar
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditPatient(selectedPatient)}
-                  className="hover:bg-[#8B4513] hover:text-white transition-colors"
-                >
-                  Editar
-                </Button>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-4 gap-4 mt-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Carteirinhas</CardTitle>
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{patientStats.carteirinhas_ativas}</div>
+                      <p className="text-xs text-muted-foreground">
+                        De {patientStats.total_carteirinhas} total
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Guias</CardTitle>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{patientStats.guias_ativas}</div>
+                      <p className="text-xs text-muted-foreground">
+                        De {patientStats.total_guias} total
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Sessões</CardTitle>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{patientStats.sessoes_executadas}</div>
+                      <p className="text-xs text-muted-foreground">
+                        De {patientStats.sessoes_autorizadas} autorizadas
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Taxa: {patientStats.taxa_execucao}%
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {patientStats.divergencias_pendentes > 0 && (
+                    <Card className="bg-yellow-50">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Divergências</CardTitle>
+                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{patientStats.divergencias_pendentes}</div>
+                        <p className="text-xs text-muted-foreground">
+                          Pendentes de resolução
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
 
               <PatientDetails 

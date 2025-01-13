@@ -1103,3 +1103,199 @@ def listar_divergencias(
         logging.error(f"Erro ao listar divergências: {e}")
         traceback.print_exc()
         return {"divergencias": [], "total": 0, "total_pages": 1}
+
+def obter_estatisticas_gerais() -> Dict:
+    """Retorna estatísticas gerais para o dashboard."""
+    try:
+        # Quantidade de guias
+        guias = supabase.table("guias").select("count", count="exact").execute()
+        total_guias = guias.count if guias else 0
+
+        # Quantidade de carteirinhas ativas
+        carteirinhas = supabase.table("carteirinhas").select("count", count="exact").eq("ativo", True).execute()
+        total_carteirinhas = carteirinhas.count if carteirinhas else 0
+
+        # Sessões autorizadas e executadas
+        guias_stats = supabase.table("guias").select("quantidade_autorizada, quantidade_executada").execute()
+        total_autorizadas = sum(g["quantidade_autorizada"] for g in guias_stats.data)
+        total_executadas = sum(g["quantidade_executada"] for g in guias_stats.data)
+
+        # Divergências pendentes
+        divergencias = supabase.table("divergencias").select("count", count="exact").eq("status", "pendente").execute()
+        total_divergencias = divergencias.count if divergencias else 0
+
+        # Pacientes ativos (com carteirinha ativa)
+        pacientes = supabase.table("pacientes").select("count", count="exact").execute()
+        total_pacientes = pacientes.count if pacientes else 0
+
+        return {
+            "total_guias": total_guias,
+            "total_carteirinhas": total_carteirinhas,
+            "sessoes_autorizadas": total_autorizadas,
+            "sessoes_executadas": total_executadas,
+            "divergencias_pendentes": total_divergencias,
+            "total_pacientes": total_pacientes,
+            "taxa_execucao": round((total_executadas / total_autorizadas * 100) if total_autorizadas > 0 else 0, 2)
+        }
+
+    except Exception as e:
+        print(f"Erro ao obter estatísticas: {e}")
+        return {
+            "total_guias": 0,
+            "total_carteirinhas": 0,
+            "sessoes_autorizadas": 0,
+            "sessoes_executadas": 0,
+            "divergencias_pendentes": 0,
+            "total_pacientes": 0,
+            "taxa_execucao": 0
+        }
+
+def obter_estatisticas_paciente(paciente_id: str) -> Dict:
+    """Retorna estatísticas específicas de um paciente."""
+    try:
+        # Busca dados completos do paciente com carteirinhas e planos
+        paciente_query = (
+            "*, "  # Dados do paciente
+            "carteirinhas(*, "  # Dados da carteirinha
+            "planos_saude(*))"  # Dados do plano de saúde
+        )
+        
+        paciente = supabase.table("pacientes").select(paciente_query).eq("id", paciente_id).single().execute()
+        if not paciente.data:
+            raise ValueError("Paciente não encontrado")
+            
+        # Número total de carteirinhas do paciente
+        carteirinhas = paciente.data.get("carteirinhas", [])
+        total_carteirinhas = len(carteirinhas)
+        carteirinha_atual = carteirinhas[0] if carteirinhas else None
+        numero_carteirinha = carteirinha_atual["numero_carteirinha"] if carteirinha_atual else None
+
+        if not numero_carteirinha:
+            return {
+                "total_carteirinhas": 0,
+                "carteirinhas_ativas": 0,
+                "total_guias": 0,
+                "guias_ativas": 0,
+                "sessoes_autorizadas": 0,
+                "sessoes_executadas": 0,
+                "divergencias_pendentes": 0,
+                "taxa_execucao": 0,
+                "guias_por_status": {"pendente": 0, "em_andamento": 0, "concluida": 0, "cancelada": 0}
+            }
+
+        # Busca todas as guias do paciente
+        guias = supabase.table("guias").select("*").eq("paciente_carteirinha", numero_carteirinha).execute()
+        
+        # Estatísticas das guias
+        total_guias = len(guias.data)
+        guias_por_status = {
+            "pendente": 0,
+            "em_andamento": 0,
+            "concluida": 0,
+            "cancelada": 0
+        }
+        
+        sessoes_autorizadas = 0
+        sessoes_executadas = 0
+        
+        for guia in guias.data:
+            status = guia["status"]
+            guias_por_status[status] = guias_por_status.get(status, 0) + 1
+            sessoes_autorizadas += guia["quantidade_autorizada"]
+            sessoes_executadas += guia["quantidade_executada"]
+        
+        # Busca divergências pendentes
+        divergencias = (
+            supabase.table("divergencias")
+            .select("count")
+            .eq("carteirinha", numero_carteirinha)
+            .eq("status", "pendente")
+            .execute()
+        )
+        
+        # Carteirinhas ativas (não vencidas)
+        hoje = datetime.now().date()
+        carteirinhas_ativas = len([
+            c for c in carteirinhas 
+            if not c["data_validade"] or 
+            datetime.strptime(c["data_validade"], "%Y-%m-%d").date() >= hoje
+        ])
+
+        return {
+            "total_carteirinhas": total_carteirinhas,
+            "carteirinhas_ativas": carteirinhas_ativas,
+            "total_guias": total_guias,
+            "guias_ativas": guias_por_status["pendente"] + guias_por_status["em_andamento"],
+            "sessoes_autorizadas": sessoes_autorizadas,
+            "sessoes_executadas": sessoes_executadas,
+            "divergencias_pendentes": divergencias.count if divergencias else 0,
+            "taxa_execucao": round((sessoes_executadas / sessoes_autorizadas * 100) if sessoes_autorizadas > 0 else 0, 2),
+            "guias_por_status": guias_por_status
+        }
+
+    except Exception as e:
+        print(f"Erro ao obter estatísticas do paciente: {e}")
+        traceback.print_exc()
+        return {
+            "total_carteirinhas": 0,
+            "carteirinhas_ativas": 0,
+            "total_guias": 0,
+            "guias_ativas": 0,
+            "sessoes_autorizadas": 0,
+            "sessoes_executadas": 0,
+            "divergencias_pendentes": 0,
+            "taxa_execucao": 0,
+            "guias_por_status": {"pendente": 0, "em_andamento": 0, "concluida": 0, "cancelada": 0}
+        }
+
+def obter_estatisticas_paciente(paciente_id: str) -> Dict:
+    """Retorna estatísticas específicas de um paciente."""
+    try:
+        # Busca carteirinha do paciente
+        paciente = supabase.table("pacientes").select("*, carteirinhas(numero_carteirinha)").eq("id", paciente_id).single().execute()
+        if not paciente.data:
+            raise ValueError("Paciente não encontrado")
+            
+        carteirinha = paciente.data["carteirinhas"][0]["numero_carteirinha"] if paciente.data.get("carteirinhas") else None
+        
+        if not carteirinha:
+            return {
+                "total_guias": 0,
+                "guias_ativas": 0,
+                "sessoes_autorizadas": 0,
+                "sessoes_executadas": 0,
+                "divergencias_pendentes": 0,
+                "taxa_execucao": 0
+            }
+
+        # Busca guias do paciente
+        guias = supabase.table("guias").select("*").eq("paciente_carteirinha", carteirinha).execute()
+        total_guias = len(guias.data)
+        guias_ativas = len([g for g in guias.data if g["status"] == "pendente"])
+        
+        # Calcula totais de sessões
+        sessoes_autorizadas = sum(g["quantidade_autorizada"] for g in guias.data)
+        sessoes_executadas = sum(g["quantidade_executada"] for g in guias.data)
+        
+        # Busca divergências pendentes
+        divergencias = supabase.table("divergencias").select("count").eq("carteirinha", carteirinha).eq("status", "pendente").execute()
+        
+        return {
+            "total_guias": total_guias,
+            "guias_ativas": guias_ativas,
+            "sessoes_autorizadas": sessoes_autorizadas,
+            "sessoes_executadas": sessoes_executadas,
+            "divergencias_pendentes": divergencias.count if divergencias else 0,
+            "taxa_execucao": round((sessoes_executadas / sessoes_autorizadas * 100) if sessoes_autorizadas > 0 else 0, 2)
+        }
+
+    except Exception as e:
+        print(f"Erro ao obter estatísticas do paciente: {e}")
+        return {
+            "total_guias": 0,
+            "guias_ativas": 0,
+            "sessoes_autorizadas": 0,
+            "sessoes_executadas": 0,
+            "divergencias_pendentes": 0,
+            "taxa_execucao": 0
+        }
