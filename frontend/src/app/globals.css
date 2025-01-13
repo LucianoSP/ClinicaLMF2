@@ -7,31 +7,35 @@
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
 
+    /* New warm theme colors */
+    --primary: 15 35% 45%;
+    --primary-foreground: 0 0% 98%;
+    
+    --secondary: 42 45% 45%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --accent: 35 91% 90%;
+    --accent-foreground: 15 35% 45%;
+
+    --muted: 35 50% 95%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
- 
+    
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
- 
-    --primary: 220 14% 30%;
-    --primary-foreground: 0 0% 100%;
- 
-    --secondary: 220 13% 91%;
-    --secondary-foreground: 220 14% 30%;
- 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 14% 46%;
- 
-    --accent: 220 14% 91%;
-    --accent-foreground: 220 14% 30%;
- 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    
+    --border: 35 10% 90%;
+    --input: 35 10% 90%;
+    
+    --ring: 15 35% 45%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 14% 30%;
- 
+    /* Sidebar specific colors */
+    --sidebar-bg-start: 15 35% 45%;
+    --sidebar-bg-end: 15 35% 35%;
+    --sidebar-color: 0 0% 98%;
+
     --radius: 0.5rem;
   }
 
@@ -46,61 +50,30 @@
   }
 
   /* Estilos globais para títulos */
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2, h3, h4, h5, h6, .page-title, .section-title {
     font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
     font-style: normal;
-    font-variant: normal;
-    font-stretch: 100%;
+    line-height: 32px;
+    letter-spacing: -0.6px;
+    word-spacing: 0px;
+    text-align: start;
+    text-transform: none;
     color: #000000;
   }
 
   /* Título principal da página */
   h1, .page-title {
-    font-size: 28px;
-    font-weight: 500;
-    line-height: 36px;
-    color: #000000;
+    margin-bottom: 1rem;
   }
 
   /* Títulos de seção e nomes */
-  h2, h3, .section-title {
-    font-size: 26px;
-    font-weight: 400;
-    line-height: 34px;
-    color: #000000;
-  }
-
-  /* Subtítulos */
-  h4, h5, h6 {
-    font-size: 24px;
-    font-weight: 400;
-    line-height: 32px;
-    color: #000000;
+  .section-title {
+    margin-bottom: 0.75rem;
   }
 
   /* Classes específicas para casos especiais */
-  .page-title {
-    font-size: 28px;
-    font-weight: 500;
-    line-height: 36px;
-    font-family: 'Outfit', sans-serif;
-    font-style: normal;
-    font-variant: normal;
-    font-stretch: 100%;
-    color: #000000;
-  }
-
-  .section-title {
-    font-size: 26px;
-    font-weight: 400;
-    line-height: 34px;
-    font-family: 'Outfit', sans-serif;
-    font-style: normal;
-    font-variant: normal;
-    font-stretch: 100%;
-    color: #000000;
-  }
-
   .patient-name {
     font-size: 25px;
     font-weight: 400;
@@ -122,6 +95,15 @@
     font-variant: normal;
     font-stretch: 100%;
     @apply text-zinc-900;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 

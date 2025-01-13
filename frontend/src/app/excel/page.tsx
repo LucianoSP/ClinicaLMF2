@@ -257,8 +257,10 @@ export default function ExcelPage() {
   }
 
   return (
-    <div className="space-y-4 bg-white p-6 rounded-lg shadow">
-      <h1 className="text-2xl font-semibold text-[#6b342f]">Dados Importados do Excel</h1>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Dados Importados do Excel</h1>
+      </div>
 
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">

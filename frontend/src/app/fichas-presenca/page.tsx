@@ -812,169 +812,97 @@ export default function FichasPresenca() {
 
     return (
       <div className="flex flex-col gap-6">
-        {/* Header com upload e filtros - mantém o mesmo */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="p-6 flex flex-col gap-8">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Fichas de Presença</h2>
-              <div className="flex gap-2">
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={(e) => {
-                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                      if (input) input.click();
-                    }}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#6b342f]" />
-                        <span>Enviando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FiUpload className="h-4 w-4" />
-                        <span>Upload PDF</span>
-                      </>
-                    )}
-                  </Button>
-                </label>
-                <Button variant="outline" className="gap-2" onClick={handleExportExcel}>
-                  <FiDownload className="h-4 w-4" />
-                  Exportar Excel
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={() => setShowClearDialog(true)}>
-                  <TrashIcon className="h-4 w-4" />
-                  Limpar Fichas
-                </Button>
-              </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar por nome..."
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                  <FiSearch className="absolute left-2 top-3 text-muted-foreground" />
-                </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2"
-                >
-                  <option value="pendente">Pendentes</option>
-                  <option value="conferida">Conferidas</option>
-                  <option value="todas">Todas</option>
-                </select>
-                <select
-                  value={perPage}
-                  onChange={handlePerPageChange}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2"
-                >
-                  <option value={10}>10 por página</option>
-                  <option value={25}>25 por página</option>
-                  <option value={50}>50 por página</option>
-                </select>
-              </div>
-            </div>
-          </div>
+        <div>
+          <h1 className="text-2xl font-semibold">Fichas de Presença</h1>
         </div>
 
-        {/* Layout Principal - Modificado para layout vertical */}
-        <div className="flex flex-col gap-4">
-          {/* Tabela de Fichas */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Fichas de Presença</h3>
-            <SortableTable
-              data={fichas}
-              columns={fichasColumns}
-              loading={loading}
-              onRowClick={handleRowClick}
-              rowClassName={(item) => 
-                item.id === selectedFicha?.id ? 'bg-blue-50 cursor-pointer' : 'cursor-pointer hover:bg-gray-50'
-              }
-            />
-            
-            {/* Paginação e contadores */}
-            <div className="mt-4 flex justify-between items-center">
-              <div className="text-sm text-gray-500">
-                Total de registros: {totalRecords}
-              </div>
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar por nome do paciente..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
               />
+              <MagnifyingGlassIcon className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
             </div>
+
+            <select
+              value={perPage}
+              onChange={handlePerPageChange}
+              className="h-10 rounded-md border border-input bg-background px-3 py-2"
+            >
+              <option value="10">10 por página</option>
+              <option value="25">25 por página</option>
+              <option value="50">50 por página</option>
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 py-2"
+            >
+              <option value="pendente">Pendentes</option>
+              <option value="conferida">Conferidas</option>
+              <option value="todas">Todas</option>
+            </select>
           </div>
 
-          {/* Tabela de Sessões */}
-          {selectedFicha && (
-            <div className="bg-white p-4 rounded-lg shadow">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Ficha:</span>
-                  <span className="text-gray-900">{selectedFicha.codigo_ficha}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="font-medium text-gray-700">Paciente:</span>
-                  <span className="text-gray-900">{selectedFicha.paciente_nome}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="font-medium text-gray-700">Guia:</span>
-                  <span className="text-gray-900">{selectedFicha.numero_guia}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="font-medium text-gray-700">Carteirinha:</span>
-                  <span className="text-gray-900">{selectedFicha.paciente_carteirinha}</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCloseSessoes}
-                  className="hover:bg-gray-100"
-                >
-                  <FiX className="h-4 w-4" />
-                </Button>
-              </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById('fileInput')?.click()}
+              className="gap-2"
+            >
+              <FiUpload className="h-4 w-4" />
+              Upload Excel
+            </Button>
+            <input
+              id="fileInput"
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
 
-              <div className="border rounded-lg overflow-hidden">
-                <SortableTable
-                  data={selectedFicha.sessoes || []}
-                  columns={sessoesColumns}
-                  loading={false}
-                  onRowClick={handleSessaoClick}
-                  rowClassName={(sessao) => 
-                    sessao.id === selectedSessao?.id 
-                      ? 'bg-blue-50 cursor-pointer' 
-                      : 'cursor-pointer hover:bg-gray-50'
-                  }
-                />
-              </div>
+            <Button
+              variant="outline"
+              onClick={handleExportExcel}
+              className="gap-2"
+            >
+              <FiDownload className="h-4 w-4" />
+              Exportar Excel
+            </Button>
 
-              <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
-                <span>Total de sessões: {selectedFicha.sessoes?.length || 0}</span>
-                <span>
-                  Conferidas: {selectedFicha.sessoes?.filter(s => s.status === 'conferida').length || 0}
-                </span>
-              </div>
-            </div>
-          )}
+            <Button
+              variant="outline"
+              onClick={() => setShowClearDialog(true)}
+              className="gap-2"
+            >
+              <FiTrash2 className="h-4 w-4" />
+              Limpar Tabela
+            </Button>
+          </div>
         </div>
+
+        {/* Tabela Principal */}
+        <div className="rounded-md border">
+          <SortableTable
+            data={fichas}
+            columns={fichasColumns}
+            loading={loading}
+          />
+        </div>
+
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {/* Dialog para Detalhes da Ficha */}
         <Dialog open={showFichaDetails} onOpenChange={setShowFichaDetails}>
@@ -1005,7 +933,7 @@ export default function FichasPresenca() {
                   onChange={(e) => setEditedFicha({ ...editedFicha, codigo_ficha: e.target.value })}
                 />
               </div>
-              
+　　 　 　 　
               <div className="grid gap-2">
                 <Label htmlFor="numero_guia">Número da Guia</Label>
                 <Input
@@ -1014,7 +942,7 @@ export default function FichasPresenca() {
                   onChange={(e) => setEditedFicha({ ...editedFicha, numero_guia: e.target.value })}
                 />
               </div>
-              
+　　 　 　 　
               <div className="grid gap-2">
                 <Label htmlFor="paciente_nome">Nome do Paciente</Label>
                 <Input
@@ -1023,7 +951,7 @@ export default function FichasPresenca() {
                   onChange={(e) => setEditedFicha({ ...editedFicha, paciente_nome: e.target.value })}
                 />
               </div>
-              
+　　 　 　 　
               <div className="grid gap-2">
                 <Label htmlFor="paciente_carteirinha">Carteirinha</Label>
                 <Input
@@ -1032,7 +960,7 @@ export default function FichasPresenca() {
                   onChange={(e) => setEditedFicha({ ...editedFicha, paciente_carteirinha: e.target.value })}
                 />
               </div>
-              
+　　 　 　 　
               <div className="grid gap-2">
                 <Label htmlFor="observacoes">Observações</Label>
                 <textarea
@@ -1157,7 +1085,7 @@ export default function FichasPresenca() {
                   className="border rounded-md p-2"
                 />
               </div>
-              
+　　 　 　 　
               <div className="grid gap-2">
                 <Label htmlFor="tipo_terapia" className="text-sm font-medium text-gray-700">
                   Tipo de Terapia
@@ -1170,7 +1098,7 @@ export default function FichasPresenca() {
                   placeholder="Ex: Fisioterapia"
                 />
               </div>
-              
+　　 　 　 　
               <div className="grid gap-2">
                 <Label htmlFor="profissional" className="text-sm font-medium text-gray-700">
                   Profissional
@@ -1183,7 +1111,7 @@ export default function FichasPresenca() {
                   placeholder="Nome do profissional"
                 />
               </div>
-              
+　　 　 　 　
               <div className="flex items-center gap-2">
                 <Label htmlFor="possui_assinatura" className="text-sm font-medium text-gray-700">
                   Possui Assinatura
@@ -1196,7 +1124,7 @@ export default function FichasPresenca() {
                   className="h-4 w-4 rounded border-gray-300"
                 />
               </div>
-              
+　　 　 　 　
               <div className="grid gap-2">
                 <Label htmlFor="observacoes" className="text-sm font-medium text-gray-700">
                   Observações
