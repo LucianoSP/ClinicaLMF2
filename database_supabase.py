@@ -1153,58 +1153,52 @@ def obter_estatisticas_gerais() -> Dict:
 def obter_estatisticas_paciente(paciente_id: str) -> Dict:
     """Retorna estatísticas específicas de um paciente."""
     try:
-        # Busca dados completos do paciente com carteirinhas e planos
-        paciente_query = (
-            "*, "  # Dados do paciente
-            "carteirinhas(*, "  # Dados da carteirinha
-            "planos_saude(*))"  # Dados do plano de saúde
-        )
+        print(f"Buscando estatísticas para paciente {paciente_id}")
         
-        paciente = supabase.table("pacientes").select(paciente_query).eq("id", paciente_id).single().execute()
-        if not paciente.data:
+        # Busca paciente com carteirinhas
+        paciente = (
+            supabase.table("pacientes")
+            .select("*, carteirinhas(*)")
+            .eq("id", paciente_id)
+            .execute()
+        ).data[0]
+
+        if not paciente:
             raise ValueError("Paciente não encontrado")
             
-        # Número total de carteirinhas do paciente
-        carteirinhas = paciente.data.get("carteirinhas", [])
-        total_carteirinhas = len(carteirinhas)
+        carteirinhas = paciente.get("carteirinhas", [])
         carteirinha_atual = carteirinhas[0] if carteirinhas else None
         numero_carteirinha = carteirinha_atual["numero_carteirinha"] if carteirinha_atual else None
 
-        if not numero_carteirinha:
-            return {
-                "total_carteirinhas": 0,
-                "carteirinhas_ativas": 0,
-                "total_guias": 0,
-                "guias_ativas": 0,
-                "sessoes_autorizadas": 0,
-                "sessoes_executadas": 0,
-                "divergencias_pendentes": 0,
-                "taxa_execucao": 0,
-                "guias_por_status": {"pendente": 0, "em_andamento": 0, "concluida": 0, "cancelada": 0}
-            }
+        print(f"Carteirinha encontrada: {numero_carteirinha}")
 
-        # Busca todas as guias do paciente
-        guias = supabase.table("guias").select("*").eq("paciente_carteirinha", numero_carteirinha).execute()
-        
+        if not numero_carteirinha:
+            return {"error": "Paciente sem carteirinha"}
+
+        # Busca guias
+        guias = (
+            supabase.table("guias")
+            .select("*")
+            .eq("paciente_carteirinha", numero_carteirinha)
+            .execute()
+        ).data
+
+        print(f"Total de guias encontradas: {len(guias)}")
+
         # Estatísticas das guias
-        total_guias = len(guias.data)
-        guias_por_status = {
-            "pendente": 0,
-            "em_andamento": 0,
-            "concluida": 0,
-            "cancelada": 0
-        }
-        
+        guias_por_status = {"pendente": 0, "em_andamento": 0, "concluida": 0, "cancelada": 0}
         sessoes_autorizadas = 0
         sessoes_executadas = 0
         
-        for guia in guias.data:
+        for guia in guias:
             status = guia["status"]
             guias_por_status[status] = guias_por_status.get(status, 0) + 1
             sessoes_autorizadas += guia["quantidade_autorizada"]
             sessoes_executadas += guia["quantidade_executada"]
+
+        print(f"Sessões: {sessoes_executadas}/{sessoes_autorizadas}")
         
-        # Busca divergências pendentes
+        # Busca divergências
         divergencias = (
             supabase.table("divergencias")
             .select("count")
@@ -1212,19 +1206,11 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
             .eq("status", "pendente")
             .execute()
         )
-        
-        # Carteirinhas ativas (não vencidas)
-        hoje = datetime.now().date()
-        carteirinhas_ativas = len([
-            c for c in carteirinhas 
-            if not c["data_validade"] or 
-            datetime.strptime(c["data_validade"], "%Y-%m-%d").date() >= hoje
-        ])
 
-        return {
-            "total_carteirinhas": total_carteirinhas,
-            "carteirinhas_ativas": carteirinhas_ativas,
-            "total_guias": total_guias,
+        resultado = {
+            "total_carteirinhas": len(carteirinhas),
+            "carteirinhas_ativas": len([c for c in carteirinhas if c["ativo"]]),
+            "total_guias": len(guias),
             "guias_ativas": guias_por_status["pendente"] + guias_por_status["em_andamento"],
             "sessoes_autorizadas": sessoes_autorizadas,
             "sessoes_executadas": sessoes_executadas,
@@ -1232,6 +1218,9 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
             "taxa_execucao": round((sessoes_executadas / sessoes_autorizadas * 100) if sessoes_autorizadas > 0 else 0, 2),
             "guias_por_status": guias_por_status
         }
+
+        print("Estatísticas calculadas:", resultado)
+        return resultado
 
     except Exception as e:
         print(f"Erro ao obter estatísticas do paciente: {e}")
@@ -1246,56 +1235,4 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
             "divergencias_pendentes": 0,
             "taxa_execucao": 0,
             "guias_por_status": {"pendente": 0, "em_andamento": 0, "concluida": 0, "cancelada": 0}
-        }
-
-def obter_estatisticas_paciente(paciente_id: str) -> Dict:
-    """Retorna estatísticas específicas de um paciente."""
-    try:
-        # Busca carteirinha do paciente
-        paciente = supabase.table("pacientes").select("*, carteirinhas(numero_carteirinha)").eq("id", paciente_id).single().execute()
-        if not paciente.data:
-            raise ValueError("Paciente não encontrado")
-            
-        carteirinha = paciente.data["carteirinhas"][0]["numero_carteirinha"] if paciente.data.get("carteirinhas") else None
-        
-        if not carteirinha:
-            return {
-                "total_guias": 0,
-                "guias_ativas": 0,
-                "sessoes_autorizadas": 0,
-                "sessoes_executadas": 0,
-                "divergencias_pendentes": 0,
-                "taxa_execucao": 0
-            }
-
-        # Busca guias do paciente
-        guias = supabase.table("guias").select("*").eq("paciente_carteirinha", carteirinha).execute()
-        total_guias = len(guias.data)
-        guias_ativas = len([g for g in guias.data if g["status"] == "pendente"])
-        
-        # Calcula totais de sessões
-        sessoes_autorizadas = sum(g["quantidade_autorizada"] for g in guias.data)
-        sessoes_executadas = sum(g["quantidade_executada"] for g in guias.data)
-        
-        # Busca divergências pendentes
-        divergencias = supabase.table("divergencias").select("count").eq("carteirinha", carteirinha).eq("status", "pendente").execute()
-        
-        return {
-            "total_guias": total_guias,
-            "guias_ativas": guias_ativas,
-            "sessoes_autorizadas": sessoes_autorizadas,
-            "sessoes_executadas": sessoes_executadas,
-            "divergencias_pendentes": divergencias.count if divergencias else 0,
-            "taxa_execucao": round((sessoes_executadas / sessoes_autorizadas * 100) if sessoes_autorizadas > 0 else 0, 2)
-        }
-
-    except Exception as e:
-        print(f"Erro ao obter estatísticas do paciente: {e}")
-        return {
-            "total_guias": 0,
-            "guias_ativas": 0,
-            "sessoes_autorizadas": 0,
-            "sessoes_executadas": 0,
-            "divergencias_pendentes": 0,
-            "taxa_execucao": 0
         }

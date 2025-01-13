@@ -165,9 +165,11 @@ export default function PatientsPage() {
   // Função para carregar estatísticas do paciente
   const loadPatientStats = useCallback(async (patientId: string) => {
     try {
+      console.log('Carregando estatísticas para paciente:', patientId)
       const response = await fetch(`${API_URL}/pacientes/${patientId}/estatisticas`)
       if (!response.ok) throw new Error('Falha ao carregar estatísticas')
       const data = await response.json()
+      console.log('Estatísticas recebidas:', data)
       setPatientStats(data)
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error)
@@ -315,9 +317,9 @@ export default function PatientsPage() {
                       <CreditCard className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{patientStats.carteirinhas_ativas}</div>
+                      <div className="text-2xl font-bold">{patientStats.carteirinhas_ativas || 0}</div>
                       <p className="text-xs text-muted-foreground">
-                        De {patientStats.total_carteirinhas} total
+                        De {patientStats.total_carteirinhas || 0} total
                       </p>
                     </CardContent>
                   </Card>
@@ -328,9 +330,9 @@ export default function PatientsPage() {
                       <FileText className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{patientStats.guias_ativas}</div>
+                      <div className="text-2xl font-bold">{patientStats.guias_ativas || 0}</div>
                       <p className="text-xs text-muted-foreground">
-                        De {patientStats.total_guias} total
+                        De {patientStats.total_guias || 0} total
                       </p>
                     </CardContent>
                   </Card>
@@ -341,12 +343,12 @@ export default function PatientsPage() {
                       <Activity className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{patientStats.sessoes_executadas}</div>
+                      <div className="text-2xl font-bold">{patientStats.sessoes_executadas || 0}</div>
                       <p className="text-xs text-muted-foreground">
-                        De {patientStats.sessoes_autorizadas} autorizadas
+                        De {patientStats.sessoes_autorizadas || 0} autorizadas
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Taxa: {patientStats.taxa_execucao}%
+                        Taxa: {patientStats.taxa_execucao || 0}%
                       </p>
                     </CardContent>
                   </Card>
