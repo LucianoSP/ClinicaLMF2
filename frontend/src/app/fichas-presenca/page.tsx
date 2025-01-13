@@ -15,6 +15,8 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import Pagination from '@/components/Pagination';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils"; // Adicionando a importação da função cn
 
 // Add a helper function for safe date formatting
 const formatDate = (dateStr: string | null | undefined) => {
@@ -501,17 +503,31 @@ export default function FichasPresenca() {
         const porcentagem = total > 0 ? (conferidas / total) * 100 : 0;
 
         return (
-          <div className="flex flex-col items-center gap-1">
-            <div className="text-xs font-medium">
-              {conferidas}/{total}
-            </div>
-            <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-blue-500 transition-all duration-300"
-                style={{ width: `${porcentagem}%` }}
-              />
-            </div>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <div className="flex items-center gap-2">
+                  <div className="w-32 bg-gray-100 rounded-full h-4">
+                    <div
+                      className={cn(
+                        "h-4 rounded-full transition-all",
+                        porcentagem >= 100 ? "bg-red-500" :
+                          porcentagem >= 75 ? "bg-yellow-500" :
+                            "bg-[#D2691E]/60"
+                      )}
+                      style={{ width: `${porcentagem}%` }}
+                    />
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {conferidas}/{total}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{porcentagem}% concluído</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       }
     },
