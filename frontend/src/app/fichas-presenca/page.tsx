@@ -1,59 +1,3 @@
-// types/fichas.ts
-
-export interface Sessao {
-  id: string;
-  ficha_presenca_id: string;
-  data_sessao: string;
-  possui_assinatura: boolean;
-  tipo_terapia: string;
-  profissional_executante: string;
-  valor_sessao?: number;
-  status: 'pendente' | 'conferida';
-  observacoes_sessao?: string;
-  executado: boolean;
-  data_execucao?: string;
-  executado_por?: string;
-}
-
-export interface FichaPresenca {
-  id: string;
-  codigo_ficha: string;
-  numero_guia: string;
-  paciente_nome: string;
-  paciente_carteirinha: string;
-  arquivo_digitalizado?: string;
-  observacoes?: string;
-  data_atendimento?: string;
-  created_at: string;
-  updated_at: string;
-  sessoes?: Sessao[];
-}
-
-export interface EditedSessao extends Partial<Sessao> { }
-
-export type Column<T> = {
-  key: keyof T | 'actions' | 'sessoes';
-  label: string;
-  className?: string;
-  sortable?: boolean;
-  render?: (value: any, item: T) => React.ReactNode;
-};
-
-export type SortableTableProps<T> = {
-  data: T[];
-  columns: Column<T>[];
-  loading?: boolean;
-  onRowClick?: (item: T) => void;
-};
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  total?: number;
-  fichas?: T[];
-}
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -72,8 +16,47 @@ import * as XLSX from 'xlsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-import type { FichaPresenca, Sessao, Column, EditedSessao } from '@/types/fichas';
+// Interfaces e Tipos
+interface Sessao {
+  id: string;
+  ficha_presenca_id: string;
+  data_sessao: string;
+  possui_assinatura: boolean;
+  tipo_terapia: string;
+  profissional_executante: string;
+  valor_sessao?: number;
+  status: 'pendente' | 'conferida';
+  observacoes_sessao?: string;
+  executado: boolean;
+  data_execucao?: string;
+  executado_por?: string;
+}
 
+interface FichaPresenca {
+  id: string;
+  codigo_ficha: string;
+  numero_guia: string;
+  paciente_nome: string;
+  paciente_carteirinha: string;
+  arquivo_digitalizado?: string;
+  observacoes?: string;
+  data_atendimento?: string;
+  created_at: string;
+  updated_at: string;
+  sessoes?: Sessao[];
+}
+
+interface EditedSessao extends Partial<Sessao> { }
+
+type Column<T> = {
+  key: keyof T | 'actions' | 'sessoes';
+  label: string;
+  className?: string;
+  sortable?: boolean;
+  render?: (value: any, item: T) => React.ReactNode;
+};
+
+// Função auxiliar para formatação de data
 const formatDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return '';
 
@@ -92,25 +75,87 @@ const formatDate = (dateStr: string | null | undefined) => {
 };
 
 export default function FichasPresencaPage() {
+  // Estados
   const [fichas, setFichas] = useState<FichaPresenca[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // Estados para modais
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showSessoesDialog, setShowSessoesDialog] = useState(false);
+  const [showEditSessaoDialog, setShowEditSessaoDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  // Estados para seleção e edição
   const [selectedFicha, setSelectedFicha] = useState<FichaPresenca | null>(null);
   const [editedFicha, setEditedFicha] = useState<Partial<FichaPresenca>>({});
-  const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState<string>('pendente');
   const [selectedSessao, setSelectedSessao] = useState<Sessao | null>(null);
-  const [showEditSessaoDialog, setShowEditSessaoDialog] = useState(false);
   const [editedSessao, setEditedSessao] = useState<EditedSessao>({});
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [sessaoParaConferir, setSessaoParaConferir] = useState<{ id: string, ficha_presenca_id: string } | null>(null);
 
+  // Estados para filtros
+  const [statusFilter, setStatusFilter] = useState<string>('pendente');
+
+  const { toast } = useToast();
+
+  // Função principal para buscar dados
+  const fetchFichas = async () => {
+    setLoading(true);
+    try {
+      const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca`;
+      const params = new URLSearchParams();
+
+      params.append('limit', perPage.toString());
+      params.append('offset', ((page - 1) * perPage).toString());
+
+      if (statusFilter !== 'todas') {
+        params.append('status', statusFilter);
+      }
+
+      if (debouncedSearchTerm.trim().length >= 2) {
+        params.append('search', debouncedSearchTerm.trim());
+      }
+
+      const response = await fetch(`${baseUrl}?${params.toString()}`);
+      if (!response.ok) throw new Error('Falha ao buscar fichas');
+
+      const result = await response.json();
+      const fichasFormatadas = result.fichas.map((ficha: FichaPresenca) => ({
+        ...ficha,
+        created_at: formatDate(ficha.created_at)
+      }));
+
+      setFichas(fichasFormatadas);
+      setTotalPages(Math.ceil(result.total / perPage));
+      setTotalRecords(result.total);
+
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar as fichas de presença",
+        variant: "destructive",
+      });
+      setFichas([]);
+      setTotalPages(1);
+      setTotalRecords(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Effect para buscar dados quando filtros mudam
+  useEffect(() => {
+    fetchFichas();
+  }, [page, perPage, debouncedSearchTerm, statusFilter]);
+
+  // Handlers
   const handleDelete = async () => {
     if (!selectedFicha) return;
 
@@ -140,6 +185,7 @@ export default function FichasPresencaPage() {
     }
   };
 
+  // Handlers para manipulação de fichas e sessões
   const handleSave = async () => {
     if (!selectedFicha || !editedFicha) return;
 
@@ -158,9 +204,7 @@ export default function FichasPresencaPage() {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        throw new Error('Falha ao atualizar ficha');
-      }
+      if (!response.ok) throw new Error('Falha ao atualizar ficha');
 
       toast({
         title: "Sucesso",
@@ -180,58 +224,75 @@ export default function FichasPresencaPage() {
     }
   };
 
-  const handleActions = (item: FichaPresenca) => (
-    <div className="flex items-center justify-center gap-4">
-      <button
-        onClick={() => setSelectedFicha(item)}
-        className="text-blue-600 hover:text-blue-700"
-        title="Ver Sessões"
-      >
-        <FiEye className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => handleConferir(item.id)}
-        className="text-green-600 hover:text-green-700"
-        title="Marcar como conferida"
-      >
-        <FiCheckCircle className="w-4 h-4" />
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedFicha(item);
-          setEditedFicha({ ...item });
-          setShowEditDialog(true);
-        }}
-        className="text-[#b49d6b] hover:text-[#a08b5f]"
-        title="Editar Ficha"
-      >
-        <FiEdit className="w-4 h-4" />
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedFicha(item);
-          setShowDeleteDialog(true);
-        }}
-        className="text-red-600 hover:text-red-700"
-        title="Excluir"
-      >
-        <FiTrash2 className="w-4 h-4" />
-      </button>
-    </div>
-  );
+  const handleConferirSessao = async (sessao: Sessao) => {
+    setSessaoParaConferir({
+      id: sessao.id,
+      ficha_presenca_id: sessao.ficha_presenca_id
+    });
+    setShowConfirmDialog(true);
+  };
 
+  const confirmarSessao = async () => {
+    if (!sessaoParaConferir) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/sessoes/${sessaoParaConferir.id}/conferir`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+
+      if (!response.ok) throw new Error('Falha ao conferir sessão');
+
+      toast({
+        title: "Sucesso",
+        description: "Sessão conferida com sucesso",
+      });
+
+      if (selectedFicha) {
+        const updatedSessoes = selectedFicha.sessoes?.map(s =>
+          s.id === sessaoParaConferir.id ? { ...s, status: 'conferida' } : s
+        );
+        setSelectedFicha({
+          ...selectedFicha,
+          sessoes: updatedSessoes
+        });
+
+        setFichas(prevFichas =>
+          prevFichas.map(ficha =>
+            ficha.id === selectedFicha.id
+              ? { ...ficha, sessoes: updatedSessoes }
+              : ficha
+          )
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao conferir sessão",
+        variant: "destructive",
+      });
+    } finally {
+      setShowConfirmDialog(false);
+      setSessaoParaConferir(null);
+    }
+  };
+
+  // Definição das colunas da tabela
   const columns: Column<FichaPresenca>[] = [
     {
       key: 'codigo_ficha',
       label: 'Código Ficha',
-      className: 'w-[200px] text-center'
+      className: 'w-[200px] text-center',
+      sortable: true
     },
     {
       key: 'paciente_nome',
       label: 'Paciente',
-      className: 'w-[220px] text-center'
+      className: 'w-[220px] text-center',
+      sortable: true
     },
     {
       key: 'paciente_carteirinha',
@@ -247,6 +308,7 @@ export default function FichasPresencaPage() {
       key: 'created_at',
       label: 'Data Cadastro',
       className: 'w-[130px] text-center',
+      sortable: true,
       render: (value) => formatDate(value)
     },
     {
@@ -291,16 +353,272 @@ export default function FichasPresencaPage() {
       key: 'actions',
       label: 'Ações',
       className: 'w-[100px] text-center',
-      render: (_, item) => handleActions(item)
+      render: (_, item) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedFicha(item)}
+            title="Ver Sessões"
+          >
+            <FiEye className="w-4 h-4 text-blue-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedFicha(item);
+              setEditedFicha({ ...item });
+              setShowEditDialog(true);
+            }}
+            title="Editar Ficha"
+          >
+            <FiEdit className="w-4 h-4 text-[#b49d6b]" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedFicha(item);
+              setShowDeleteDialog(true);
+            }}
+            title="Excluir"
+          >
+            <FiTrash2 className="w-4 h-4 text-red-500" />
+          </Button>
+        </div>
+      )
     }
   ];
 
-  // Funções de fetch e manipulação dos dados
-  // ... (manter o resto do seu código)
-
   return (
     <div className="flex flex-col gap-6">
-      {/* ... (manter o restante da sua UI) */}
+      {/* Header e Filtros */}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight mb-4">Fichas de Presença</h1>
+
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar por nome do paciente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <MagnifyingGlassIcon className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+            </div>
+
+            <select
+              value={perPage}
+              onChange={(e) => {
+                setPerPage(Number(e.target.value));
+                setPage(1);
+              }}
+              className="h-10 rounded-md border border-input bg-background px-3 py-2"
+            >
+              <option value="10">10 por página</option>
+              <option value="25">25 por página</option>
+              <option value="50">50 por página</option>
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-10 rounded-md border border-input bg-background px-3 py-2"
+            >
+              <option value="pendente">Pendentes</option>
+              <option value="conferida">Conferidas</option>
+              <option value="todas">Todas</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById('fileInput')?.click()}
+              className="gap-2"
+            >
+              <FiUpload className="h-4 w-4" />
+              Upload PDF
+            </Button>
+            <input
+              id="fileInput"
+              type="file"
+              accept=".pdf"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+
+            <Button
+              variant="outline"
+              onClick={handleExportExcel}
+              className="gap-2"
+            >
+              <FiDownload className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela Principal */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#8B4513]" />
+        </div>
+      ) : (
+        <>
+          <div className="rounded-md border">
+            <SortableTable
+              data={fichas}
+              columns={columns}
+              loading={loading}
+            />
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {(page - 1) * perPage + 1} até{" "}
+                {Math.min(page * perPage, totalRecords)} de {totalRecords} registros
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Página {page} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Diálogos */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Você está prestes a excluir a ficha {selectedFicha?.codigo_ficha}.
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Ficha</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Código da Ficha</Label>
+              <Input
+                value={editedFicha.codigo_ficha || ''}
+                onChange={(e) => setEditedFicha({
+                  ...editedFicha,
+                  codigo_ficha: e.target.value
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Número da Guia</Label>
+              <Input
+                value={editedFicha.numero_guia || ''}
+                onChange={(e) => setEditedFicha({
+                  ...editedFicha,
+                  numero_guia: e.target.value
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Nome do Paciente</Label>
+              <Input
+                value={editedFicha.paciente_nome || ''}
+                onChange={(e) => setEditedFicha({
+                  ...editedFicha,
+                  paciente_nome: e.target.value
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Carteirinha</Label>
+              <Input
+                value={editedFicha.paciente_carteirinha || ''}
+                onChange={(e) => setEditedFicha({
+                  ...editedFicha,
+                  paciente_carteirinha: e.target.value
+                })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Ação</DialogTitle>
+            <DialogDescription>
+              Deseja marcar esta sessão como conferida?
+              Esta ação não poderá ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setSessaoParaConferir(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={confirmarSessao}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
