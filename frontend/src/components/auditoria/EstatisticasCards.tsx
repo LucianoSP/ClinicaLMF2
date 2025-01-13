@@ -14,7 +14,6 @@ import {
   Copy
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Type definition for audit data
 interface AuditoriaData {
@@ -55,7 +54,6 @@ const EstatisticasCards = ({ resultadoAuditoria }: { resultadoAuditoria: Auditor
     divergencias_por_tipo = {}
   } = resultadoAuditoria;
 
-  // Ensure all required fields exist in divergencias_por_tipo with proper defaults
   const {
     execucao_sem_sessao = 0,
     sessao_sem_execucao = 0,
@@ -66,239 +64,164 @@ const EstatisticasCards = ({ resultadoAuditoria }: { resultadoAuditoria: Auditor
     duplicidade = 0
   } = divergencias_por_tipo || {};
 
-  // Debug logging
-  console.log("Received audit data:", resultadoAuditoria);
-
-  const CardWrapper = ({ children, className = "" }) => (
-    <div className={`transform transition-all duration-300 hover:scale-105 ${className}`}>
-      {children}
-    </div>
-  );
-
   return (
-    <div className="space-y-6">
-      {/* First row - Status Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-blue-900">Total de Execuções</CardTitle>
-              <div className="rounded-full bg-blue-100 p-2">
-                <Files className="h-6 w-6 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-blue-800">{total_execucoes}</div>
-                <p className="text-xs text-blue-600">Execuções analisadas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+    <div className="grid gap-6">
+      {/* Cards de Status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total de Execuções */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Total de Execuções</h3>
+              <p className="text-2xl font-bold mt-1">{total_execucoes}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Execuções analisadas</p>
+            </div>
+            <Files className="text-muted-foreground h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-blue-900">Total de Fichas</CardTitle>
-              <div className="rounded-full bg-blue-100 p-2">
-                <FileCheck2 className="h-6 w-6 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-blue-800">{total_fichas}</div>
-                <p className="text-xs text-blue-600">Fichas verificadas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Total de Fichas */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Total de Fichas</h3>
+              <p className="text-2xl font-bold mt-1">{total_fichas}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Fichas verificadas</p>
+            </div>
+            <FileCheck2 className="text-muted-foreground h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-blue-900">Resolvidas</CardTitle>
-              <div className="rounded-full bg-blue-100 p-2">
-                <CheckCircle2 className="h-6 w-6 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-blue-800">
-                  {total_divergencias > 0
-                    ? Math.round((total_resolvidas / total_divergencias) * 100)
-                    : 0}%
-                </div>
-                <p className="text-xs text-blue-600">Divergências resolvidas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Resolvidas */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Resolvidas</h3>
+              <p className="text-2xl font-bold mt-1">
+                {total_divergencias > 0
+                  ? Math.round((total_resolvidas / total_divergencias) * 100)
+                  : 0}%
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Divergências resolvidas</p>
+            </div>
+            <CheckCircle2 className="text-muted-foreground h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-blue-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-blue-900">Última Execução</CardTitle>
-              <div className="rounded-full bg-blue-100 p-2">
-                <Clock className="h-6 w-6 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-2xl font-bold text-blue-800 flex items-baseline gap-2">
-                  {data_execucao
-                    ? format(new Date(data_execucao), "dd/MM/yyyy")
-                    : "-"}
-                  <span className="text-lg">
-                    {data_execucao
-                      ? format(new Date(data_execucao), "HH:mm")
-                      : ""}
-                  </span>
-                </div>
-                <p className="text-xs text-blue-600">{tempo_execucao || "Tempo não disponível"}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Última Execução */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Última Execução</h3>
+              <p className="text-2xl font-bold mt-1">
+                {data_execucao ? format(new Date(data_execucao), "dd/MM/yyyy") : "-"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {tempo_execucao ? `Há ${tempo_execucao}` : ""}
+              </p>
+            </div>
+            <Clock className="text-muted-foreground h-5 w-5" />
+          </div>
+        </div>
       </div>
 
-      {/* Linha inferior - Cards de problemas (vermelho) */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Divergências</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{total_divergencias}</div>
-                <p className="text-xs text-red-600">Total de divergências encontradas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+      {/* Cards de Divergências */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Divergências */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Divergências</h3>
+              <p className="text-2xl font-bold mt-1">{total_divergencias}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Total de divergências encontradas</p>
+            </div>
+            <AlertTriangle className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Sessões sem Assinatura</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <FileSignature className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{sessao_sem_assinatura}</div>
-                <p className="text-xs text-red-600">Sessões executadas sem assinatura</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Sessões sem Assinatura */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Sessões sem Assinatura</h3>
+              <p className="text-2xl font-bold mt-1">{sessao_sem_assinatura}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Sessões executadas sem assinatura</p>
+            </div>
+            <FileSignature className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Execuções sem Ficha</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <FileWarning className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{execucao_sem_sessao}</div>
-                <p className="text-xs text-red-600">Execuções sem sessão correspondente</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Execuções sem Ficha */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Execuções sem Ficha</h3>
+              <p className="text-2xl font-bold mt-1">{execucao_sem_sessao}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Execuções sem sessão correspondente</p>
+            </div>
+            <FileWarning className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Fichas sem Execução</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <FileX className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{sessao_sem_execucao}</div>
-                <p className="text-xs text-red-600">Execuções não encontradas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Fichas sem Execução */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Fichas sem Execução</h3>
+              <p className="text-2xl font-bold mt-1">{sessao_sem_execucao}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Execuções não encontradas</p>
+            </div>
+            <FileX className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Datas Divergentes</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <Calendar className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{data_divergente}</div>
-                <p className="text-xs text-red-600">Datas não correspondem</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Datas Divergentes */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Datas Divergentes</h3>
+              <p className="text-2xl font-bold mt-1">{data_divergente}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Datas não correspondem</p>
+            </div>
+            <Calendar className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Guias Vencidas</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{guia_vencida}</div>
-                <p className="text-xs text-red-600">Guias expiradas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Guias Vencidas */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Guias Vencidas</h3>
+              <p className="text-2xl font-bold mt-1">{guia_vencida}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Guias expiradas</p>
+            </div>
+            <AlertCircle className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
 
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Qtd. Excedida</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <ClipboardList className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{quantidade_excedida}</div>
-                <p className="text-xs text-red-600">Quantidade excedida na guia</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Qtd. Excedida */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Qtd. Excedida</h3>
+              <p className="text-2xl font-bold mt-1">{quantidade_excedida}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Quantidade excedida na guia</p>
+            </div>
+            <ClipboardList className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
 
-        {/* Fix the incorrect closing CardWrapper tag structure */}
-        <CardWrapper>
-          <Card className="bg-gradient-to-br from-red-50 to-white shadow-lg hover:shadow-xl transition-shadow h-[135px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-red-900">Duplicidades</CardTitle>
-              <div className="rounded-full bg-red-100 p-2">
-                <Copy className="h-6 w-6 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-3xl font-bold text-red-800">{duplicidade}</div>
-                <p className="text-xs text-red-600">Execuções duplicadas detectadas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </CardWrapper>
+        {/* Duplicidades */}
+        <div className="rounded-lg border p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700">Duplicidades</h3>
+              <p className="text-2xl font-bold mt-1">{duplicidade}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Execuções duplicadas detectadas</p>
+            </div>
+            <Copy className="text-red-500 h-5 w-5" />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -5,36 +5,36 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 222 47% 11%;
 
-    /* Warm theme colors */
-    --primary: 42 45% 36%;  /* Base marrom dourado */
-    --primary-foreground: 0 0% 98%;
+    /* Blue theme colors */
+    --primary: 215 25% 27%;  /* Azul mais escuro e neutro */
+    --primary-foreground: 210 40% 98%;
     
-    --secondary: 15 35% 45%;  /* Marrom avermelhado */
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 217 19% 27%;  /* Azul acinzentado */
+    --secondary-foreground: 210 40% 98%;
     
-    --accent: 35 91% 90%;
-    --accent-foreground: 42 45% 36%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 215 25% 27%;
 
-    --muted: 35 50% 95%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 25% 40%;
     
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222 47% 11%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 222 47% 11%;
     
-    --border: 35 10% 90%;
-    --input: 35 10% 90%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
     
-    --ring: 42 45% 36%;
+    --ring: 215 25% 27%;
 
     /* Sidebar specific colors */
-    --sidebar-bg-start: 42 45% 36%;
-    --sidebar-bg-end: 42 45% 26%;
-    --sidebar-color: 0 0% 98%;
+    --sidebar-bg-start: 215 25% 27%;
+    --sidebar-bg-end: 215 25% 17%;
+    --sidebar-color: 210 40% 98%;
 
     --radius: 0.5rem;
   }
@@ -66,6 +66,7 @@
   /* Título principal da página */
   h1, .page-title {
     margin-bottom: 1rem;
+    
   }
 
   /* Títulos de seção e nomes */
