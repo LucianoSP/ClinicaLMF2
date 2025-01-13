@@ -377,46 +377,56 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
           </div>
         </div>
 
-        {/* Card do Plano e Carteirinha */}
+        {/* Plano de Saúde */}
         {carteirinha?.plano_saude && (
-          <Card className="border-[#e5e7eb] border-[0.5px]">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg text-[#8B4513]">Plano de Saúde</CardTitle>
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Plano de Saúde</h3>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-[#8B4513]" />
+                  <span className="text-base font-medium">{carteirinha.plano_saude.nome}</span>
+                </div>
                 {carteirinha.data_validade && (
                   <span className="text-sm text-muted-foreground">
                     Válido até {formatDate(carteirinha.data_validade)}
                   </span>
                 )}
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Plano</p>
-                    <p className="text-base font-medium">{carteirinha.plano_saude.nome}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Carteirinha</p>
-                    <p className="text-base font-medium">{carteirinha?.numero_carteirinha || patient?.carteirinha || '-'}</p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#faf8f6] p-4 rounded-md">
+                <div>
+                  <dl className="space-y-4">
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Número da Carteirinha</dt>
+                      <dd className="text-base font-medium mt-1">
+                        {patient.guias[0]?.paciente_carteirinha || carteirinha.numero_carteirinha || '-'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Titular</dt>
+                      <dd className="text-base font-medium mt-1">{carteirinha.nome_titular}</dd>
+                    </div>
+                  </dl>
                 </div>
                 <div>
-                  <div className="space-y-4">
+                  <dl className="space-y-4">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Titular</p>
-                      <p className="text-base font-medium">{carteirinha.nome_titular}</p>
+                      <dt className="text-sm font-medium text-muted-foreground">Código do Plano</dt>
+                      <dd className="text-base font-medium mt-1">{carteirinha.plano_saude.codigo}</dd>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Código do Plano</p>
-                      <p className="text-base font-medium">{carteirinha.plano_saude.codigo}</p>
+                      <dt className="text-sm font-medium text-muted-foreground">Status</dt>
+                      <dd className="text-base font-medium mt-1">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Ativo
+                        </span>
+                      </dd>
                     </div>
-                  </div>
+                  </dl>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Guias */}
