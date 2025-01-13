@@ -316,118 +316,107 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
         </div>
 
         {/* Stats Cards - Moved here */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="rounded-lg border p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-medium text-gray-700">Carteirinhas</h3>
-                <p className="text-3xl font-bold text-[#8f732b] mt-2">{stats.carteirinhas_ativas}</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-sm font-medium text-gray-700">Carteirinhas</h3>
+                <p className="text-2xl font-bold mt-1">{stats.carteirinhas_ativas}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   De {stats.total_carteirinhas} total
                 </p>
               </div>
-              <CreditCard className="text-[#8f732b] h-6 w-6" />
+              <CreditCard className="text-muted-foreground h-5 w-5" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-lg border p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-medium text-gray-700">Guias</h3>
-                <p className="text-3xl font-bold text-[#8f732b] mt-2">{stats.guias_ativas}</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-sm font-medium text-gray-700">Guias</h3>
+                <p className="text-2xl font-bold mt-1">{stats.guias_ativas}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   De {stats.total_guias} total
                 </p>
               </div>
-              <FileText className="text-[#8f732b] h-6 w-6" />
+              <FileText className="text-muted-foreground h-5 w-5" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-lg border p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-medium text-gray-700">Sessões</h3>
-                <p className="text-3xl font-bold text-[#8f732b] mt-2">{stats.sessoes_executadas}</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-sm font-medium text-gray-700">Sessões</h3>
+                <p className="text-2xl font-bold mt-1">{stats.sessoes_executadas}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {stats.sessoes_autorizadas} autorizadas ({stats.taxa_execucao}%)
                 </p>
               </div>
-              <Activity className="text-[#8f732b] h-6 w-6" />
+              <Activity className="text-muted-foreground h-5 w-5" />
             </div>
           </div>
 
-          <div className={`bg-white rounded-lg shadow p-6 ${stats.divergencias_pendentes > 0 ? 'bg-yellow-50 border-yellow-200' : ''}`}>
+          <div className="rounded-lg border p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-medium text-gray-700">Divergências</h3>
-                <p className="text-3xl font-bold text-[#8f732b] mt-2">{stats.divergencias_pendentes || 0}</p>
-                <p className="text-sm text-amber-600 mt-1">
+                <h3 className="text-sm font-medium text-gray-700">Divergências</h3>
+                <p className="text-2xl font-bold mt-1">{stats.divergencias_pendentes || 0}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {stats.divergencias_pendentes === 1 ? 'Divergência pendente' : 'Divergências pendentes'}
                 </p>
               </div>
-              <AlertTriangle className={`text-[#8f732b] h-6 w-6 ${stats.divergencias_pendentes > 0 ? 'text-amber-600' : ''}`} />
+              <AlertTriangle className={`h-5 w-5 ${stats.divergencias_pendentes > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
             </div>
           </div>
         </div>
 
         {/* Plano de Saúde */}
         {carteirinha?.plano_saude && (
-          <Card className="mt-8">
-            <CardHeader>
-              <h3 className="section-title">Plano de Saúde</h3>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-[#8B4513]" />
-                  <span className="text-base font-medium">{carteirinha.plano_saude.nome}</span>
-                </div>
-                {carteirinha.data_validade && (
-                  <span className="text-sm text-muted-foreground">
-                    Válido até {formatDate(carteirinha.data_validade)}
-                  </span>
-                )}
+          <>
+            <h2 className="section-title">Plano de Saúde</h2>
+            <div className="section-container">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-muted-foreground" />
+                <span className="section-value">{carteirinha.plano_saude.nome}</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#faf8f6] p-4 rounded-md">
+
+              <div className="info-grid">
                 <div>
-                  <dl className="space-y-4">
+                  <div className="info-group">
                     <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Número da Carteirinha</dt>
-                      <dd className="text-base font-medium mt-1">
+                      <p className="section-label">Número da Carteirinha</p>
+                      <p className="section-value">
                         {patient.guias[0]?.paciente_carteirinha || carteirinha.numero_carteirinha || '-'}
-                      </dd>
+                      </p>
                     </div>
                     <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Titular</dt>
-                      <dd className="text-base font-medium mt-1">{carteirinha.nome_titular}</dd>
+                      <p className="section-label">Código do Plano</p>
+                      <p className="section-value">{carteirinha.plano_saude.codigo || '-'}</p>
                     </div>
-                  </dl>
+                  </div>
                 </div>
+
                 <div>
-                  <dl className="space-y-4">
+                  <div className="info-group">
                     <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Código do Plano</dt>
-                      <dd className="text-base font-medium mt-1">{carteirinha.plano_saude.codigo}</dd>
+                      <p className="section-label">Data de Validade</p>
+                      <p className="section-value">{formatDate(carteirinha.data_validade) || '-'}</p>
                     </div>
                     <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Status</dt>
-                      <dd className="text-base font-medium mt-1">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Ativo
-                        </span>
-                      </dd>
+                      <p className="section-label">Status</p>
+                      <p className="section-value">Ativo</p>
                     </div>
-                  </dl>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </>
         )}
 
         {/* Guias */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Guias</h3>
+            <h3 className="section-title">Guias</h3>
             <Button
               onClick={handleNewGuide}
               className="gap-2 hover:bg-[#8B4513] hover:text-white transition-colors"
@@ -455,9 +444,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
 
         {/* Fichas de Presença */}
         <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Fichas de Presença
-          </h3>
+          <h3 className="section-title">Fichas de Presença</h3>
           <SortableTable
             data={patient.fichas}
             columns={fichaColumns}

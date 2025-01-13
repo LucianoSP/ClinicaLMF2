@@ -287,9 +287,8 @@ export default function PatientsPage() {
             <Button
               variant="outline"
               onClick={() => setIsFormOpen(true)}
-              className="gap-2 btn-primary"
             >
-              <PlusIcon className="h-4 w-4" />
+              <PlusIcon className="h-4 w-4 mr-2" />
               Novo Paciente
             </Button>
           </div>

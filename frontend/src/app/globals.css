@@ -81,6 +81,7 @@
   /* Títulos de seção e nomes */
   .section-title {
     margin-bottom: 0.75rem;
+    
   }
 
   /* Classes específicas para casos especiais */
@@ -105,6 +106,47 @@
     font-variant: normal;
     font-stretch: 100%;
     @apply text-zinc-900;
+  }
+
+  /* Títulos de seção */
+.section-title {
+  font-size: 1.3rem;      /* text-lg */
+  font-weight: 400;         /* font-semibold */
+  line-height: 1.75rem;     /* leading-7 */
+  margin-bottom: 0.75rem;   /* mb-3 */
+  color: rgb(24 24 27);     /* text-zinc-900 */
+}
+
+  /* Subtítulos e labels */
+.section-label {
+  font-size: 0.875rem;      /* text-sm */
+  font-weight: 400;         /* font-normal */
+  line-height: 1.25rem;     /* leading-5 */
+  color: rgb(113 113 122);  /* text-zinc-500 */
+}
+
+
+  /* Valores e textos principais */
+.section-value {
+  font-size: 0.875rem;      /* text-sm */
+  font-weight: 500;         /* font-medium */
+  line-height: 1.25rem;     /* leading-5 */
+  color: rgb(24 24 27);     /* text-zinc-900 */
+}
+
+  /* Container de seção */
+  .section-container {
+    @apply mt-2 space-y-3;
+  }
+
+  /* Grid de informações */
+  .info-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  /* Grupo de informações */
+  .info-group {
+    @apply space-y-3;
   }
 }
 
