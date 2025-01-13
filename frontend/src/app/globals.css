@@ -7,15 +7,15 @@
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
 
-    /* New warm theme colors */
-    --primary: 15 35% 45%;
+    /* Warm theme colors */
+    --primary: 42 45% 36%;  /* Base marrom dourado */
     --primary-foreground: 0 0% 98%;
     
-    --secondary: 42 45% 45%;
+    --secondary: 15 35% 45%;  /* Marrom avermelhado */
     --secondary-foreground: 0 0% 98%;
     
     --accent: 35 91% 90%;
-    --accent-foreground: 15 35% 45%;
+    --accent-foreground: 42 45% 36%;
 
     --muted: 35 50% 95%;
     --muted-foreground: 240 3.8% 46.1%;
@@ -29,11 +29,11 @@
     --border: 35 10% 90%;
     --input: 35 10% 90%;
     
-    --ring: 15 35% 45%;
+    --ring: 42 45% 36%;
 
     /* Sidebar specific colors */
-    --sidebar-bg-start: 15 35% 45%;
-    --sidebar-bg-end: 15 35% 35%;
+    --sidebar-bg-start: 42 45% 36%;
+    --sidebar-bg-end: 42 45% 26%;
     --sidebar-color: 0 0% 98%;
 
     --radius: 0.5rem;
@@ -104,6 +104,21 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Hover and focus states for buttons */
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  
+  .btn-outline {
+    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring;
   }
 }
 

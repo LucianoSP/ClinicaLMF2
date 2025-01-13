@@ -214,68 +214,68 @@ export default function AuditoriaPage() {
   }, []);
 
   return (
-    <div className="pl-1">
-      <div className="bg-white rounded-lg shadow p-6 flex flex-col space-y-4">
-        <AuditoriaHeader />
-        <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
-        <FiltrosAuditoria
-          dataInicial={dataInicial}
-          setDataInicial={setDataInicial}
-          dataFinal={dataFinal}
-          setDataFinal={setDataFinal}
-          statusFiltro={statusFiltro}
-          setStatusFiltro={setStatusFiltro}
-          tipoDivergencia={tipoDivergencia}
-          setTipoDivergencia={setTipoDivergencia}
-          prioridade={prioridade}  // Added priority prop
-          setPrioridade={setPrioridade}  // Added priority setter
-          onAuditoria={handleAuditoria}
-          onGerarRelatorio={gerarRelatorio}
-          loading={loading}
-        />
+    <div className="flex flex-col gap-6">
+      <AuditoriaHeader />
+      <EstatisticasCards resultadoAuditoria={resultadoAuditoria} />
+      <FiltrosAuditoria
+        dataInicial={dataInicial}
+        setDataInicial={setDataInicial}
+        dataFinal={dataFinal}
+        setDataFinal={setDataFinal}
+        statusFiltro={statusFiltro}
+        setStatusFiltro={setStatusFiltro}
+        tipoDivergencia={tipoDivergencia}
+        setTipoDivergencia={setTipoDivergencia}
+        prioridade={prioridade}
+        setPrioridade={setPrioridade}
+        onAuditoria={handleAuditoria}
+        onGerarRelatorio={gerarRelatorio}
+        loading={loading}
+      />
 
+      <div className="rounded-md border">
         <TabelaDivergencias
           divergencias={divergencias}
           loading={loading}
           onMarcarResolvido={marcarResolvido}
         />
-
-        {divergencias.length > 0 && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground">Itens por página:</span>
-              <select
-                className="border rounded p-1"
-                value={perPage}
-                onChange={(e) => setPerPage(Number(e.target.value))}
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || loading}
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Página {page} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages || loading}
-              >
-                Próxima
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {divergencias.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Itens por página:</span>
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 py-2"
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+            >
+              Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || loading}
+            >
+              Próxima
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

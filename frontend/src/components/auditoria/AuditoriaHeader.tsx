@@ -19,12 +19,10 @@ const formatarData = (data: string) => {
 
 export const AuditoriaHeader = () => {
     return (
-        <div className="flex justify-between items-center p-6">
-            <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-semibold text-[#8B4513]">
-                    Auditoria de Execuções
-                </h1>
-            </div>
+        <div>
+            <h1 className="text-2xl font-semibold">
+                Auditoria de Execuções
+            </h1>
         </div>
     );
 };

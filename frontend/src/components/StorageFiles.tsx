@@ -89,7 +89,7 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
     }
   ];
 
-  const filteredFiles = files.filter(file => 
+  const filteredFiles = files.filter(file =>
     file.nome.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
   );
 
@@ -106,36 +106,39 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className="relative flex-1 max-w-md">
           <Input
             type="text"
             placeholder="Buscar por nome do arquivo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
+            className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         </div>
-        <Button
-          variant="outline"
-          onClick={onDownloadAll}
-          disabled={loading}
-          className="gap-2 whitespace-nowrap"
-        >
-          <FiDownload className="h-4 w-4" />
-          Download Todos
-        </Button>
-        <Button
-          variant="outline"
-          onClick={onClearStorage}
-          disabled={loading}
-          className="gap-2 whitespace-nowrap"
-        >
-          <FiTrash2 className="h-4 w-4" />
-          Limpar Storage
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={onDownloadAll}
+            disabled={loading}
+            className="gap-2"
+          >
+            <FiDownload className="h-4 w-4" />
+            Download Todos
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onClearStorage}
+            disabled={loading}
+            className="gap-2"
+          >
+            <FiTrash2 className="h-4 w-4" />
+            Limpar Storage
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border">
