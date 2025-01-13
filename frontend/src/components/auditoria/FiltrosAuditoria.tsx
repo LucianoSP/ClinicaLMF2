@@ -14,6 +14,8 @@ export type FiltrosAuditoriaProps = {
   setStatusFiltro: (status: string) => void;
   tipoDivergencia: string;
   setTipoDivergencia: (tipo: string) => void;
+  prioridade: string;  // Adicionado
+  setPrioridade: (prioridade: string) => void;  // Adicionado
   onAuditoria: () => Promise<void>;
   onGerarRelatorio: () => Promise<void>;
   loading: boolean;
@@ -35,6 +37,12 @@ const statusOptions = [
   { value: 'resolvida', label: 'Resolvida' },
 ] as const;
 
+const prioridadeOptions = [  // Adicionado
+  { value: 'todas', label: 'Todas as prioridades' },
+  { value: 'ALTA', label: 'Alta' },
+  { value: 'MEDIA', label: 'Média' },
+] as const;
+
 const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
   dataInicial,
   setDataInicial,
@@ -44,6 +52,8 @@ const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
   setStatusFiltro,
   tipoDivergencia,
   setTipoDivergencia,
+  prioridade,  // Adicionado
+  setPrioridade,  // Adicionado
   onAuditoria,
   onGerarRelatorio,
   loading
@@ -53,6 +63,7 @@ const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
     setDataFinal(null);
     setStatusFiltro('todos');
     setTipoDivergencia('todos');
+    setPrioridade('todas');  // Adicionado
   };
 
   return (
@@ -71,7 +82,7 @@ const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
           </Button>
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">  {/* Alterado de 4 para 5 colunas */}
           <div className="flex flex-col">
             <Label className="mb-2">Data Inicial</Label>
             <DatePicker
@@ -114,6 +125,23 @@ const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
                 {tiposDivergencia.map(tipo => (
                   <SelectItem key={tipo.value} value={tipo.value}>
                     {tipo.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Adicionado select de Prioridade */}
+          <div className="flex flex-col">
+            <Label className="mb-2">Prioridade</Label>
+            <Select value={prioridade} onValueChange={setPrioridade}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                {prioridadeOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
