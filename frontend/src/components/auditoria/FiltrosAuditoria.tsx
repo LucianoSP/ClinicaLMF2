@@ -154,7 +154,7 @@ const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
             className="flex items-center"
           >
             <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar Auditoria
+            Atualizar
           </Button>
         </div>
       </div>

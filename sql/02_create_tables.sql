@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 CREATE TABLE IF NOT EXISTS pacientes (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome text NOT NULL,
+    nome_responsavel text NOT NULL,
     data_nascimento date,
     cpf character varying(11),
     telefone text,

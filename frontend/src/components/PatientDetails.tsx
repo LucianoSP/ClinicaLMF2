@@ -71,9 +71,13 @@ interface PatientDetailsProps {
   patient: {
     id: string
     nome: string
+    nome_responsavel: string
     idade?: number
     photo?: string
     plano_nome?: string
+    data_nascimento: string
+    created_at: string
+    telefone: string
     carteirinhas: Carteirinha[]
     guias: Guide[]
     fichas: FichaPresenca[]
@@ -305,9 +309,27 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
                 </div>
                 <div className="flex-1">
                   <h2 className="patient-name">{patient.nome}</h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground">Convênio:</span>
-                    <span className="text-sm">{carteirinha?.plano_saude?.nome || 'Não informado'}</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Convênio:</span>
+                      <span className="text-sm">{carteirinha?.plano_saude?.nome || 'Não informado'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Nome do Responsável:</span>
+                      <span className="text-sm">{patient.nome_responsavel}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Data de Nascimento:</span>
+                      <span className="text-sm">{formatDate(patient.data_nascimento)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Data de Cadastro:</span>
+                      <span className="text-sm">{formatDate(patient.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Telefone do Responsável:</span>
+                      <span className="text-sm">{patient.telefone}</span>
+                    </div>
                   </div>
                 </div>
               </div>

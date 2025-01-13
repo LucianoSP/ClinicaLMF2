@@ -9,7 +9,8 @@ import {
   ChartBarIcon,
   TableCellsIcon,
   CloudIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -51,13 +52,16 @@ export function Sidebar() {
   return (
     <div className="flex flex-col w-64 sidebar-bg min-h-screen shadow-lg">
       <div className="flex flex-col flex-grow pt-6">
-        <div className="flex flex-col items-center justify-center flex-shrink-0 px-4 mb-8 space-y-1">
-          <h1 className="text-xl font-semibold text-white text-center">
-            Sistema de Controle
-          </h1>
-          <h2 className="text-lg text-white/80 text-center">
-            Faturamento
-          </h2>
+        <div className="flex items-start justify-center flex-shrink-0 px-8 mb-2">
+          <BanknotesIcon className="h-12 w-12 text-white/90 mr-4 -mt-1" />
+          <div className="flex flex-col" style={{ lineHeight: '0.9' }}>
+            <h1 className="text-xl text-white font-light tracking-wider">
+              Gestão de Faturamento
+            </h1>
+            <h1 className="text-xl text-white font-light tracking-wider">
+
+            </h1>
+          </div>
         </div>
         <nav className="flex-1 px-4 space-y-2">
           {navigation.map((item) => {
