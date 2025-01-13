@@ -14,8 +14,8 @@ export interface Column<T> {
   editable?: boolean;
   type?: 'boolean' | 'text' | 'string' | 'date';
   render?: (value: any, item: T) => React.ReactNode;
-  className?: string; // Adicionando suporte para className
-  style?: React.CSSProperties; // Adicionando suporte para style
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export default function SortableTable<T>({
