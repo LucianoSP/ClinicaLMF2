@@ -213,10 +213,11 @@ export default function PatientsPage() {
     <div className="flex flex-col gap-6">
       <div className="rounded-lg border bg-white text-card-foreground shadow-sm">
         <div className="p-6 flex flex-col gap-6">
-          {/* Header com título */}
-          <div className="border-b pb-4">
-            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">Gerenciamento de Pacientes</h2>
-            
+          {/* Header com título - removida a borda e padding inferior */}
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight text-[#8B4513]">
+              Gerenciamento de Pacientes
+            </h2>
           </div>
 
           {/* Barra de busca e botão novo paciente */}
@@ -266,9 +267,7 @@ export default function PatientsPage() {
                           />
                           <div className="flex flex-col items-start">
                             <span className="font-medium">{patient.nome}</span>
-                            <span className="text-xs text-muted-foreground">
-                              Carteirinha: {patient.carteirinhas?.[0]?.numero_carteirinha || patient.carteirinha || '-'}
-                            </span>
+                            
                           </div>
                         </button>
                       ))}
@@ -295,9 +294,7 @@ export default function PatientsPage() {
                 <div className="flex items-center justify-between pb-4">
                   <div className="space-y-1">
                     <h3 className="text-xl font-semibold">{selectedPatient.nome}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Carteirinha: {selectedPatient.carteirinhas?.[0]?.numero_carteirinha || selectedPatient.carteirinha || '-'}
-                    </p>
+                    
                   </div>
                   <Button
                     variant="outline"
@@ -310,63 +307,60 @@ export default function PatientsPage() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-4 gap-4 mt-4">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Carteirinhas</CardTitle>
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{patientStats.carteirinhas_ativas || 0}</div>
-                      <p className="text-xs text-muted-foreground">
-                        De {patientStats.total_carteirinhas || 0} total
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Guias</CardTitle>
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{patientStats.guias_ativas || 0}</div>
-                      <p className="text-xs text-muted-foreground">
-                        De {patientStats.total_guias || 0} total
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Sessões</CardTitle>
-                      <Activity className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{patientStats.sessoes_executadas || 0}</div>
-                      <p className="text-xs text-muted-foreground">
-                        De {patientStats.sessoes_autorizadas || 0} autorizadas
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Taxa: {patientStats.taxa_execucao || 0}%
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  {patientStats.divergencias_pendentes > 0 && (
-                    <Card className="bg-yellow-50">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Divergências</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{patientStats.divergencias_pendentes}</div>
-                        <p className="text-xs text-muted-foreground">
-                          Pendentes de resolução
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-700">Carteirinhas</h3>
+                        <p className="text-3xl font-bold text-[#8f732b] mt-2">{patientStats.carteirinhas_ativas || 0}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          De {patientStats.total_carteirinhas || 0} total
                         </p>
-                      </CardContent>
-                    </Card>
-                  )}
+                      </div>
+                      <CreditCard className="text-[#8f732b] h-6 w-6" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-700">Guias</h3>
+                        <p className="text-3xl font-bold text-[#8f732b] mt-2">{patientStats.guias_ativas || 0}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          De {patientStats.total_guias || 0} total
+                        </p>
+                      </div>
+                      <FileText className="text-[#8f732b] h-6 w-6" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-700">Sessões</h3>
+                        <p className="text-3xl font-bold text-[#8f732b] mt-2">{patientStats.sessoes_executadas || 0}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {patientStats.sessoes_autorizadas || 0} autorizadas ({patientStats.taxa_execucao || 0}%)
+                        </p>
+                      </div>
+                      <Activity className="text-[#8f732b] h-6 w-6" />
+                    </div>
+                  </div>
+
+                  {/* Card de Divergências - Agora sempre visível */}
+                  <div className={`bg-white rounded-lg shadow p-6 ${patientStats.divergencias_pendentes > 0 ? 'bg-yellow-50 border-yellow-200' : ''}`}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-700">Divergências</h3>
+                        <p className="text-3xl font-bold text-[#8f732b] mt-2">{patientStats.divergencias_pendentes || 0}</p>
+                        <p className="text-sm text-amber-600 mt-1">
+                          {patientStats.divergencias_pendentes === 1 ? 'Divergência pendente' : 'Divergências pendentes'}
+                        </p>
+                      </div>
+                      <AlertTriangle className={`text-[#8f732b] h-6 w-6 ${patientStats.divergencias_pendentes > 0 ? 'text-amber-600' : ''}`} />
+                    </div>
+                  </div>
+
                 </div>
               </div>
 

@@ -1541,3 +1541,18 @@ async def deletar_sessao(sessao_id: str):
     except Exception as e:
         logger.error(f"Erro ao deletar sessão: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao deletar sessão: {str(e)}")
+
+@app.get("/pacientes/{paciente_id}/estatisticas")
+async def get_patient_stats(paciente_id: str):
+    """Retorna estatísticas detalhadas de um paciente específico"""
+    try:
+        stats = database_supabase.obter_estatisticas_paciente(paciente_id)
+        if "error" in stats:
+            raise HTTPException(status_code=404, detail=stats["error"])
+        return stats
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas do paciente: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erro ao obter estatísticas do paciente: {str(e)}"
+        )
