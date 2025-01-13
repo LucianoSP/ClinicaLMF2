@@ -15,27 +15,32 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-// Type definition for audit data
-interface AuditoriaData {
+interface AuditoriaResultado {
   total_protocolos: number;
   total_divergencias: number;
+  total_resolvidas: number;
+  total_pendentes: number;
   total_fichas: number;
   total_execucoes: number;
-  total_resolvidas: number;
-  data_execucao: string;
   tempo_execucao: string;
   divergencias_por_tipo: {
-    execucao_sem_sessao: number;
-    sessao_sem_execucao: number;
-    data_divergente: number;
-    sessao_sem_assinatura: number;
-    guia_vencida: number;
-    quantidade_excedida: number;
-    duplicidade: number;
+    execucao_sem_ficha?: number;
+    ficha_sem_execucao?: number;
+    data_divergente?: number;
+    ficha_sem_assinatura?: number;
+    guia_vencida?: number;
+    quantidade_excedida?: number;
+    duplicidade?: number;
+    [key: string]: number | undefined;
   };
+  data_execucao: string;
 }
 
-const EstatisticasCards = ({ resultadoAuditoria }: { resultadoAuditoria: AuditoriaData | null }) => {
+interface EstatisticasCardsProps {
+  resultadoAuditoria: AuditoriaResultado | null;
+}
+
+const EstatisticasCards = ({ resultadoAuditoria }: EstatisticasCardsProps) => {
   if (!resultadoAuditoria) {
     return (
       <div className="text-center p-4">
@@ -55,14 +60,14 @@ const EstatisticasCards = ({ resultadoAuditoria }: { resultadoAuditoria: Auditor
   } = resultadoAuditoria;
 
   const {
-    execucao_sem_sessao = 0,
-    sessao_sem_execucao = 0,
+    execucao_sem_ficha: execucao_sem_sessao = 0,
+    ficha_sem_execucao: sessao_sem_execucao = 0,
     data_divergente = 0,
-    sessao_sem_assinatura = 0,
+    ficha_sem_assinatura: sessao_sem_assinatura = 0,
     guia_vencida = 0,
     quantidade_excedida = 0,
     duplicidade = 0
-  } = divergencias_por_tipo || {};
+  } = divergencias_por_tipo;
 
   return (
     <div className="grid gap-6">

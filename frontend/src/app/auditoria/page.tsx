@@ -3,15 +3,33 @@
 import { useState, useEffect } from 'react';
 import { AuditoriaHeader } from '@/components/auditoria/AuditoriaHeader';
 import { EstatisticasCards } from '@/components/auditoria/EstatisticasCards';
-
 import { TabelaDivergencias } from '@/components/auditoria/TabelaDivergencias';
 import { Button } from '@/components/ui/button';
-import { FileDown, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { API_URL } from '@/config/api';
-import { AuditoriaResultado } from "@/types";
-import FiltrosAuditoria, { FiltrosAuditoriaProps } from '@/components/auditoria/FiltrosAuditoria';
+import FiltrosAuditoria from '@/components/auditoria/FiltrosAuditoria';
+
+interface AuditoriaResultado {
+  total_protocolos: number;
+  total_divergencias: number;
+  total_resolvidas: number;
+  total_pendentes: number;
+  total_fichas: number;
+  total_execucoes: number;
+  tempo_execucao: string;
+  divergencias_por_tipo: {
+    execucao_sem_ficha?: number;
+    ficha_sem_execucao?: number;
+    data_divergente?: number;
+    ficha_sem_assinatura?: number;
+    guia_vencida?: number;
+    quantidade_excedida?: number;
+    duplicidade?: number;
+    [key: string]: number | undefined;
+  };
+  data_execucao: string;
+}
 
 export interface Divergencia {
   id: string;
@@ -25,7 +43,7 @@ export interface Divergencia {
   status: string;
   tipo_divergencia: string;
   descricao: string;
-  prioridade: string;  // Added priority field
+  prioridade: string;
   observacoes?: string;
   resolvido_por?: string;
   data_resolucao?: string;
@@ -36,7 +54,7 @@ export default function AuditoriaPage() {
   const [dataFinal, setDataFinal] = useState<Date | null>(null);
   const [statusFiltro, setStatusFiltro] = useState<string>('todos');
   const [tipoDivergencia, setTipoDivergencia] = useState<string>('todos');
-  const [prioridade, setPrioridade] = useState<string>('todas');  // Added priority state
+  const [prioridade, setPrioridade] = useState<string>('todas');
   const [resultadoAuditoria, setResultadoAuditoria] = useState<AuditoriaResultado | null>(null);
   const [divergencias, setDivergencias] = useState<Divergencia[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,7 +90,12 @@ export default function AuditoriaPage() {
       }
 
       const result = await response.json();
-      setResultadoAuditoria(result.data);
+      setResultadoAuditoria({
+        ...result.data,
+        total_execucoes: result.data.total_execucoes || 0,
+        tempo_execucao: result.data.tempo_execucao || '',
+        divergencias_por_tipo: result.data.divergencias_por_tipo || {}
+      });
       await buscarDivergencias();
 
       toast({
@@ -98,7 +121,7 @@ export default function AuditoriaPage() {
       if (dataFinal) params.set('data_fim', formatarData(dataFinal));
       if (statusFiltro !== 'todos') params.set('status', statusFiltro);
       if (tipoDivergencia !== 'todos') params.set('tipo_divergencia', tipoDivergencia);
-      if (prioridade !== 'todas') params.set('prioridade', prioridade);  // Added priority param
+      if (prioridade !== 'todas') params.set('prioridade', prioridade);
       params.set('page', page.toString());
       params.set('per_page', perPage.toString());
 
@@ -109,7 +132,7 @@ export default function AuditoriaPage() {
       }
 
       const data = await response.json();
-      setDivergencias(data.divergencias as Divergencia[] || []);
+      setDivergencias(data.divergencias || []);
       setTotalPages(Math.ceil((data.total || 0) / perPage));
     } catch (error) {
       console.error('Erro ao buscar divergências:', error);
@@ -190,12 +213,10 @@ export default function AuditoriaPage() {
     }
   };
 
-  // Buscar divergências quando os filtros mudarem
   useEffect(() => {
     buscarDivergencias();
   }, [statusFiltro, tipoDivergencia, prioridade, page, perPage]);
 
-  // Buscar última auditoria ao carregar a página
   useEffect(() => {
     const buscarUltimaAuditoria = async () => {
       try {
@@ -203,7 +224,12 @@ export default function AuditoriaPage() {
         if (response.ok) {
           const { data } = await response.json();
           if (data) {
-            setResultadoAuditoria(data);
+            setResultadoAuditoria({
+              ...data,
+              total_execucoes: data.total_execucoes || 0,
+              tempo_execucao: data.tempo_execucao || '',
+              divergencias_por_tipo: data.divergencias_por_tipo || {},
+            });
           }
         }
       } catch (error) {
