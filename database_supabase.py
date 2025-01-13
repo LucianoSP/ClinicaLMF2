@@ -1236,3 +1236,78 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
             "taxa_execucao": 0,
             "guias_por_status": {"pendente": 0, "em_andamento": 0, "concluida": 0, "cancelada": 0}
         }
+
+def criar_guia(paciente_id: str, dados_guia: dict) -> bool:
+    """
+    Cria uma nova guia para um paciente.
+    """
+    try:
+        # Busca o paciente com suas carteirinhas
+        paciente = supabase.table("pacientes").select(
+            "nome, carteirinhas(numero_carteirinha)"
+        ).eq("id", paciente_id).execute()
+
+        if not paciente.data:
+            print("Paciente não encontrado")
+            return False
+            
+        # Pega a primeira carteirinha do paciente
+        carteirinha = None
+        if paciente.data[0].get("carteirinhas"):
+            carteirinha = paciente.data[0]["carteirinhas"][0]["numero_carteirinha"]
+        
+        if not carteirinha:
+            print("Paciente não possui carteirinha")
+            return False
+
+        # Prepara os dados da guia
+        nova_guia = {
+            "id": str(uuid.uuid4()),
+            "numero_guia": dados_guia["numero_guia"],
+            "data_emissao": dados_guia["data_emissao"],
+            "data_validade": dados_guia["data_validade"],
+            "tipo": dados_guia.get("tipo", "consulta"),
+            "status": dados_guia.get("status", "pendente"),
+            "paciente_carteirinha": carteirinha,  # Use a carteirinha encontrada
+            "paciente_nome": paciente.data[0]["nome"],
+            "quantidade_autorizada": dados_guia["quantidade_autorizada"],
+            "quantidade_executada": 0,
+            "procedimento_nome": dados_guia.get("procedimento_nome")
+        }
+
+        # Insere a guia no banco
+        response = supabase.table("guias").insert(nova_guia).execute()
+        
+        return bool(response.data)
+
+    except Exception as e:
+        print(f"Erro ao criar guia: {e}")
+        return False
+
+def atualizar_guia(guia_id: str, dados_guia: dict) -> bool:
+    """
+    Atualiza uma guia existente.
+    """
+    try:
+        # Remove campos que não devem ser atualizados
+        dados_atualizados = {
+            "numero_guia": dados_guia["numero_guia"],
+            "data_emissao": dados_guia["data_emissao"],
+            "data_validade": dados_guia["data_validade"],
+            "quantidade_autorizada": dados_guia["quantidade_autorizada"],
+            "procedimento_nome": dados_guia.get("procedimento_nome"),
+            "status": dados_guia.get("status", "pendente"),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+
+        response = supabase.table("guias").update(
+            dados_atualizados
+        ).eq("id", guia_id).execute()
+        
+        return bool(response.data)
+
+    except Exception as e:
+        print(f"Erro ao atualizar guia: {e}")
+        return False
+
+# ...rest of the file

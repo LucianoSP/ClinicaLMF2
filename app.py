@@ -362,7 +362,7 @@ async def extract_info_from_pdf(pdf_path: str):
             "erro": str(e),
             "status_validacao": "falha",
             "resposta_raw": (
-                response.content[0].text if "response" in locals() else None
+                response.content[0].text if "response" in locals() else None,
             ),
         }
 
@@ -1556,3 +1556,34 @@ async def get_patient_stats(paciente_id: str):
             status_code=500, 
             detail=f"Erro ao obter estatísticas do paciente: {str(e)}"
         )
+
+
+@app.post("/pacientes/{paciente_id}/guias")
+async def criar_guia_endpoint(paciente_id: str, dados_guia: dict = Body(...)):
+    """Criar uma nova guia para um paciente"""
+    try:
+        resultado = database_supabase.criar_guia(paciente_id, dados_guia)
+        if resultado:
+            return {"message": "Guia criada com sucesso"}
+        else:
+            raise HTTPException(status_code=400, detail="Falha ao criar guia")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/pacientes/{paciente_id}/guias/{guia_id}")
+async def atualizar_guia_endpoint(
+    paciente_id: str, 
+    guia_id: str, 
+    dados_guia: dict = Body(...)
+):
+    """Atualizar uma guia existente"""
+    try:
+        resultado = database_supabase.atualizar_guia(guia_id, dados_guia)
+        if resultado:
+            return {"message": "Guia atualizada com sucesso"}
+        else:
+            raise HTTPException(status_code=400, detail="Falha ao atualizar guia")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ...rest of the file
