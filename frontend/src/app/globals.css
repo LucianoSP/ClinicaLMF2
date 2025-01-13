@@ -60,14 +60,18 @@
     word-spacing: 0px;
     text-align: start;
     text-transform: none;
-    color: #000000;
+    color: var(--text-primary);
+    line-height: 1.2;
   }
 
   /* Título principal da página */
-  h1, .page-title {
-    margin-bottom: 1rem;
-    
-  }
+h1, .page-title {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 600;  /* font-semibold */
+  margin-bottom: 1rem;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
 
   /* Títulos de seção e nomes */
   .section-title {

@@ -31,8 +31,8 @@ export default function DashboardHome() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="page-title">Dashboard</h1>
         <div className="flex gap-2">
           <Button
             variant={timeRange === '7d' ? 'default' : 'outline'}

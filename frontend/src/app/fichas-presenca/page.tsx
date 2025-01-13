@@ -813,7 +813,7 @@ export default function FichasPresenca() {
     return (
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">Fichas de Presença</h1>
+          <h1 className="page-title">Fichas de Presença</h1>
         </div>
 
         <div className="flex justify-between items-center">

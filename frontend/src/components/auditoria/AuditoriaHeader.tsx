@@ -20,7 +20,7 @@ const formatarData = (data: string) => {
 export const AuditoriaHeader = () => {
     return (
         <div>
-            <h1 className="text-2xl font-semibold">
+            <h1 className="page-title">
                 Auditoria de Execuções
             </h1>
         </div>
