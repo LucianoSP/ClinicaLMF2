@@ -162,7 +162,8 @@ CREATE TABLE IF NOT EXISTS auditoria_execucoes (
     divergencias_por_tipo jsonb,
     status text DEFAULT 'em_andamento',
     created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now()
+    updated_at timestamptz DEFAULT now(),
+    total_execucoes INTEGER DEFAULT 0
 );
 
 -- Criar índices para melhor performance

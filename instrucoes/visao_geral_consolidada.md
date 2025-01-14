@@ -1,24 +1,28 @@
-# Sistema de Auditoria de execucaos
+I'll help create a comprehensive consolidated document that maintains all the detailed information from both sources. Let me structure this in a clear, detailed format.
+
+
+
+# Sistema de Auditoria de Atendimentos Médicos - Documentação Técnica Completa
 
 ## 1. Visão Geral do Sistema
 
-O sistema foi desenvolvido para automatizar e controlar o processo de auditoria de execucaos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O objetivo principal é garantir que todos os execucaos realizados estejam corretamente documentados e faturados.
+O sistema foi desenvolvido para automatizar e controlar o processo de auditoria de atendimentos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O principal objetivo é garantir que todos os atendimentos realizados estejam corretamente documentados e faturados, mantendo a integridade entre documentação física e registros digitais.
 
 ## 2. Fluxo do Processo
 
-### 2.1 execucao Inicial
-1. Paciente comparece ao execucao
+### 2.1 Atendimento Inicial
+1. Paciente comparece ao atendimento
 2. Assina a ficha de presença física
 3. A recepção digitaliza a ficha assinada
 4. O arquivo digitalizado é armazenado no sistema
 
-### 2.2 Faturamento
+### 2.2 Processo de Faturamento
 1. Faturista acessa o sistema da Unimed
-2. Registra a execução do execucao manualmente
+2. Registra a execução do atendimento manualmente
 3. Sistema interno registra a execução realizada
 4. Sistema verifica automaticamente por divergências
 
-### 2.3 Auditoria
+### 2.3 Processo de Auditoria
 1. Sistema compara automaticamente:
    - Quantidade de fichas digitalizadas vs execuções registradas
    - Presença de assinaturas nas fichas
@@ -31,7 +35,7 @@ O sistema foi desenvolvido para automatizar e controlar o processo de auditoria 
 
 ### 3.1 Tabelas Principais
 
-#### `pacientes` (Pacientes)
+#### `pacientes`
 ```sql
 CREATE TABLE pacientes (
     id uuid PRIMARY KEY,
@@ -42,10 +46,8 @@ CREATE TABLE pacientes (
     updated_at timestamp with time zone
 );
 ```
-- Armazena informações básicas dos pacientes
-- Mantém histórico de datas de criação e atualização
 
-#### `carteirinhas` (Carteirinhas dos Pacientes)
+#### `carteirinhas`
 ```sql
 CREATE TABLE carteirinhas (
     id uuid PRIMARY KEY,
@@ -59,11 +61,8 @@ CREATE TABLE carteirinhas (
     updated_at timestamp with time zone
 );
 ```
-- Vincula pacientes a planos de saúde
-- Controla titularidade e validade das carteirinhas
-- Mantém histórico de datas de criação e atualização
 
-#### `planos_saude` (Planos de Saúde)
+#### `planos_saude`
 ```sql
 CREATE TABLE planos_saude (
     id uuid PRIMARY KEY,
@@ -73,10 +72,8 @@ CREATE TABLE planos_saude (
     updated_at timestamp with time zone
 );
 ```
-- Armazena informações sobre os planos de saúde
-- Mantém histórico de datas de criação e atualização
 
-#### `guias` (Guias Médicas)
+#### `guias`
 ```sql
 CREATE TABLE guias (
     id uuid PRIMARY KEY,
@@ -98,11 +95,8 @@ CREATE TABLE guias (
     updated_at timestamp with time zone
 );
 ```
-- Armazena informações completas das guias médicas
-- Controla quantidades autorizadas e executadas
-- Mantém informações sobre procedimentos e profissionais
 
-#### `fichas_presenca` (Fichas Digitalizadas)
+#### `fichas_presenca`
 ```sql
 CREATE TABLE fichas_presenca (
     id uuid PRIMARY KEY,
@@ -117,10 +111,8 @@ CREATE TABLE fichas_presenca (
     updated_at timestamp with time zone
 );
 ```
-- Armazena as fichas físicas digitalizadas
-- Permite observações sobre o execucao
 
-#### `assinaturas_sessoes` (Assinaturas por Sessão)
+#### `assinaturas_sessoes`
 ```sql
 CREATE TABLE assinaturas_sessoes (
     id uuid PRIMARY KEY,
@@ -131,10 +123,8 @@ CREATE TABLE assinaturas_sessoes (
     updated_at timestamp with time zone
 );
 ```
-- Armazena informações sobre assinaturas por sessão
-- Relaciona com fichas de presença
 
-#### `execucoes` (Execuções no Sistema)
+#### `execucoes`
 ```sql
 CREATE TABLE execucoes (
     id uuid PRIMARY KEY,
@@ -150,11 +140,8 @@ CREATE TABLE execucoes (
     updated_at timestamp with time zone
 );
 ```
-- Registra execuções feitas no sistema
-- Relaciona com guias através do numero_guia
-- Controla quantidade de sessões executadas
 
-#### `divergencias` (Inconsistências Encontradas)
+#### `divergencias`
 ```sql
 CREATE TABLE divergencias (
     id uuid PRIMARY KEY,
@@ -172,11 +159,8 @@ CREATE TABLE divergencias (
     updated_at timestamp with time zone
 );
 ```
-- Registra divergências identificadas
-- Controla status e resolução
-- Mantém histórico completo
 
-#### `usuarios` (Usuários do Sistema)
+#### `usuarios`
 ```sql
 CREATE TABLE usuarios (
     id uuid PRIMARY KEY,
@@ -189,10 +173,8 @@ CREATE TABLE usuarios (
     updated_at timestamp with time zone
 );
 ```
-- Gerencia usuários do sistema
-- Controla acesso e status
 
-#### `agendamentos` (Agendamentos)
+#### `agendamentos`
 ```sql
 CREATE TABLE agendamentos (
     id uuid PRIMARY KEY,
@@ -213,18 +195,13 @@ CREATE TABLE agendamentos (
     parent_id integer,
     agendamento_pai_id integer,
     codigo_faturamento character varying(100),
-    data_registro timestamp with time zone,
-    ultima_atualizacao timestamp with time zone,
     saldo_sessoes integer,
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 );
 ```
-- Controla agendamentos dos pacientes
-- Mantém informações sobre sessões e status
-- Permite controle de faltas e faturamento
 
-#### `auditoria_execucoes` (Metadados de Execuções de Auditoria)
+#### `auditoria_execucoes`
 ```sql
 CREATE TABLE auditoria_execucoes (
     id uuid PRIMARY KEY,
@@ -233,76 +210,148 @@ CREATE TABLE auditoria_execucoes (
     data_final date,
     total_protocolos integer,
     total_divergencias integer,
+    total_execucoes integer,
     divergencias_por_tipo jsonb,
     created_by uuid REFERENCES usuarios(id),
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
 ```
-- Armazena metadados de cada execução de auditoria
-- Registra totais e tipos de divergências encontradas
-- Mantém histórico de quem executou a auditoria
 
-## 4. Interface do Sistema
+## 4. Tipos de Divergências e Status
 
-### 4.1 Gerenciamento de Pacientes
+### 4.1 Tipos de Divergências (tipo_divergencia)
 
-O sistema possui uma interface dedicada para o gerenciamento de pacientes, acessível através do menu lateral. Esta interface é composta por três componentes principais:
+1. **Data Divergente** (`data_divergente`)
+   - Descrição: Data de execução diferente da data de atendimento
+   - Campo chave: codigo_ficha
+   - Campos verificados: execucoes.data_execucao (obrigatório), fichas_presenca.data_atendimento (opcional)
 
-#### 4.1.1 Busca e Listagem de Pacientes
+2. **Sessão sem Assinatura** (`sessao_sem_assinatura`)
+   - Descrição: Sessão sem assinatura do paciente
+   - Campo chave: codigo_ficha + data_sessao
+   - Campos verificados: fichas_presenca.assinaturas_sessoes, execucoes.data_execucao
+
+3. **Execução sem Sessão** (`execucao_sem_sessao`)
+   - Descrição: Execução sem sessão correspondente
+   - Campo chave: codigo_ficha + data_sessao
+   - Campos verificados: execucoes.codigo_ficha, execucoes.data_execucao
+
+4. **Sessão sem Execução** (`sessao_sem_execucao`)
+   - Descrição: Sessão sem execução correspondente
+   - Campo chave: codigo_ficha + data_sessao
+   - Campos verificados: sessoes.codigo_ficha, sessoes.data_sessao
+
+5. **Quantidade Excedida** (`quantidade_excedida`)
+   - Descrição: Execuções excedem quantidade autorizada
+   - Campo chave: numero_guia
+   - Campos verificados: guias.quantidade_autorizada, contagem de execucoes.numero_guia
+
+6. **Guia Vencida** (`guia_vencida`)
+   - Descrição: Execução após validade da guia
+   - Campo chave: numero_guia
+   - Campos verificados: guias.data_validade, execucoes.data_execucao
+
+### 4.2 Status das Divergências (status_divergencia)
+- `pendente`: Divergência identificada
+- `em_analise`: Em processo de verificação
+- `resolvida`: Divergência corrigida
+- `cancelada`: Divergência desconsiderada
+
+### 4.3 Status das Guias (status_guia)
+- `pendente`: Aguardando início
+- `em_andamento`: Execuções em andamento
+- `concluida`: Todas execuções realizadas
+- `cancelada`: Guia cancelada
+
+### 4.4 Tipos de Guia
+- `sp_sadt`: Guia de Serviço Profissional/SADT para procedimentos e terapias
+- `consulta`: Guia para avaliações e consultas
+
+## 5. Estrutura do Sistema
+
+### 5.1 Organização dos Arquivos
+
+#### database_supabase.py
+Funções básicas de CRUD:
+- salvar_dados_excel()
+- listar_dados_excel()
+- listar_guias()
+- buscar_guia()
+- listar_fichas_presenca()
+- salvar_ficha_presenca()
+- limpar_banco()
+- refresh_view_materializada()
+- formatar_data()
+
+#### auditoria_repository.py
+Funções específicas de divergências:
+- registrar_divergencia()
+- registrar_divergencia_detalhada()
+- buscar_divergencias_view()
+- atualizar_ficha_ids_divergencias()
+- registrar_execucao_auditoria()
+- calcular_estatisticas_divergencias()
+- obter_ultima_auditoria()
+- atualizar_status_divergencia()
+
+#### auditoria.py
+Lógica de negócio e endpoints:
+- realizar_auditoria()
+- realizar_auditoria_fichas_execucoes()
+- verificar_datas()
+- verificar_quantidade_execucaos()
+- verificar_validade_guia()
+- verificar_quantidade_autorizada()
+- verificar_assinatura_ficha()
+- safe_get_value()
+- listar_divergencias_route()
+
+## 6. Interface do Sistema
+
+### 6.1 Gerenciamento de Pacientes
+
+#### Busca e Listagem de Pacientes
 - Campo de busca para localizar pacientes
-- Tabela interativa com informações básicas dos pacientes
+- Tabela interativa com informações básicas
 - Botão para cadastro de novos pacientes
-- Opção de edição para cada paciente listado
+- Opção de edição para cada paciente
 
-#### 4.1.2 Informações do Paciente
-Exibe informações detalhadas do paciente selecionado em duas seções:
-
+#### Informações do Paciente
 **Dados Pessoais:**
 - Nome completo
 - Número da carteirinha
-- Data de cadastro no sistema
+- Data de cadastro
 
 **Informações da Carteirinha:**
 - Número da carteirinha
 - Data de validade
-- Status de titularidade (titular/dependente)
+- Status de titularidade
 - Nome do titular (quando dependente)
 
-#### 4.1.3 Guias do Paciente
-Apresenta uma tabela com todas as guias associadas ao paciente selecionado, incluindo:
+#### Guias do Paciente
 - Número da guia
 - Nome do procedimento
 - Data de validade
-- Quantidade de sessões autorizadas
-- Quantidade de sessões já utilizadas
-- Saldo disponível de sessões
-- Status da guia (ativa/inativa)
+- Quantidade de sessões autorizadas/utilizadas
+- Saldo disponível
+- Status da guia
 
-### 4.2 Página de Auditoria
+### 6.2 Página de Auditoria
 
-A página de auditoria apresenta um dashboard com cards informativos mostrando:
+#### Dashboard
 - Total de protocolos analisados
 - Total de divergências encontradas
 - Data da última verificação
-- Período analisado (data inicial e final)
+- Período analisado
 
-Além disso, a página permite:
-- Filtrar divergências por período
-- Visualizar detalhes de cada divergência
-- Marcar divergências como resolvidas
-- Adicionar observações às resoluções
+#### Funcionalidades
+- Filtros por período
+- Visualização detalhada de divergências
+- Marcação de resolução
+- Registro de observações
 
-### Tipos de Guia
+Esta documentação consolidada serve como referência completa para o sistema de auditoria de atendimentos médicos, abrangendo todos os aspectos técnicos e funcionais necessários para sua implementação e manutenção.
 
-As guias podem ser dos seguintes tipos:
-- `sp_sadt`: Guia de Serviço Profissional / Serviço Auxiliar de Diagnóstico e Terapia (SP/SADT), usada para procedimentos e terapias
-- `consulta`: Guia de consulta, usada para avaliações e consultas
 
-### Status das Guias
-
-As guias podem ter os seguintes status:
-- `pendente`: Guia criada mas ainda não iniciada
-- `em_andamento`: Guia com execuções em andamento
-- `concluida`: Guia com todas as execuções finalizadas
-- `cancelada`: Guia cancelada sem execuções ou com execuções interrompidas
+https://claude.site/artifacts/315058f5-1977-430c-a6cf-ea2affba3375
