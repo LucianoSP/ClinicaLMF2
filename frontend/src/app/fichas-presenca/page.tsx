@@ -45,12 +45,14 @@ interface FichaPresenca {
   created_at: string;
   updated_at: string;
   sessoes?: Sessao[];
+  actions?: string;
+  sessoes_status?: string;
 }
 
 interface EditedSessao extends Partial<Sessao> { }
 
 type Column<T> = {
-  key: keyof T | 'actions' | 'sessoes';
+  key: keyof T;
   label: string;
   className?: string;
   sortable?: boolean;
@@ -411,7 +413,8 @@ export default function FichasPresencaPage() {
       key: 'codigo_ficha',
       label: 'Código Ficha',
       className: 'w-[200px] text-center',
-      sortable: true
+      sortable: true,
+      type: 'text'
     },
     {
       key: 'paciente_nome',
@@ -437,9 +440,10 @@ export default function FichasPresencaPage() {
       render: (value) => formatDate(value)
     },
     {
-      key: 'sessoes',
+      key: 'sessoes_status',
       label: 'Sessões',
       className: 'w-[120px] text-center',
+      type: 'text',
       render: (_, item) => {
         const total = item.sessoes?.length || 0;
         const conferidas = item.sessoes?.filter(s => s.status === 'conferida').length || 0;
@@ -478,6 +482,7 @@ export default function FichasPresencaPage() {
       key: 'actions',
       label: 'Ações',
       className: 'w-[100px] text-center',
+      type: 'text',
       render: (_, item) => (
         <div className="flex items-center justify-center gap-2">
           <Button
