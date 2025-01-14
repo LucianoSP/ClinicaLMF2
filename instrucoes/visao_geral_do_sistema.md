@@ -36,6 +36,7 @@ O sistema foi desenvolvido para automatizar e controlar o processo de auditoria 
 CREATE TABLE pacientes (
     id uuid PRIMARY KEY,
     nome text,
+    nome_responsavel text,
     carteirinha text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone
