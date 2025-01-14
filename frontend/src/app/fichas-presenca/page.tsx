@@ -26,7 +26,7 @@ interface Sessao {
   tipo_terapia: string;
   profissional_executante: string;
   valor_sessao?: number;
-  status: 'pendente' | 'conferida';
+  status: 'pendente' | 'conferida' | string;
   observacoes_sessao?: string;
   executado: boolean;
   data_execucao?: string;
@@ -256,7 +256,7 @@ export default function FichasPresencaPage() {
 
       if (selectedFicha) {
         const updatedSessoes = selectedFicha.sessoes?.map(s =>
-          s.id === sessaoParaConferir.id ? { ...s, status: 'conferida' } : s
+          s.id === sessaoParaConferir.id ? { ...s, status: 'conferida' as const } : s
         );
         setSelectedFicha({
           ...selectedFicha,
