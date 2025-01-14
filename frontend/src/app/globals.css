@@ -312,3 +312,12 @@
 .react-datepicker__day--outside-month {
   color: #9ca3af;
 }
+
+/* Adicione estas classes para padronizar todas as tabelas */
+.table-row {
+  @apply py-3;
+}
+
+.table-cell {
+  @apply px-4 py-3;
+}

@@ -471,3 +471,6 @@ clinicalfm/Scripts/pip3.12.exe
 clinicalfm/Scripts/pip3.exe
 clinicalfm/Scripts/python.exe
 clinicalfm/Scripts/pythonw.exe
+tabelas_aba/ps_clients.csv
+tabelas_aba/ps_schedule_pacients.csv
+tabelas_aba/ps_schedule.csv

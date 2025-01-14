@@ -85,7 +85,7 @@ export default function SortableTable<T>({
               <th
                 key={String(column.key)}
                 onClick={() => handleSort(column.key)}
-                className={`h-12 px-4 text-left align-middle text-base font-normal hover:bg-gray-100/80 transition-colors [&:has([role=checkbox])]:pr-0 ${
+                className={`h-12 px-4 py-3.0 text-left align-middle text-base font-normal hover:bg-gray-100/80 transition-colors [&:has([role=checkbox])]:pr-0 ${
                   column.className?.includes('text-center') ? 'text-center' : ''
                 } ${column.className || ''}`}
                 style={{ whiteSpace: 'nowrap', ...column.style }}
@@ -122,7 +122,7 @@ export default function SortableTable<T>({
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className={`p-4 align-middle text-sm ${column.className || ''}`}
+                  className={`px-4 py-3.5 align-middle text-sm ${column.className || ''}`}
                   style={column.style}
                 >
                   {column.editable && editingId === (item as any).codigo_ficha ? (
@@ -176,7 +176,7 @@ export default function SortableTable<T>({
                 </td>
               ))}
               {(onEdit || onDelete || onSave || actions) && (
-                <td className="px-4 py-2.5 text-sm text-gray-500 whitespace-nowrap w-[100px]">
+                <td className="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap w-[100px]">
                   <div className="flex items-center justify-center space-x-2">
                     {actions ? (
                       actions(item)
