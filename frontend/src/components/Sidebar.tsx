@@ -10,7 +10,8 @@ import {
   TableCellsIcon,
   CloudIcon,
   UserGroupIcon,
-  BanknotesIcon
+  BanknotesIcon,
+  CalendarIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -28,6 +29,11 @@ const navigation = [
     name: 'Fichas de Presença',
     href: '/fichas-presenca',
     icon: DocumentTextIcon
+  },
+  {
+    name: 'Agendamentos',
+    href: '/agendamento',
+    icon: CalendarIcon
   },
   {
     name: 'Execuções',
@@ -70,14 +76,16 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`group flex items-center px-4 py-2.5 text-[15px] font-medium rounded-lg transition-all duration-200 ${isActive
-                  ? 'bg-white/10 text-white shadow-sm'
-                  : 'text-white/80 hover:bg-white/5 hover:text-white'
-                  }`}
+                className={`group flex items-center px-4 py-2.5 text-[15px] font-medium rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'text-white/80 hover:bg-white/5 hover:text-white'
+                }`}
               >
                 <item.icon
-                  className={`mr-3 flex-shrink-0 h-5 w-5 ${isActive ? 'text-white' : 'text-white/80'
-                    }`}
+                  className={`mr-3 flex-shrink-0 h-5 w-5 ${
+                    isActive ? 'text-white' : 'text-white/80'
+                  }`}
                   aria-hidden="true"
                 />
                 {item.name}

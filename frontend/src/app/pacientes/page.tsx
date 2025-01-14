@@ -10,6 +10,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command'
 import {
   Popover,
@@ -109,7 +110,6 @@ export default function PatientsPage() {
     }
   })
 
-  // Carregar pacientes
   const loadPatients = useCallback(async (term: string) => {
     if (!term.trim()) {
       setPatients([])
@@ -133,7 +133,6 @@ export default function PatientsPage() {
     }
   }, [])
 
-  // Carregar guias do paciente
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
       const response = await fetch(`${API_URL}/pacientes/${patientId}/guias`)
@@ -162,7 +161,6 @@ export default function PatientsPage() {
     }
   }, [])
 
-  // Função para carregar estatísticas do paciente
   const loadPatientStats = useCallback(async (patientId: string) => {
     try {
       console.log('Carregando estatísticas para paciente:', patientId)
@@ -176,7 +174,6 @@ export default function PatientsPage() {
     }
   }, [])
 
-  // Efeito para atualizar a busca quando o termo muda
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       loadPatients(searchTerm)
@@ -185,7 +182,6 @@ export default function PatientsPage() {
     return () => clearTimeout(timeoutId)
   }, [searchTerm, loadPatients])
 
-  // Efeito para carregar guias quando um paciente é selecionado
   useEffect(() => {
     if (selectedPatient) {
       console.log('Carregando guias para paciente:', selectedPatient.id)
@@ -250,36 +246,37 @@ export default function PatientsPage() {
                     value={searchTerm}
                     onValueChange={setSearchTerm}
                   />
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-6">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8B4513]"></div>
-                    </div>
-                  ) : patients.length === 0 ? (
-                    <CommandEmpty className="py-6 text-center text-sm">
-                      {searchTerm ? "Nenhum paciente encontrado." : "Digite para buscar pacientes"}
-                    </CommandEmpty>
-                  ) : (
-                    <CommandGroup>
-                      {patients.map((patient) => (
-                        <button
-                          key={patient.id}
-                          onClick={() => handleSelectPatient(patient)}
-                          className="w-full flex items-start gap-2 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm relative select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 outline-none"
-                        >
-                          <Check
-                            className={cn(
-                              "h-4 w-4 mt-1",
-                              selectedPatient?.id === patient.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">{patient.nome}</span>
-
-                          </div>
-                        </button>
-                      ))}
-                    </CommandGroup>
-                  )}
+                  <CommandList>
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8B4513]"></div>
+                      </div>
+                    ) : patients.length === 0 ? (
+                      <CommandEmpty className="py-6 text-center text-sm">
+                        {searchTerm ? "Nenhum paciente encontrado." : "Digite para buscar pacientes"}
+                      </CommandEmpty>
+                    ) : (
+                      <CommandGroup>
+                        {patients.map((patient) => (
+                          <button
+                            key={patient.id}
+                            onClick={() => handleSelectPatient(patient)}
+                            className="w-full flex items-start gap-2 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm relative select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 outline-none"
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4 mt-1",
+                                selectedPatient?.id === patient.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">{patient.nome}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
