@@ -15,6 +15,7 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Interfaces e Tipos
 interface Sessao {
@@ -102,6 +103,8 @@ export default function FichasPresencaPage() {
 
   // Estados para filtros
   const [statusFilter, setStatusFilter] = useState<string>('pendente');
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const { toast } = useToast();
 
@@ -280,6 +283,128 @@ export default function FichasPresencaPage() {
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload-pdf`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Falha ao fazer upload dos arquivos');
+      }
+
+      const results = await response.json();
+      
+      // Verifica se algum arquivo teve erro
+      const errors = results.filter(result => result.status === 'error');
+      if (errors.length > 0) {
+        throw new Error(errors[0].message || 'Falha ao processar alguns arquivos');
+      }
+
+      toast({
+        title: "Sucesso",
+        description: `${results.length} arquivo(s) enviado(s) e processado(s) com sucesso`,
+      });
+
+      fetchFichas();
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Falha ao enviar os arquivos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleExportExcel = () => {
+    try {
+      const exportData = fichas.map(ficha => ({
+        'Código Ficha': ficha.codigo_ficha,
+        'Paciente': ficha.paciente_nome,
+        'Carteirinha': ficha.paciente_carteirinha,
+        'Número Guia': ficha.numero_guia,
+        'Data Cadastro': ficha.created_at,
+        'Sessões Totais': ficha.sessoes?.length || 0,
+        'Sessões Conferidas': ficha.sessoes?.filter(s => s.status === 'conferida').length || 0,
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Fichas de Presença');
+
+      const fileName = `fichas_presenca_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast({
+        title: "Sucesso",
+        description: "Arquivo Excel gerado com sucesso",
+      });
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao gerar arquivo Excel",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveSessao = async () => {
+    if (!selectedSessao || !editedSessao) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessoes/${selectedSessao.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editedSessao),
+      });
+
+      if (!response.ok) throw new Error('Falha ao atualizar sessão');
+
+      const updatedSessao = await response.json();
+
+      // Atualiza o estado local
+      if (selectedFicha) {
+        const updatedSessoes = selectedFicha.sessoes?.map(s =>
+          s.id === selectedSessao.id ? { ...s, ...updatedSessao.data } : s
+        );
+        setSelectedFicha({
+          ...selectedFicha,
+          sessoes: updatedSessoes
+        });
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Sessão atualizada com sucesso",
+      });
+      setShowEditSessaoDialog(false);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar sessão",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Definição das colunas da tabela
   const columns: Column<FichaPresenca>[] = [
     {
@@ -358,7 +483,10 @@ export default function FichasPresencaPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedFicha(item)}
+            onClick={() => {
+              setSelectedFicha(item);
+              setShowSessoesDialog(true);
+            }}
             title="Ver Sessões"
           >
             <FiEye className="w-4 h-4 text-blue-600" />
@@ -444,9 +572,19 @@ export default function FichasPresencaPage() {
               variant="outline"
               onClick={() => document.getElementById('fileInput')?.click()}
               className="gap-2"
+              disabled={isUploading}
             >
-              <FiUpload className="h-4 w-4" />
-              Upload PDF
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#8B4513]" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <FiUpload className="h-4 w-4" />
+                  Upload PDF
+                </>
+              )}
             </Button>
             <input
               id="fileInput"
@@ -615,6 +753,162 @@ export default function FichasPresencaPage() {
             </Button>
             <Button onClick={confirmarSessao}>
               Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSessoesDialog} onOpenChange={setShowSessoesDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Sessões da Ficha {selectedFicha?.codigo_ficha}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="rounded-md border">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="p-2 text-left">Data</th>
+                    <th className="p-2 text-left">Tipo Terapia</th>
+                    <th className="p-2 text-left">Profissional</th>
+                    <th className="p-2 text-center">Assinatura</th>
+                    <th className="p-2 text-center">Status</th>
+                    <th className="p-2 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedFicha?.sessoes?.map((sessao) => (
+                    <tr key={sessao.id} className="border-b">
+                      <td className="p-2">{formatDate(sessao.data_sessao)}</td>
+                      <td className="p-2">{sessao.tipo_terapia || '-'}</td>
+                      <td className="p-2">{sessao.profissional_executante || '-'}</td>
+                      <td className="p-2 text-center">
+                        {sessao.possui_assinatura ? (
+                          <FiCheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                        ) : (
+                          <FiX className="w-4 h-4 text-red-500 mx-auto" />
+                        )}
+                      </td>
+                      <td className="p-2 text-center">
+                        <span className={cn(
+                          "px-2 py-1 rounded-full text-xs",
+                          sessao.status === 'conferida' ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                        )}>
+                          {sessao.status}
+                        </span>
+                      </td>
+                      <td className="p-2 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleConferirSessao(sessao)}
+                            disabled={sessao.status === 'conferida'}
+                            title="Conferir Sessão"
+                          >
+                            <FiCheck className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedSessao(sessao);
+                              setEditedSessao({ ...sessao });
+                              setShowEditSessaoDialog(true);
+                            }}
+                            title="Editar Sessão"
+                          >
+                            <FiEdit className="w-4 h-4 text-[#b49d6b]" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditSessaoDialog} onOpenChange={setShowEditSessaoDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Sessão</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Data da Sessão</Label>
+              <Input
+                type="date"
+                value={editedSessao.data_sessao?.split('T')[0] || ''}
+                onChange={(e) => setEditedSessao({
+                  ...editedSessao,
+                  data_sessao: e.target.value
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Tipo de Terapia</Label>
+              <Input
+                value={editedSessao.tipo_terapia || ''}
+                onChange={(e) => setEditedSessao({
+                  ...editedSessao,
+                  tipo_terapia: e.target.value
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Profissional Executante</Label>
+              <Input
+                value={editedSessao.profissional_executante || ''}
+                onChange={(e) => setEditedSessao({
+                  ...editedSessao,
+                  profissional_executante: e.target.value
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Valor da Sessão</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editedSessao.valor_sessao || ''}
+                onChange={(e) => setEditedSessao({
+                  ...editedSessao,
+                  valor_sessao: parseFloat(e.target.value)
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Observações</Label>
+              <textarea
+                className="min-h-[80px] rounded-md border border-input bg-background px-3 py-2"
+                value={editedSessao.observacoes_sessao || ''}
+                onChange={(e) => setEditedSessao({
+                  ...editedSessao,
+                  observacoes_sessao: e.target.value
+                })}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="possui_assinatura"
+                checked={editedSessao.possui_assinatura || false}
+                onCheckedChange={(checked) => setEditedSessao({
+                  ...editedSessao,
+                  possui_assinatura: checked as boolean
+                })}
+              />
+              <Label htmlFor="possui_assinatura">Possui Assinatura</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditSessaoDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveSessao}>
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
