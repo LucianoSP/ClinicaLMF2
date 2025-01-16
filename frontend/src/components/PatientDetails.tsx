@@ -337,60 +337,76 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
           </div>
         </div>
 
-        {/* Stats Cards - Moved here */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-lg border p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Carteirinhas</h3>
-                <p className="text-2xl font-bold mt-1">{stats.carteirinhas_ativas}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  De {stats.total_carteirinhas} total
-                </p>
-              </div>
-              <CreditCard className="text-muted-foreground h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Guias</h3>
-                <p className="text-2xl font-bold mt-1">{stats.guias_ativas}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  De {stats.total_guias} total
-                </p>
-              </div>
-              <FileText className="text-muted-foreground h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Sessões</h3>
-                <p className="text-2xl font-bold mt-1">{stats.sessoes_executadas}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {stats.sessoes_autorizadas} autorizadas ({stats.taxa_execucao}%)
-                </p>
-              </div>
-              <Activity className="text-muted-foreground h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Divergências</h3>
-                <p className="text-2xl font-bold mt-1">{stats.divergencias_pendentes || 0}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {stats.divergencias_pendentes === 1 ? 'Divergência pendente' : 'Divergências pendentes'}
-                </p>
-              </div>
-              <AlertTriangle className={`h-5 w-5 ${stats.divergencias_pendentes > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
-            </div>
-          </div>
+        {/* Stats Cards */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  {/* Carteirinhas */}
+  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
+    <CardContent className="p-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700">Carteirinhas</h3>
+          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.carteirinhas_ativas}</p>
+          <p className="text-xs text-blue-600/80 mt-0.5">
+            De {stats.total_carteirinhas} total
+          </p>
         </div>
+        <CreditCard className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* Guias */}
+  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
+    <CardContent className="p-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700">Guias</h3>
+          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.guias_ativas}</p>
+          <p className="text-xs text-blue-600/80 mt-0.5">
+            De {stats.total_guias} total
+          </p>
+        </div>
+        <FileText className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* Sessões */}
+  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
+    <CardContent className="p-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700">Sessões</h3>
+          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.sessoes_executadas}</p>
+          <p className="text-xs text-blue-600/80 mt-0.5">
+            {stats.sessoes_autorizadas} autorizadas ({stats.taxa_execucao}%)
+          </p>
+        </div>
+        <Activity className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* Divergências */}
+  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
+    <CardContent className="p-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700">Divergências</h3>
+          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.divergencias_pendentes || 0}</p>
+          <p className="text-xs text-blue-600/80 mt-0.5">
+            {stats.divergencias_pendentes === 1 ? 'Divergência pendente' : 'Divergências pendentes'}
+          </p>
+        </div>
+        <AlertTriangle 
+          className={`h-5 w-5 group-hover:scale-110 transition-transform duration-300 ${
+            stats.divergencias_pendentes > 0 ? 'text-red-500' : 'text-blue-500'
+          }`} 
+        />
+      </div>
+    </CardContent>
+  </Card>
+</div>
 
         {/* Plano de Saúde */}
         {carteirinha?.plano_saude && (
