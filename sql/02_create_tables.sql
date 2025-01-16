@@ -124,7 +124,6 @@ CREATE TABLE IF NOT EXISTS execucoes (
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
-
 -- Divergências
 CREATE TABLE IF NOT EXISTS divergencias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -144,6 +143,7 @@ CREATE TABLE IF NOT EXISTS divergencias (
     detalhes jsonb,
     ficha_id uuid REFERENCES fichas_presenca(id),
     execucao_id uuid REFERENCES execucoes(id),
+    sessao_id uuid REFERENCES sessoes(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );

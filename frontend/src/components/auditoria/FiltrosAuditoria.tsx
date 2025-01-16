@@ -29,6 +29,7 @@ const tiposDivergencia = [
   { value: 'data_divergente', label: 'Data Divergente' },
   { value: 'guia_vencida', label: 'Guia Vencida' },
   { value: 'quantidade_excedida', label: 'Quantidade Excedida' },
+  { value: 'duplicidade', label: 'Duplicidade' },
 ] as const;
 
 const statusOptions = [

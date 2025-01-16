@@ -3,7 +3,6 @@ import { Badge } from "./badge";
 interface DivergenciaBadgeProps {
   tipo: string;
 }
-
 export const DivergenciaBadge = ({ tipo }: DivergenciaBadgeProps) => {
   const tipos: { [key: string]: { label: string; className: string } } = {
     'execucao_sem_ficha': { 
@@ -29,6 +28,10 @@ export const DivergenciaBadge = ({ tipo }: DivergenciaBadgeProps) => {
     'assinatura_ausente': { 
       label: 'Assinatura Ausente', 
       className: 'bg-white border border-pink-200 text-pink-700' 
+    },
+    'duplicidade': {
+      label: 'Duplicidade de Sessão',
+      className: 'bg-white border border-teal-200 text-teal-700'
     },
   };
 

@@ -29,9 +29,12 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
             </Button>
           </div>
         </DialogHeader>
-
         <div className="space-y-6 py-4">
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-4 gap-6">
+            <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <h4 className="text-sm font-medium text-gray-500">ID da Sessão</h4>
+              <p className="mt-1 text-gray-800 font-medium">{divergencia.sessao_id}</p>
+            </div>
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Guia</h4>
               <p className="mt-1 text-gray-800 font-medium">{divergencia.numero_guia}</p>

@@ -9,5 +9,6 @@ CREATE TYPE tipo_divergencia AS ENUM (
     'data_divergente',
     'guia_vencida',
     'quantidade_excedida',
-    'falta_data_execucao'
+    'falta_data_execucao',
+    'duplicidade'
 );

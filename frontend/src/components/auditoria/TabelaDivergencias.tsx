@@ -22,6 +22,10 @@ export function TabelaDivergencias({ divergencias, onMarcarResolvido, loading }:
       label: 'Guia',
     },
     {
+      key: 'sessao_id',
+      label: 'Sessão ID',
+    },
+    {
       key: 'codigo_ficha',
       label: 'Código Ficha',
       render: (value) => value || '-'

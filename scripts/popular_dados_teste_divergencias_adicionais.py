@@ -7,12 +7,19 @@ import random
 
 # Configuração inicial
 load_dotenv()
+
+# Valid status values for divergências:
+# - pendente
+# - em_analise
+# - resolvida
+# - cancelada
 supabase: Client = create_client(os.getenv("SUPABASE_URL"),
-                                os.getenv("SUPABASE_KEY"))
+                                 os.getenv("SUPABASE_KEY"))
 hoje = datetime.now()
 
 PACIENTE_ID = "e3649804-27b2-4601-b070-5386015c14b8"
 PACIENTE_NOME = "Arthur Antunes Coimbra"
+
 
 def criar_carteirinha_adicional():
     """Cria uma nova carteirinha para o paciente existente"""
@@ -31,18 +38,20 @@ def criar_carteirinha_adicional():
             "numero_carteirinha": "CART_ZICO_002",
             "titular": False
         }
-        carteirinha_result = supabase.table("carteirinhas").insert(carteirinha).execute()
+        carteirinha_result = supabase.table("carteirinhas").insert(
+            carteirinha).execute()
         return carteirinha_result.data[0]
 
     except Exception as e:
         print(f"Erro ao criar carteirinha adicional: {str(e)}")
         raise e
 
+
 def criar_guias_e_fichas(carteirinha, usuario_id):
     """Cria guias e fichas com diferentes cenários de divergência"""
     try:
         guias_criadas = []
-        
+
         # Criar 5 guias com quantidade de sessões variando de 4 a 10
         for i in range(5):
             guia = {
@@ -62,26 +71,36 @@ def criar_guias_e_fichas(carteirinha, usuario_id):
         # Criar 10 fichas de presença com diferentes cenários
         for i in range(10):
             guia = random.choice(guias_criadas)
-            
+
             ficha = {
-                "id": str(uuid.uuid4()),
-                "codigo_ficha": f"FICHA_ZICO_{i+1}",
-                "numero_guia": guia["numero_guia"],
-                "paciente_nome": PACIENTE_NOME,
-                "paciente_carteirinha": carteirinha["numero_carteirinha"],
-                "data_atendimento": (hoje - timedelta(days=random.randint(0, 10))).date().isoformat()
+                "id":
+                str(uuid.uuid4()),
+                "codigo_ficha":
+                f"FICHA_ZICO_{i+1}",
+                "numero_guia":
+                guia["numero_guia"],
+                "paciente_nome":
+                PACIENTE_NOME,
+                "paciente_carteirinha":
+                carteirinha["numero_carteirinha"],
+                "data_atendimento":
+                (hoje -
+                 timedelta(days=random.randint(0, 10))).date().isoformat()
             }
-            ficha_result = supabase.table("fichas_presenca").insert(ficha).execute()
-            
+            ficha_result = supabase.table("fichas_presenca").insert(
+                ficha).execute()
+
             # Criar sessões para cada ficha (2-4 sessões por ficha)
             num_sessoes = random.randint(2, 4)
             for j in range(num_sessoes):
-                data_sessao = (hoje - timedelta(days=random.randint(0, 5))).date()
-                
+                data_sessao = (hoje -
+                               timedelta(days=random.randint(0, 5))).date()
+
                 # Criar diferentes cenários de divergência
                 possui_assinatura = random.choice([True, False])
-                data_execucao = data_sessao + timedelta(days=random.randint(-2, 2)) if random.random() < 0.3 else data_sessao
-                
+                data_execucao = data_sessao + timedelta(days=random.randint(
+                    -2, 2)) if random.random() < 0.3 else data_sessao
+
                 sessao = {
                     "id": str(uuid.uuid4()),
                     "ficha_presenca_id": ficha_result.data[0]["id"],
@@ -92,7 +111,8 @@ def criar_guias_e_fichas(carteirinha, usuario_id):
                     "data_execucao": data_execucao.isoformat(),
                     "executado_por": usuario_id
                 }
-                sessao_result = supabase.table("sessoes").insert(sessao).execute()
+                sessao_result = supabase.table("sessoes").insert(
+                    sessao).execute()
 
                 # Criar execução (com chance de duplicidade ou ausência)
                 if random.random() > 0.2:  # 80% de chance de ter execução
@@ -102,7 +122,8 @@ def criar_guias_e_fichas(carteirinha, usuario_id):
                         "sessao_id": sessao_result.data[0]["id"],
                         "data_execucao": data_execucao.isoformat(),
                         "paciente_nome": PACIENTE_NOME,
-                        "paciente_carteirinha": carteirinha["numero_carteirinha"],
+                        "paciente_carteirinha":
+                        carteirinha["numero_carteirinha"],
                         "numero_guia": guia["numero_guia"],
                         "codigo_ficha": ficha["codigo_ficha"],
                         "usuario_executante": usuario_id
@@ -118,6 +139,7 @@ def criar_guias_e_fichas(carteirinha, usuario_id):
         print(f"Erro ao criar guias e fichas: {str(e)}")
         raise e
 
+
 if __name__ == "__main__":
     try:
         # Buscar um usuário existente
@@ -130,6 +152,6 @@ if __name__ == "__main__":
         carteirinha = criar_carteirinha_adicional()
         criar_guias_e_fichas(carteirinha, usuario_id)
         print("Dados de teste adicionais criados com sucesso!")
-        
+
     except Exception as e:
-        print(f"Erro ao executar script: {str(e)}") 
+        print(f"Erro ao executar script: {str(e)}")

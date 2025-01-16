@@ -8,7 +8,6 @@ interface BadgeStatusProps {
     [key: string]: string | undefined;
   };
 }
-
 export function BadgeStatus({ value, colorScheme = {} }: BadgeStatusProps) {
   const defaultColors = {
     true: "bg-green-100 text-green-800 border-green-200",
@@ -19,6 +18,7 @@ export function BadgeStatus({ value, colorScheme = {} }: BadgeStatusProps) {
     "execucao_sem_ficha": "bg-red-100 text-red-800 border-red-200",
     "ficha_sem_execucao": "bg-orange-100 text-orange-800 border-orange-200",
     "ficha_sem_assinatura": "bg-purple-100 text-purple-800 border-purple-200",
+    "duplicidade": "bg-red-100 text-red-800 border-red-200",
     ...colorScheme,
   };
 

@@ -17,3 +17,17 @@ export function formatarData(data: string | Date | undefined, incluirHora: boole
     return '-';
   }
 }
+
+export type TipoDivergencia = 'ausencia' | 'duplicidade' | 'horario' | 'profissional';
+
+export function getDivergenciaLabel(tipo: TipoDivergencia): string {
+  const labels: Record<TipoDivergencia, string> = {
+    ausencia: 'Ausência de execução',
+    duplicidade: 'Execução duplicada',
+    horario: 'Divergência de horário',
+    profissional: 'Divergência de profissional'
+  };
+
+  return labels[tipo] || tipo;
+}
+

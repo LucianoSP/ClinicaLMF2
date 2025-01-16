@@ -252,11 +252,22 @@ CREATE TABLE auditoria_execucoes (
    - Campo chave: numero_guia
    - Campos verificados: guias.data_validade, execucoes.data_execucao
 
+7. **Duplicidade** (`duplicidade`)
+   - Descrição: Sessão executada mais de uma vez
+   - Campo chave: codigo_ficha + data_sessao + sessao_numero
+   - Campos verificados: execucoes.codigo_ficha, execucoes.data_execucao, assinaturas_sessoes.sessao_numero
+
+
 ### 4.2 Status das Divergências (status_divergencia)
-- `pendente`: Divergência identificada
-- `em_analise`: Em processo de verificação
-- `resolvida`: Divergência corrigida
-- `cancelada`: Divergência desconsiderada
+O campo `status` na tabela `divergencias` utiliza o tipo ENUM `status_divergencia` com os seguintes valores válidos:
+
+- `pendente`: Estado inicial quando uma divergência é identificada pelo sistema. Indica que nenhuma ação foi tomada ainda.
+
+- `em_analise`: Indica que um auditor está ativamente investigando e verificando a divergência.
+
+- `resolvida`: A divergência foi verificada e as correções necessárias foram realizadas. Este é um estado final.
+
+- `cancelada`: A divergência foi analisada e determinada como não procedente ou não requer ação. Este é um estado final.
 
 ### 4.3 Status das Guias (status_guia)
 - `pendente`: Aguardando início

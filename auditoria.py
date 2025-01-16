@@ -242,7 +242,7 @@ def registrar_divergencia_detalhada(divergencia: Dict) -> bool:
         # Campos opcionais que não podem ser null
         campos_opcionais = [
             "data_execucao", "data_atendimento", "codigo_ficha", "carteirinha",
-            "detalhes", "ficha_id", "execucao_id"
+            "detalhes", "ficha_id", "execucao_id", "sessao_id"
         ]
 
         for campo in campos_opcionais:
@@ -306,27 +306,31 @@ def migrar_divergencias_assinatura():
     except Exception as e:
         logging.error(f"Erro ao migrar divergências: {e}")
         return False
-
-
 def verificar_duplicidade_execucoes(execucoes: List[Dict]) -> List[Dict]:
     """
     Verifica execuções duplicadas baseado em critérios específicos.
     Uma execução é considerada duplicada quando:
     - Mesmo código de ficha
+    - Mesma sessão
     - Enviada/processada mais de uma vez
     """
     duplicatas = {}
     for exec in execucoes:
         codigo_ficha = exec.get("codigo_ficha")
-        if not codigo_ficha:  # Ignora execuções sem código de ficha
+        sessao_id = exec.get("sessao_id")
+        
+        if not codigo_ficha or not sessao_id:  # Ignora execuções sem código de ficha ou sessão
             continue
             
-        if codigo_ficha in duplicatas:
-            duplicatas[codigo_ficha].append(exec)
+        # Criar chave composta de ficha e sessão
+        chave = f"{codigo_ficha}_{sessao_id}"
+        
+        if chave in duplicatas:
+            duplicatas[chave].append(exec)
         else:
-            duplicatas[codigo_ficha] = [exec]
+            duplicatas[chave] = [exec]
     
-    # Retorna apenas os grupos que têm mais de uma execução do mesmo código_ficha
+    # Retorna apenas os grupos que têm mais de uma execução da mesma sessão na mesma ficha
     duplicados = [execs for execs in duplicatas.values() if len(execs) > 1]
     
     # Log para debug
@@ -335,6 +339,7 @@ def verificar_duplicidade_execucoes(execucoes: List[Dict]) -> List[Dict]:
         logging.info(f"""
             Duplicidade encontrada:
             Código Ficha: {primeira.get('codigo_ficha')}
+            Sessão ID: {primeira.get('sessao_id')}
             Guia: {primeira.get('numero_guia')}
             Carteirinha: {primeira.get('carteirinha')}
             Total de duplicatas: {len(grupo)}
@@ -633,7 +638,8 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None,
                 "numero_guia": primeira_exec["numero_guia"],
                 "tipo_divergencia": "duplicidade",
                 "descricao": (
-                    f"Ficha {primeira_exec['codigo_ficha']} processada {len(grupo_duplicado)} vezes"
+                    f"Sessão {primeira_exec['sessao_id']} da ficha {primeira_exec['codigo_ficha']} "
+                    f"processada {len(grupo_duplicado)} vezes"
                 ),
                 "paciente_nome": primeira_exec["paciente_nome"],
                 "codigo_ficha": primeira_exec.get("codigo_ficha"),
@@ -644,7 +650,8 @@ def realizar_auditoria_fichas_execucoes(data_inicial: str = None,
                 "detalhes": {
                     "total_duplicatas": len(grupo_duplicado),
                     "execucoes_ids": [exec["id"] for exec in grupo_duplicado],
-                    "datas_execucao": [exec["data_execucao"] for exec in grupo_duplicado]
+                    "datas_execucao": [exec["data_execucao"] for exec in grupo_duplicado],
+                    "sessao_id": primeira_exec.get("sessao_id")
                 }
             })
 

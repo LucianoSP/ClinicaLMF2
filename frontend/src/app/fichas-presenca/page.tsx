@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -95,6 +96,8 @@ export default function FichasPresencaPage() {
   const [showSessoesDialog, setShowSessoesDialog] = useState(false);
   const [showEditSessaoDialog, setShowEditSessaoDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showDeleteSessaoDialog, setShowDeleteSessaoDialog] = useState(false);
+  const [sessaoParaExcluir, setSessaoParaExcluir] = useState<Sessao | null>(null);
 
   // Estados para seleção e edição
   const [selectedFicha, setSelectedFicha] = useState<FichaPresenca | null>(null);
@@ -825,6 +828,17 @@ export default function FichasPresencaPage() {
                           >
                             <FiEdit className="w-4 h-4 text-[#b49d6b]" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSessaoParaExcluir(sessao);
+                              setShowDeleteSessaoDialog(true);
+                            }}
+                            title="Excluir Sessão"
+                          >
+                            <FiTrash2 className="w-4 h-4 text-red-500" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -914,6 +928,54 @@ export default function FichasPresencaPage() {
             </Button>
             <Button onClick={handleSaveSessao}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteSessaoDialog} onOpenChange={setShowDeleteSessaoDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão da Sessão</DialogTitle>
+            <DialogDescription>
+              Você está prestes a excluir a sessão do dia {sessaoParaExcluir ? formatDate(sessaoParaExcluir.data_sessao) : ''}.
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteSessaoDialog(false);
+                setSessaoParaExcluir(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!sessaoParaExcluir) return;
+                try {
+                  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessoes/${sessaoParaExcluir.id}`, {
+                    method: 'DELETE',
+                  });
+                  if (!response.ok) throw new Error('Falha ao excluir sessão');
+                  if (selectedFicha && selectedFicha.sessoes) {
+                    const updatedSessoes = selectedFicha.sessoes.filter(s => s.id !== sessaoParaExcluir.id);
+                    setSelectedFicha({ ...selectedFicha, sessoes: updatedSessoes });
+                  }
+                  toast({ title: "Sucesso", description: "Sessão excluída com sucesso" });
+                  fetchFichas(); // Atualiza a lista principal de fichas
+                } catch (error) {
+                  toast({ title: "Erro", description: "Falha ao excluir a sessão", variant: "destructive" });
+                } finally {
+                  setShowDeleteSessaoDialog(false);
+                  setSessaoParaExcluir(null);
+                }
+              }}
+            >
+              Excluir
             </Button>
           </DialogFooter>
         </DialogContent>
