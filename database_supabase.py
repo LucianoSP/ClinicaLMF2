@@ -384,6 +384,14 @@ def limpar_banco() -> None:
 def salvar_ficha_presenca(info: Dict) -> Optional[str]:
     """Salva as informações da ficha de presença e suas sessões no Supabase."""
     try:
+        # Validar dados obrigatórios
+        if not all([info.get("codigo_ficha"), 
+                    info.get("numero_guia"),
+                    info.get("paciente_nome"),
+                    info.get("paciente_carteirinha")]):
+            logger.error("Dados obrigatórios faltando")
+            return None
+
         # Verificar se já existe uma ficha com o mesmo código
         existing = (
             supabase.table("fichas_presenca")
@@ -406,6 +414,18 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
             }
             
             supabase.table("fichas_presenca").update(dados_ficha).eq("id", ficha_id).execute()
+
+            # Atualizar sessões existentes
+            if info.get("sessoes"):
+                for sessao in info["sessoes"]:
+                    sessao_data = {
+                        "ficha_presenca_id": ficha_id,
+                        "data_sessao": sessao.get("data_sessao"),
+                        "possui_assinatura": sessao.get("possui_assinatura", False),
+                        "status": "pendente"
+                    }
+                    supabase.table("sessoes").upsert(sessao_data).execute()
+
             return ficha_id
             
         else:
@@ -426,6 +446,37 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
             response = supabase.table("fichas_presenca").insert(dados_ficha).execute()
             if not response.data:
                 return None
+
+            # Criar sessões para a nova ficha
+            if info.get("sessoes"):
+                for sessao in info["sessoes"]:
+                    sessao_id = str(uuid.uuid4())
+                    sessao_data = {
+                        "id": sessao_id,
+                        "ficha_presenca_id": ficha_id,
+                        "data_sessao": sessao.get("data_sessao"),
+                        "possui_assinatura": sessao.get("possui_assinatura", False),
+                        "status": "pendente"
+                    }
+
+                    try:
+                        # Criar sessão
+                        supabase.table("sessoes").insert(sessao_data).execute()
+
+                        # Criar execução correspondente
+                        execucao_data = {
+                            "id": str(uuid.uuid4()),
+                            "sessao_id": sessao_id,
+                            "data_execucao": sessao.get("data_sessao"),
+                            "paciente_nome": info["paciente_nome"].upper(),
+                            "paciente_carteirinha": info["paciente_carteirinha"],
+                            "numero_guia": info["numero_guia"],
+                            "codigo_ficha": info["codigo_ficha"]
+                        }
+                        supabase.table("execucoes").insert(execucao_data).execute()
+                    except Exception as e:
+                        logger.error(f"Erro ao criar sessão/execução: {e}")
+                        continue
                 
             return ficha_id
 
@@ -436,7 +487,7 @@ def salvar_ficha_presenca(info: Dict) -> Optional[str]:
 
 def listar_fichas_presenca(
     limit: int = 100, 
-    offset: int = 0, 
+    offset: int = 0,
     search: Optional[str] = None,  # Changed from paciente_nome to search
     status: Optional[str] = None,
     order: Optional[str] = None  # Added order parameter

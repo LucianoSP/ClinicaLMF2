@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatarData } from "@/lib/utils";
+import { parse } from 'date-fns';
 import { DivergenciaBadge } from "../ui/divergencia-badge";
 import { StatusBadge } from "../ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
           <div className="grid grid-cols-4 gap-6">
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">ID da Sessão</h4>
-              <p className="mt-1 text-gray-800 font-medium">{divergencia.sessao_id}</p>
+              <p className="mt-1 text-gray-800 font-medium">{divergencia.sessao_id || divergencia.detalhes?.sessao_id || '-'}</p>
             </div>
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Guia</h4>
@@ -53,23 +54,52 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Data do Atendimento</h4>
               <p className="mt-1 text-gray-800 font-medium">
-                {formatarData(new Date(divergencia.data_atendimento))}
+                {(() => {
+                  if (!divergencia.data_atendimento) return '-';
+                  try {
+                    const date = divergencia.data_atendimento.includes('/') 
+                      ? parse(divergencia.data_atendimento, 'dd/MM/yyyy', new Date()) 
+                      : new Date(divergencia.data_atendimento);
+                    return formatarData(date);
+                  } catch {
+                    return '-';
+                  }
+                })()} 
               </p>
             </div>
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Data da Execução</h4>
               <p className="mt-1 text-gray-800 font-medium">
-                {formatarData(new Date(divergencia.data_execucao))}
+                {(() => {
+                  if (!divergencia.data_execucao) return '-';
+                  try {
+                    const date = divergencia.data_execucao.includes('/') 
+                      ? parse(divergencia.data_execucao, 'dd/MM/yyyy', new Date()) 
+                      : new Date(divergencia.data_execucao);
+                    return formatarData(date);
+                  } catch {
+                    return '-';
+                  }
+                })()} 
               </p>
             </div>
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Data de Identificação</h4>
               <p className="mt-1 text-gray-800 font-medium">
-                {formatarData(new Date(divergencia.data_identificacao))}
+                {(() => {
+                  if (!divergencia.data_identificacao) return '-';
+                  try {
+                    const date = divergencia.data_identificacao.includes('/') 
+                      ? parse(divergencia.data_identificacao, 'dd/MM/yyyy', new Date()) 
+                      : new Date(divergencia.data_identificacao);
+                    return formatarData(date);
+                  } catch {
+                    return '-';
+                  }
+                })()} 
               </p>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-6">
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Tipo de Divergência</h4>

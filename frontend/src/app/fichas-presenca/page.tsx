@@ -52,6 +52,11 @@ interface FichaPresenca {
 
 interface EditedSessao extends Partial<Sessao> { }
 
+interface EditedFicha extends Partial<FichaPresenca> {
+  sessoes?: EditedSessao[];
+  data_atendimento?: string;
+}
+
 type Column<T> = {
   key: keyof T;
   label: string;
@@ -101,11 +106,10 @@ export default function FichasPresencaPage() {
 
   // Estados para seleção e edição
   const [selectedFicha, setSelectedFicha] = useState<FichaPresenca | null>(null);
-  const [editedFicha, setEditedFicha] = useState<Partial<FichaPresenca>>({});
+  const [editedFicha, setEditedFicha] = useState<EditedFicha>({});
   const [selectedSessao, setSelectedSessao] = useState<Sessao | null>(null);
   const [editedSessao, setEditedSessao] = useState<EditedSessao>({});
   const [sessaoParaConferir, setSessaoParaConferir] = useState<{ id: string, ficha_presenca_id: string } | null>(null);
-
   // Estados para filtros
   const [statusFilter, setStatusFilter] = useState<string>('pendente');
 
@@ -192,15 +196,27 @@ export default function FichasPresencaPage() {
       setSelectedFicha(null);
     }
   };
-
-  // Handlers para manipulação de fichas e sessões
   const handleSave = async () => {
     if (!selectedFicha || !editedFicha) return;
 
     try {
+      // Prepare session data
+      const sessaoData = editedFicha.sessoes?.[0] || {};
+      
+      // Format date for session
+      const formattedDate = editedFicha.data_atendimento ? 
+        new Date(editedFicha.data_atendimento).toISOString() : 
+        selectedFicha.created_at;
+
       const payload = {
         ...editedFicha,
-        data_atendimento: editedFicha.data_atendimento || selectedFicha.created_at
+        data_atendimento: formattedDate,
+        sessoes: [{
+          ...sessaoData,
+          data_sessao: formattedDate,
+          ficha_presenca_id: selectedFicha.id,
+          status: 'pendente'
+        }]
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${selectedFicha.id}`, {
@@ -688,46 +704,85 @@ export default function FichasPresencaPage() {
             <DialogTitle>Editar Ficha</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Código da Ficha</Label>
-              <Input
-                value={editedFicha.codigo_ficha || ''}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  codigo_ficha: e.target.value
-                })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Número da Guia</Label>
-              <Input
-                value={editedFicha.numero_guia || ''}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  numero_guia: e.target.value
-                })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Nome do Paciente</Label>
-              <Input
-                value={editedFicha.paciente_nome || ''}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  paciente_nome: e.target.value
-                })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Carteirinha</Label>
-              <Input
-                value={editedFicha.paciente_carteirinha || ''}
-                onChange={(e) => setEditedFicha({
-                  ...editedFicha,
-                  paciente_carteirinha: e.target.value
-                })}
-              />
-            </div>
+             <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-4">
+                 <div className="grid gap-2">
+                   <Label>Código da Ficha</Label>
+                   <Input
+                     value={editedFicha.codigo_ficha || ''}
+                     onChange={(e) => setEditedFicha({
+                       ...editedFicha,
+                       codigo_ficha: e.target.value
+                     })}
+                   />
+                 </div>
+                 <div className="grid gap-2">
+                   <Label>Número da Guia</Label>
+                   <Input
+                     value={editedFicha.numero_guia || ''}
+                     onChange={(e) => setEditedFicha({
+                       ...editedFicha,
+                       numero_guia: e.target.value
+                     })}
+                   />
+                 </div>
+                 <div className="grid gap-2">
+                   <Label>Nome do Paciente</Label>
+                   <Input
+                     value={editedFicha.paciente_nome || ''}
+                     onChange={(e) => setEditedFicha({
+                       ...editedFicha,
+                       paciente_nome: e.target.value
+                     })}
+                   />
+                 </div>
+                 <div className="grid gap-2">
+                   <Label>Carteirinha</Label>
+                   <Input
+                     value={editedFicha.paciente_carteirinha || ''}
+                     onChange={(e) => setEditedFicha({
+                       ...editedFicha,
+                       paciente_carteirinha: e.target.value
+                     })}
+                   />
+                 </div>
+               </div>
+               <div className="space-y-4">
+                 <div className="grid gap-2">
+                   <Label>Data da Sessão</Label>
+                   <Input
+                     type="date"
+                     value={editedFicha.data_atendimento?.split('T')[0] || ''}
+                     onChange={(e) => setEditedFicha({
+                       ...editedFicha,
+                       data_atendimento: e.target.value
+                     })}
+                   />
+                 </div>
+                 <div className="grid gap-2">
+                   <Label>Tipo de Terapia</Label>
+                   <Input
+                     value={editedFicha.sessoes?.[0]?.tipo_terapia || ''}
+                     onChange={(e) => {
+                       const updatedSessoes = editedFicha.sessoes ? [...editedFicha.sessoes] : [{}];
+                       updatedSessoes[0] = { ...updatedSessoes[0], tipo_terapia: e.target.value };
+                       setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
+                     }}
+                   />
+                 </div>
+                 <div className="grid gap-2">
+                   <Label>Profissional Executante</Label>
+                   <Input
+                     value={editedFicha.sessoes?.[0]?.profissional_executante || ''}
+                     onChange={(e) => {
+                       const updatedSessoes = editedFicha.sessoes ? [...editedFicha.sessoes] : [{}];
+                       updatedSessoes[0] = { ...updatedSessoes[0], profissional_executante: e.target.value };
+                       setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
+                     }}
+                   />
+                 </div>
+               </div>
+             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>

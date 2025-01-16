@@ -1,4 +1,5 @@
 import { formatarData } from "@/lib/utils";
+import { parse } from 'date-fns';
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { useState } from "react";
@@ -24,6 +25,10 @@ export function TabelaDivergencias({ divergencias, onMarcarResolvido, loading }:
     {
       key: 'sessao_id',
       label: 'Sessão ID',
+      render: (value, item) => {
+        const sessaoId = value || (item.detalhes?.sessao_id);
+        return sessaoId || '-';
+      }
     },
     {
       key: 'codigo_ficha',
@@ -37,12 +42,28 @@ export function TabelaDivergencias({ divergencias, onMarcarResolvido, loading }:
     {
       key: 'data_atendimento',
       label: 'Data Atendimento',
-      render: (value) => value ? formatarData(new Date(value)) : '-'
+      render: (value) => {
+        if (!value) return '-';
+        try {
+          const date = value.includes('/') ? parse(value, 'dd/MM/yyyy', new Date()) : new Date(value);
+          return formatarData(date);
+        } catch {
+          return '-';
+        }
+      }
     },
     {
       key: 'data_execucao',
       label: 'Data Execução',
-      render: (value) => value ? formatarData(new Date(value)) : '-'
+      render: (value) => {
+        if (!value) return '-';
+        try {
+          const date = value.includes('/') ? parse(value, 'dd/MM/yyyy', new Date()) : new Date(value);
+          return formatarData(date);
+        } catch {
+          return '-';
+        }
+      }
     },
     {
       key: 'tipo_divergencia',

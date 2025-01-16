@@ -110,7 +110,28 @@ CREATE TABLE fichas_presenca (
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 );
+
+#### `sessoes`
+```sql
+CREATE TABLE sessoes (
+    id uuid PRIMARY KEY,
+    ficha_presenca_id uuid REFERENCES fichas_presenca(id),
+    data_sessao date,
+    possui_assinatura boolean,
+    tipo_terapia text,
+    profissional_executante text,
+    valor_sessao numeric(10,2),
+    status text,
+    observacoes_sessao text,
+    executado boolean,
+    data_execucao date,
+    executado_por uuid,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
 ```
+
+A tabela `sessoes` armazena informações sobre cada sessão individual dentro de uma ficha de presença. Quando uma ficha é registrada, são criadas automaticamente as sessões correspondentes, que posteriormente são vinculadas às execuções.
 
 #### `assinaturas_sessoes`
 ```sql
@@ -253,21 +274,15 @@ CREATE TABLE auditoria_execucoes (
    - Campos verificados: guias.data_validade, execucoes.data_execucao
 
 7. **Duplicidade** (`duplicidade`)
-   - Descrição: Sessão executada mais de uma vez
-   - Campo chave: codigo_ficha + data_sessao + sessao_numero
-   - Campos verificados: execucoes.codigo_ficha, execucoes.data_execucao, assinaturas_sessoes.sessao_numero
-
+   - Descrição: Mesma sessão executada múltiplas vezes
+   - Campo chave: codigo_ficha + data_sessao
+   - Campos verificados: execucoes.codigo_ficha, execucoes.data_execucao, contagem de execucoes por sessao
 
 ### 4.2 Status das Divergências (status_divergencia)
-O campo `status` na tabela `divergencias` utiliza o tipo ENUM `status_divergencia` com os seguintes valores válidos:
-
-- `pendente`: Estado inicial quando uma divergência é identificada pelo sistema. Indica que nenhuma ação foi tomada ainda.
-
-- `em_analise`: Indica que um auditor está ativamente investigando e verificando a divergência.
-
-- `resolvida`: A divergência foi verificada e as correções necessárias foram realizadas. Este é um estado final.
-
-- `cancelada`: A divergência foi analisada e determinada como não procedente ou não requer ação. Este é um estado final.
+- `pendente`: Divergência identificada
+- `em_analise`: Em processo de verificação
+- `resolvida`: Divergência corrigida
+- `cancelada`: Divergência desconsiderada
 
 ### 4.3 Status das Guias (status_guia)
 - `pendente`: Aguardando início
@@ -280,6 +295,22 @@ O campo `status` na tabela `divergencias` utiliza o tipo ENUM `status_divergenci
 - `consulta`: Guia para avaliações e consultas
 
 ## 5. Estrutura do Sistema
+
+### 4.5 Fluxo de Dados entre Fichas, Sessões e Execuções
+
+O sistema segue um fluxo específico para gerenciar a relação entre fichas de presença, sessões e execuções:
+
+1. Quando uma nova `ficha_presenca` é registrada:
+   - São criadas automaticamente as entradas correspondentes na tabela `sessoes`
+   - Cada sessão é vinculada à ficha através do `ficha_presenca_id`
+   - O status inicial da sessão é 'pendente'
+
+2. Quando uma execução é registrada:
+   - O sistema localiza a sessão correspondente na tabela `sessoes`
+   - Cria uma entrada na tabela `execucoes` vinculada à sessão
+   - Atualiza o status da sessão para 'executado'
+   - Registra a data de execução e o usuário responsável
+
 
 ### 5.1 Organização dos Arquivos
 

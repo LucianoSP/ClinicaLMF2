@@ -202,11 +202,21 @@ class ExecucaoUpdate(BaseModel):
     guia_id: str
     possui_assinatura: bool
     codigo_ficha: str
-
+class Sessao(BaseModel):
+    data_sessao: str
+    tipo_terapia: str | None = None
+    profissional_executante: str | None = None
+    possui_assinatura: bool = False
+    valor_sessao: float | None = None
+    observacoes_sessao: str | None = None
+    status: str = 'pendente'
 
 class FichaPresenca(BaseModel):
     paciente_carteirinha: str
     paciente_nome: str
+    numero_guia: str
+    codigo_ficha: str
+    sessoes: List[Sessao] | None = None
     numero_guia: str
     codigo_ficha: str
     possui_assinatura: bool = False
@@ -641,15 +651,11 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
         }
 
 
-## Endpoints Fast API
 @app.post("/upload-pdf")
 async def upload_pdf(
     files: list[UploadFile] = File(description="Múltiplos arquivos PDF"),
 ):
-    """
-    Recebe um ou mais arquivos PDF, extrai informações e salva no banco de dados.
-    Para cada ficha, cria uma entrada na tabela fichas_presenca e suas respectivas sessões.
-    """
+    """Processa PDFs de fichas de presença e cria registros com sessões"""
     if not files:
         raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
 
@@ -709,7 +715,7 @@ async def upload_pdf(
             if arquivo_url:
                 result["uploaded_file"] = {"nome": novo_nome, "url": arquivo_url}
 
-            # Criar a ficha de presença
+            # Preparar dados da ficha e sessões
             ficha_data = {
                 "codigo_ficha": dados_guia["codigo_ficha"],
                 "numero_guia": primeira_linha["guia_id"],
@@ -717,41 +723,32 @@ async def upload_pdf(
                 "paciente_carteirinha": primeira_linha["paciente_carteirinha"],
                 "arquivo_digitalizado": arquivo_url,
                 "data_atendimento": primeira_linha["data_execucao"],
-                "status": "pendente"
+                "status": "pendente",
+                "sessoes": []
             }
+
+            # Criar sessões para cada registro
+            for registro in dados_guia["registros"]:
+                data_sessao = datetime.strptime(registro["data_execucao"], "%d/%m/%Y").strftime("%Y-%m-%d")
+                
+                sessao = {
+                    "data_sessao": data_sessao,
+                    "possui_assinatura": registro["possui_assinatura"],
+                    "status": "pendente",
+                    "tipo_terapia": None,
+                    "profissional_executante": None,
+                    "valor_sessao": None,
+                    "observacoes_sessao": None
+                }
+                
+                ficha_data["sessoes"].append(sessao)
 
             ficha_id = salvar_ficha_presenca(ficha_data)
             if not ficha_id:
                 raise Exception("Erro ao criar ficha de presença")
 
             result["ficha_id"] = ficha_id
-
-            # Criar todas as sessões associadas à ficha
-            for registro in dados_guia["registros"]:
-                # Converter a data do formato DD/MM/YYYY para YYYY-MM-DD
-                data_sessao = datetime.strptime(registro["data_execucao"], "%d/%m/%Y").strftime("%Y-%m-%d")
-                
-                sessao_id = str(uuid.uuid4())
-                sessao_data = {
-                    "id": sessao_id,
-                    "ficha_presenca_id": ficha_id,
-                    "data_sessao": data_sessao,  # Use a data convertida
-                    "possui_assinatura": registro["possui_assinatura"],
-                    "status": "pendente",
-                    "tipo_terapia": None,  # Pode ser atualizado posteriormente
-                    "profissional_executante": None,  # Pode ser atualizado posteriormente
-                    "valor_sessao": None  # Pode ser atualizado posteriormente
-                }
-                
-                try:
-                    response = supabase.table("sessoes").insert(sessao_data).execute()
-                    if response.data:
-                        result["num_sessoes"] += 1
-                    else:
-                        logger.warning(f"Falha ao criar sessão para data {data_sessao}")
-                except Exception as e:
-                    logger.error(f"Erro ao criar sessão: {str(e)}")
-                    continue
+            result["num_sessoes"] = len(ficha_data["sessoes"])
 
             results.append(result)
 
@@ -1254,17 +1251,28 @@ async def listar_fichas(
         logger.error(f"Erro ao listar fichas: {e}")
         raise HTTPException(status_code=500, detail="Erro ao listar fichas de presença")
 
-
 @app.post("/fichas-presenca")
 async def criar_ficha(ficha: FichaPresenca):
     """Cria uma nova ficha de presença"""
     try:
-        result = salvar_ficha_presenca(ficha.dict())
+        # Prepare data for saving
+        ficha_data = ficha.dict()
+        
+        # If no sessions provided, create default session
+        if not ficha_data.get('sessoes'):
+            ficha_data['sessoes'] = [{
+                'data_sessao': datetime.now().strftime('%Y-%m-%d'),
+                'possui_assinatura': False,
+                'status': 'pendente'
+            }]
+            
+        result = salvar_ficha_presenca(ficha_data)
+        
         if not result:
             raise HTTPException(
                 status_code=400, detail="Erro ao criar ficha de presença"
             )
-        return {"id": result}
+        return {"id": result, "message": "Ficha criada com sucesso"}
     except Exception as e:
         logger.error(f"Erro ao criar ficha: {e}")
         raise HTTPException(status_code=500, detail="Erro ao criar ficha de presença")
