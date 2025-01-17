@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Table,
@@ -125,7 +125,7 @@ export function PacientesList() {
                   <TableCell>{paciente.nome_responsavel}</TableCell>
                   <TableCell>
                     {paciente.data_nascimento ? 
-                      format(new Date(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR }) 
+                      format(parseISO(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR }) 
                       : '-'}
                   </TableCell>
                   <TableCell>{paciente.telefone}</TableCell>

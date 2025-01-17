@@ -102,18 +102,32 @@ export function CarteirinhaModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Dados a serem enviados:', formData);
-    onSave(formData);
+    // Garantir que a data está no formato correto antes de enviar
+    const dadosParaSalvar = {
+      ...formData,
+      dataValidade: formData.dataValidade ? formData.dataValidade.split('T')[0] : null
+    };
+    console.log('Dados sendo enviados:', dadosParaSalvar);
+    onSave(dadosParaSalvar);
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    
+    // Para campos de data, garantir que não tenha informação de timezone
+    if (name === 'dataValidade') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value ? value.split('T')[0] : ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      }));
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {

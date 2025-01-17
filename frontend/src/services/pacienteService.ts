@@ -14,7 +14,12 @@ export async function listarPacientes(
 }
 
 export async function criarPaciente(paciente: Paciente): Promise<Paciente> {
-  const response = await api.post("/pacientes", paciente);
+  // Garantir que a data está no formato correto
+  const dadosFormatados = {
+    ...paciente,
+    data_nascimento: paciente.data_nascimento ? paciente.data_nascimento.split('T')[0] : null
+  };
+  const response = await api.post("/pacientes", dadosFormatados);
   return response.data;
 }
 
@@ -22,7 +27,12 @@ export async function atualizarPaciente(
   id: string,
   paciente: Paciente
 ): Promise<Paciente> {
-  const response = await api.put(`/pacientes/${id}`, paciente);
+  // Garantir que a data está no formato correto
+  const dadosFormatados = {
+    ...paciente,
+    data_nascimento: paciente.data_nascimento ? paciente.data_nascimento.split('T')[0] : null
+  };
+  const response = await api.put(`/pacientes/${id}`, dadosFormatados);
   return response.data;
 }
 

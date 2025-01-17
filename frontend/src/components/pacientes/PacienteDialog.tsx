@@ -59,14 +59,20 @@ export function PacienteDialog({ open, onOpenChange, paciente, onSuccess }: Paci
 
   const onSubmit = async (data: Paciente) => {
     try {
+      // Ajusta a data para o formato correto
+      const dadosAjustados = {
+        ...data,
+        data_nascimento: data.data_nascimento ? data.data_nascimento.split('T')[0] : null
+      };
+
       if (paciente?.id) {
-        await atualizarPaciente(paciente.id, data);
+        await atualizarPaciente(paciente.id, dadosAjustados);
         toast({
           title: "Sucesso",
           description: "Paciente atualizado com sucesso",
         });
       } else {
-        await criarPaciente(data);
+        await criarPaciente(dadosAjustados);
         toast({
           title: "Sucesso",
           description: "Paciente criado com sucesso",
@@ -123,11 +129,19 @@ export function PacienteDialog({ open, onOpenChange, paciente, onSuccess }: Paci
             <FormField
               control={form.control}
               name="data_nascimento"
-              render={({ field }) => (
+              render={({ field: { value, onChange, ...field } }) => (
                 <FormItem>
                   <FormLabel>Data de Nascimento</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input 
+                      type="date" 
+                      value={value ? value.split('T')[0] : ''} 
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        onChange(newValue ? newValue.split('T')[0] : '');
+                      }}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -33,9 +33,14 @@ interface CarteirinhaResponse {
 
 // Função auxiliar para converter do formato do frontend para o backend
 function toBackendFormat(carteirinha: Partial<Carteirinha>) {
+  // Garantir que a data está no formato YYYY-MM-DD sem timezone
+  const dataValidade = carteirinha.dataValidade 
+    ? carteirinha.dataValidade.split('T')[0]
+    : null;
+
   return {
     numero_carteirinha: carteirinha.numero,
-    data_validade: carteirinha.dataValidade?.split('T')[0] || null,
+    data_validade: dataValidade,
     titular: carteirinha.titular,
     nome_titular: carteirinha.nomeTitular,
     plano_saude_id: carteirinha.planoId,
@@ -48,7 +53,7 @@ function toFrontendFormat(data: any): Carteirinha {
   return {
     id: data.id || "",
     numero: data.numero || "",
-    dataValidade: data.dataValidade || "",
+    dataValidade: data.dataValidade?.split('T')[0] || "",
     titular: data.titular || false,
     nomeTitular: data.nomeTitular || "",
     planoId: data.planoId || "",
