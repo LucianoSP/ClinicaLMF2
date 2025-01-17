@@ -34,8 +34,8 @@ interface CarteirinhaResponse {
 // Função auxiliar para converter do formato do frontend para o backend
 function toBackendFormat(carteirinha: Partial<Carteirinha>) {
   return {
-    numero: carteirinha.numero,
-    data_validade: carteirinha.dataValidade,
+    numero_carteirinha: carteirinha.numero,
+    data_validade: carteirinha.dataValidade?.split('T')[0] || null,
     titular: carteirinha.titular,
     nome_titular: carteirinha.nomeTitular,
     plano_saude_id: carteirinha.planoId,

@@ -57,12 +57,36 @@ export function CarteirinhaModal({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchData = async () => {
+      if (!isOpen) return;
+      
+      try {
+        setLoading(true);
+        const [pacientesResponse, planosResponse] = await Promise.all([
+          listarPacientes(1, 100),
+          listarPlanos(),
+        ]);
+        console.log('Pacientes carregados:', pacientesResponse.items);
+        console.log('Planos carregados:', planosResponse);
+        setPacientes(pacientesResponse.items || []);
+        setPlanos(planosResponse || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isOpen]);
+
+  useEffect(() => {
     if (carteirinha) {
+      console.log('Carteirinha para edição:', carteirinha);
       setFormData({
         ...carteirinha,
-        dataValidade: carteirinha.dataValidade
-          ? format(new Date(carteirinha.dataValidade), "yyyy-MM-dd")
-          : "",
+        dataValidade: carteirinha.dataValidade?.split('T')[0] || "",
+        pacienteId: carteirinha.pacienteId || carteirinha.paciente?.id || "",
       });
     } else {
       setFormData({
@@ -76,30 +100,9 @@ export function CarteirinhaModal({
     }
   }, [carteirinha]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!isOpen) return;
-      
-      try {
-        setLoading(true);
-        const [pacientesResponse, planosResponse] = await Promise.all([
-          listarPacientes(1, 100), // Aumentando o limite para pegar mais pacientes
-          listarPlanos(),
-        ]);
-        setPacientes(pacientesResponse.items || []);
-        setPlanos(planosResponse || []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [isOpen]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Dados a serem enviados:', formData);
     onSave(formData);
   };
 
@@ -151,21 +154,30 @@ export function CarteirinhaModal({
               <Label htmlFor="pacienteId" className="text-right">
                 Paciente
               </Label>
-              <Select
-                value={formData.pacienteId || ""}
-                onValueChange={(value) => handleSelectChange("pacienteId", value)}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecione um paciente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pacientes?.map((paciente) => (
-                    <SelectItem key={paciente.id} value={paciente.id}>
-                      {paciente.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {carteirinha ? (
+                <Input
+                  id="paciente"
+                  value={carteirinha.paciente?.nome || pacientes.find(p => p.id === formData.pacienteId)?.nome || ''}
+                  disabled
+                  className="col-span-3"
+                />
+              ) : (
+                <Select
+                  value={formData.pacienteId || ""}
+                  onValueChange={(value) => handleSelectChange("pacienteId", value)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione um paciente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pacientes?.map((paciente) => (
+                      <SelectItem key={paciente.id} value={paciente.id}>
+                        {paciente.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">

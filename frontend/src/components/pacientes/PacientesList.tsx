@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   Table,
   TableBody,
@@ -51,8 +53,6 @@ export function PacientesList() {
       });
     }
   };
-
-  // ... resto do código permanece igual
 
   useEffect(() => {
     carregarPacientes();
@@ -123,7 +123,11 @@ export function PacientesList() {
                 <TableRow key={paciente.id}>
                   <TableCell>{paciente.nome}</TableCell>
                   <TableCell>{paciente.nome_responsavel}</TableCell>
-                  <TableCell>{paciente.data_nascimento}</TableCell>
+                  <TableCell>
+                    {paciente.data_nascimento ? 
+                      format(new Date(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR }) 
+                      : '-'}
+                  </TableCell>
                   <TableCell>{paciente.telefone}</TableCell>
                   <TableCell>{paciente.email}</TableCell>
                   <TableCell className="flex space-x-2">
