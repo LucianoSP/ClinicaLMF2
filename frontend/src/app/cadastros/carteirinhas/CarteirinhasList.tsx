@@ -109,15 +109,15 @@ export default function CarteirinhasList() {
             <TableBody>
               {carteirinhas?.map((carteirinha) => (
                 <TableRow key={carteirinha.id}>
-                  <TableCell>{carteirinha.numero}</TableCell>
+                  <TableCell>{carteirinha.numero || '-'}</TableCell>
                   <TableCell>
                     {carteirinha.dataValidade ? 
                       format(new Date(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
                       : '-'}
                   </TableCell>
-                  <TableCell>{carteirinha.nomeTitular}</TableCell>
-                  <TableCell>{carteirinha.paciente?.nome}</TableCell>
-                  <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
+                  <TableCell>{carteirinha.nomeTitular || '-'}</TableCell>
+                  <TableCell>{carteirinha.paciente?.nome || '-'}</TableCell>
+                  <TableCell>{carteirinha.plano_saude?.nome || '-'}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button

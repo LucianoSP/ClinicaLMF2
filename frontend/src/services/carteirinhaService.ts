@@ -9,10 +9,19 @@ export interface Carteirinha {
   planoId: string;
   pacienteId: string;
   paciente?: {
+    id: string;
     nome: string;
+    cpf: string;
+    email: string | null;
+    telefone: string;
+    data_nascimento: string;
+    nome_responsavel: string;
   };
   plano_saude?: {
+    id: string;
     nome: string;
+    ativo: boolean;
+    codigo: string;
   };
 }
 
@@ -25,7 +34,7 @@ interface CarteirinhaResponse {
 // Função auxiliar para converter do formato do frontend para o backend
 function toBackendFormat(carteirinha: Partial<Carteirinha>) {
   return {
-    numero_carteirinha: carteirinha.numero,
+    numero: carteirinha.numero,
     data_validade: carteirinha.dataValidade,
     titular: carteirinha.titular,
     nome_titular: carteirinha.nomeTitular,
@@ -37,15 +46,15 @@ function toBackendFormat(carteirinha: Partial<Carteirinha>) {
 // Função auxiliar para converter do formato do backend para o frontend
 function toFrontendFormat(data: any): Carteirinha {
   return {
-    id: data.id,
-    numero: data.numero_carteirinha,
-    dataValidade: data.data_validade,
-    titular: data.titular,
-    nomeTitular: data.nome_titular,
-    planoId: data.plano_saude_id,
-    pacienteId: data.paciente_id,
+    id: data.id || "",
+    numero: data.numero || "",
+    dataValidade: data.dataValidade || "",
+    titular: data.titular || false,
+    nomeTitular: data.nomeTitular || "",
+    planoId: data.planoId || "",
+    pacienteId: data.pacienteId || "",
     paciente: data.paciente,
-    plano_saude: data.plano_saude,
+    plano_saude: data.plano_saude
   };
 }
 
@@ -59,10 +68,21 @@ export async function listarCarteirinhas(
     params: { limit, offset, search },
   });
   
+  console.log('API Response:', response.data);
+  
+  const items = Array.isArray(response.data.items) 
+    ? response.data.items.map((item) => {
+        console.log('Item original:', item);
+        const mappedItem = toFrontendFormat(item);
+        console.log('Item mapeado:', mappedItem);
+        return mappedItem;
+      })
+    : [];
+
   return {
-    items: response.data.items.map(toFrontendFormat),
-    total: response.data.total,
-    pages: response.data.pages,
+    items,
+    total: response.data.total || 0,
+    pages: response.data.pages || 1,
   };
 }
 
