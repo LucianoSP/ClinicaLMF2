@@ -39,12 +39,12 @@ function toBackendFormat(carteirinha: Partial<Carteirinha>) {
     : null;
 
   return {
-    numero_carteirinha: carteirinha.numero,
-    data_validade: dataValidade,
+    numero: carteirinha.numero,
+    dataValidade: dataValidade,
     titular: carteirinha.titular,
-    nome_titular: carteirinha.nomeTitular,
-    plano_saude_id: carteirinha.planoId,
-    paciente_id: carteirinha.pacienteId,
+    nomeTitular: carteirinha.nomeTitular,
+    planoId: carteirinha.planoId,
+    pacienteId: carteirinha.pacienteId,
   };
 }
 
@@ -53,7 +53,7 @@ function toFrontendFormat(data: any): Carteirinha {
   return {
     id: data.id || "",
     numero: data.numero || "",
-    dataValidade: data.dataValidade?.split('T')[0] || "",
+    dataValidade: data.dataValidade || "",
     titular: data.titular || false,
     nomeTitular: data.nomeTitular || "",
     planoId: data.planoId || "",
@@ -73,19 +73,9 @@ export async function listarCarteirinhas(
     params: { limit, offset, search },
   });
   
-  console.log('API Response:', response.data);
-  
-  const items = Array.isArray(response.data.items) 
-    ? response.data.items.map((item) => {
-        console.log('Item original:', item);
-        const mappedItem = toFrontendFormat(item);
-        console.log('Item mapeado:', mappedItem);
-        return mappedItem;
-      })
-    : [];
-
+  // Os dados já vêm no formato correto do backend
   return {
-    items,
+    items: response.data.items || [],
     total: response.data.total || 0,
     pages: response.data.pages || 1,
   };

@@ -9,9 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PencilIcon, TrashIcon, PlusIcon } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Carteirinha, listarCarteirinhas, excluirCarteirinha, criarCarteirinha, atualizarCarteirinha } from "@/services/carteirinhaService";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CarteirinhaModal } from "./CarteirinhaModal";
 import { toast } from "sonner";
@@ -88,7 +88,7 @@ export default function CarteirinhasList() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Carteirinhas</h2>
         <Button onClick={handleNewCarteirinha}>
-          <PlusIcon className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2" />
           Nova Carteirinha
         </Button>
       </div>
@@ -99,25 +99,25 @@ export default function CarteirinhasList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Número da Carteirinha</TableHead>
-                <TableHead>Data de Validade</TableHead>
-                <TableHead>Nome do Titular</TableHead>
                 <TableHead>Paciente</TableHead>
                 <TableHead>Plano de Saúde</TableHead>
+                <TableHead>Data de Validade</TableHead>
+                <TableHead>Titular</TableHead>
                 <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {carteirinhas?.map((carteirinha) => (
                 <TableRow key={carteirinha.id}>
-                  <TableCell>{carteirinha.numero || '-'}</TableCell>
+                  <TableCell>{carteirinha.numero}</TableCell>
+                  <TableCell>{carteirinha.paciente?.nome}</TableCell>
+                  <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
                   <TableCell>
                     {carteirinha.dataValidade ? 
-                      format(new Date(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
+                      format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
                       : '-'}
                   </TableCell>
-                  <TableCell>{carteirinha.nomeTitular || '-'}</TableCell>
-                  <TableCell>{carteirinha.paciente?.nome || '-'}</TableCell>
-                  <TableCell>{carteirinha.plano_saude?.nome || '-'}</TableCell>
+                  <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button
@@ -125,14 +125,14 @@ export default function CarteirinhasList() {
                         size="icon"
                         onClick={() => handleEdit(carteirinha)}
                       >
-                        <PencilIcon className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(carteirinha)}
                       >
-                        <TrashIcon className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
