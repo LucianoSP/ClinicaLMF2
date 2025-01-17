@@ -5,6 +5,7 @@ import { PageTitle } from "@/components/ui/page-title";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlanosList } from "@/components/planos/PlanosList";
 import { PacientesList } from "@/components/pacientes/PacientesList";
+import CarteirinhasList from "./carteirinhas/CarteirinhasList";
 
 export default function CadastrosPage() {
   return (
@@ -31,8 +32,7 @@ export default function CadastrosPage() {
               </TabsContent>
 
               <TabsContent value="carteirinhas" className="mt-4">
-                <h3 className="text-lg font-semibold mb-4">Carteirinhas</h3>
-                {/* Conteúdo da aba de Carteirinhas */}
+                <CarteirinhasList />
               </TabsContent>
               
               <TabsContent value="guias" className="mt-4">

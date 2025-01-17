@@ -1,29 +1,82 @@
 import { api } from "@/lib/api";
-import { Carteirinha } from "@/types/carteirinha";
+
+export interface Carteirinha {
+  id: string;
+  numero: string;
+  dataValidade: string;
+  titular: boolean;
+  nomeTitular: string;
+  planoId: string;
+  pacienteId: string;
+  paciente?: {
+    nome: string;
+  };
+  plano_saude?: {
+    nome: string;
+  };
+}
+
+interface CarteirinhaResponse {
+  items: Carteirinha[];
+  total: number;
+  pages: number;
+}
+
+// Função auxiliar para converter do formato do frontend para o backend
+function toBackendFormat(carteirinha: Partial<Carteirinha>) {
+  return {
+    numero_carteirinha: carteirinha.numero,
+    data_validade: carteirinha.dataValidade,
+    titular: carteirinha.titular,
+    nome_titular: carteirinha.nomeTitular,
+    plano_saude_id: carteirinha.planoId,
+    paciente_id: carteirinha.pacienteId,
+  };
+}
+
+// Função auxiliar para converter do formato do backend para o frontend
+function toFrontendFormat(data: any): Carteirinha {
+  return {
+    id: data.id,
+    numero: data.numero_carteirinha,
+    dataValidade: data.data_validade,
+    titular: data.titular,
+    nomeTitular: data.nome_titular,
+    planoId: data.plano_saude_id,
+    pacienteId: data.paciente_id,
+    paciente: data.paciente,
+    plano_saude: data.plano_saude,
+  };
+}
 
 export async function listarCarteirinhas(
   page: number = 1,
   limit: number = 10,
   search?: string
-): Promise<{ data: Carteirinha[]; total: number; pages: number }> {
+): Promise<CarteirinhaResponse> {
   const offset = (page - 1) * limit;
   const response = await api.get("/carteirinhas", {
     params: { limit, offset, search },
   });
-  return response.data;
+  
+  return {
+    items: response.data.items.map(toFrontendFormat),
+    total: response.data.total,
+    pages: response.data.pages,
+  };
 }
 
-export async function criarCarteirinha(carteirinha: Carteirinha): Promise<Carteirinha> {
-  const response = await api.post("/carteirinhas", carteirinha);
-  return response.data;
+export async function criarCarteirinha(carteirinha: Partial<Carteirinha>): Promise<Carteirinha> {
+  const response = await api.post("/carteirinhas", toBackendFormat(carteirinha));
+  return toFrontendFormat(response.data);
 }
 
 export async function atualizarCarteirinha(
   id: string,
-  carteirinha: Carteirinha
+  carteirinha: Partial<Carteirinha>
 ): Promise<Carteirinha> {
-  const response = await api.put(`/carteirinhas/${id}`, carteirinha);
-  return response.data;
+  const response = await api.put(`/carteirinhas/${id}`, toBackendFormat(carteirinha));
+  return toFrontendFormat(response.data);
 }
 
 export async function excluirCarteirinha(id: string): Promise<void> {
