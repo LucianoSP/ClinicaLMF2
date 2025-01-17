@@ -21,6 +21,11 @@ const navigation = [
     icon: HomeIcon
   },
   {
+    name: 'Cadastros',
+    href: '/cadastros',
+    icon: DocumentTextIcon
+  },
+  {
     name: 'Pacientes',
     href: '/pacientes',
     icon: UserGroupIcon
@@ -65,7 +70,7 @@ export function Sidebar() {
               Gestão de Faturamento
             </h1>
             <h1 className="text-xl text-white font-light tracking-wider">
-
+            
             </h1>
           </div>
         </div>

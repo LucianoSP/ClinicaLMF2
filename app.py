@@ -23,7 +23,11 @@ from database_supabase import (
     excluir_ficha_presenca,
     listar_fichas_presenca,
     limpar_fichas_presenca,
-    listar_guias_paciente
+    listar_guias_paciente,
+    listar_planos,  # Adicionado
+    criar_plano,  # Adicionado
+    atualizar_plano,  # Adicionado
+    deletar_plano,  # Adicionado
 )
 from auditoria_repository import (
     registrar_divergencia,
@@ -31,7 +35,7 @@ from auditoria_repository import (
     atualizar_status_divergencia,
     obter_ultima_auditoria,
     limpar_divergencias_db,
-    atualizar_ficha_ids_divergencias  # Movido para cá
+    atualizar_ficha_ids_divergencias,  # Movido para cá
 )
 from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2
@@ -54,8 +58,6 @@ from google.genai import types
 
 claude_api_key = os.environ["ANTHROPIC_API_KEY"]
 gemini_api_key = os.environ["GEMINI_API_KEY"]
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +87,59 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR)
 if not os.path.exists(GUIAS_RENOMEADAS_DIR):
     os.makedirs(GUIAS_RENOMEADAS_DIR)
+
+
+# Modelo para Plano de Saúde
+class Plano(BaseModel):
+    id: Optional[str] = None  # UUID é armazenado como string
+    nome: str
+    codigo: str
+    ativo: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+# Rotas para Planos de Saúde
+@app.get("/api/planos", response_model=List[Plano])
+async def listar_planos_route():
+    try:
+        return database_supabase.listar_planos()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/planos", response_model=Plano)
+async def criar_plano_route(plano: Plano):
+    try:
+        data = {"nome": plano.nome, "codigo": plano.codigo, "ativo": plano.ativo}
+        result = criar_plano(data)
+        if not result:
+            raise HTTPException(status_code=400, detail="Erro ao criar plano")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/planos/{plano_id}", response_model=Plano)
+async def atualizar_plano_route(plano_id: str, plano: Plano):  # Mudado para str
+    try:
+        data = {"nome": plano.nome, "codigo": plano.codigo, "ativo": plano.ativo}
+        return database_supabase.atualizar_plano(plano_id, data)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/planos/{plano_id}")
+async def deletar_plano_route(plano_id: str):  # Mudado para str
+    try:
+        database_supabase.deletar_plano(plano_id)
+        return {"message": "Plano excluído com sucesso"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.on_event("startup")
@@ -202,6 +257,8 @@ class ExecucaoUpdate(BaseModel):
     guia_id: str
     possui_assinatura: bool
     codigo_ficha: str
+
+
 class Sessao(BaseModel):
     data_sessao: str
     tipo_terapia: str | None = None
@@ -209,7 +266,8 @@ class Sessao(BaseModel):
     possui_assinatura: bool = False
     valor_sessao: float | None = None
     observacoes_sessao: str | None = None
-    status: str = 'pendente'
+    status: str = "pendente"
+
 
 class FichaPresenca(BaseModel):
     paciente_carteirinha: str
@@ -376,11 +434,12 @@ async def extract_info_from_pdf(pdf_path: str):
             ),
         }
 
+
 # Configuração de logging detalhado
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 @app.post("/test-pdf-extraction")
 async def test_pdf_extraction(
@@ -391,12 +450,14 @@ async def test_pdf_extraction(
     """
     try:
         # Validação inicial do arquivo
-        if not file.filename.endswith('.pdf'):
+        if not file.filename.endswith(".pdf"):
             raise HTTPException(status_code=400, detail="Arquivo deve ser PDF")
 
         # Ler o conteúdo do arquivo
         content = await file.read()
-        logging.info(f"Arquivo lido com sucesso: {file.filename} ({len(content)} bytes)")
+        logging.info(
+            f"Arquivo lido com sucesso: {file.filename} ({len(content)} bytes)"
+        )
 
         # Verificar se o arquivo está vazio
         if not content:
@@ -404,8 +465,10 @@ async def test_pdf_extraction(
 
         # Converter para base64 de forma segura
         try:
-            pdf_base64 = base64.b64encode(content).decode('utf-8')
-            logging.info(f"Arquivo convertido para base64 ({len(pdf_base64)} caracteres)")
+            pdf_base64 = base64.b64encode(content).decode("utf-8")
+            logging.info(
+                f"Arquivo convertido para base64 ({len(pdf_base64)} caracteres)"
+            )
         except Exception as e:
             logging.error(f"Erro na conversão base64: {str(e)}")
             raise HTTPException(status_code=500, detail="Erro na conversão do arquivo")
@@ -413,7 +476,9 @@ async def test_pdf_extraction(
         # Verificar API key
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise HTTPException(status_code=500, detail="GOOGLE_API_KEY não configurada")
+            raise HTTPException(
+                status_code=500, detail="GOOGLE_API_KEY não configurada"
+            )
 
         # Inicializar cliente Gemini com tratamento de erro
         try:
@@ -421,7 +486,9 @@ async def test_pdf_extraction(
             logging.info("Cliente Gemini inicializado com sucesso")
         except Exception as e:
             logging.error(f"Erro ao inicializar cliente Gemini: {str(e)}")
-            raise HTTPException(status_code=500, detail="Erro ao inicializar Gemini API")
+            raise HTTPException(
+                status_code=500, detail="Erro ao inicializar Gemini API"
+            )
 
         # Preparar o prompt
         prompt = """
@@ -458,9 +525,9 @@ async def test_pdf_extraction(
                             {
                                 "inline_data": {
                                     "mime_type": "application/pdf",
-                                    "data": pdf_base64
+                                    "data": pdf_base64,
                                 }
-                            }
+                            },
                         ]
                     }
                 ]
@@ -479,7 +546,7 @@ async def test_pdf_extraction(
             response = client.models.generate_content(
                 model="gemini-2.0-flash-exp",
                 contents=message["contents"],
-                config=config
+                config=config,
             )
 
             logging.info("Resposta recebida do Gemini")
@@ -503,7 +570,7 @@ async def test_pdf_extraction(
                     "file_size": len(content),
                     "extracted_data": extracted_data,
                     "num_registros": len(extracted_data.get("registros", [])),
-                    "raw_response": response_text
+                    "raw_response": response_text,
                 }
 
             except json.JSONDecodeError as e:
@@ -512,7 +579,7 @@ async def test_pdf_extraction(
                     "status": "error",
                     "message": "Erro ao fazer parse do JSON",
                     "error_details": str(e),
-                    "raw_response": response.text
+                    "raw_response": response.text,
                 }
 
         except Exception as e:
@@ -521,7 +588,7 @@ async def test_pdf_extraction(
             return {
                 "status": "error",
                 "message": "Erro na comunicação com Gemini",
-                "error_details": str(e)
+                "error_details": str(e),
             }
 
     except Exception as e:
@@ -530,8 +597,9 @@ async def test_pdf_extraction(
         return {
             "status": "error",
             "message": "Erro ao processar PDF",
-            "error_details": str(e)
+            "error_details": str(e),
         }
+
 
 async def extract_info_from_pdf_gemini(pdf_path: str):
     """
@@ -549,7 +617,10 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
     # Verifica se a chave da API está configurada
     api_key = gemini_api_key
     if not api_key:
-        raise HTTPException(status_code=500, detail="GOOGLE_API_KEY não configurada nas variáveis de ambiente")
+        raise HTTPException(
+            status_code=500,
+            detail="GOOGLE_API_KEY não configurada nas variáveis de ambiente",
+        )
 
     if not os.path.isfile(pdf_path):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
@@ -596,20 +667,20 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
 
         # Configuração para garantir resposta em JSON
         config = types.GenerateContentConfig(
-            response_mime_type='application/json',
+            response_mime_type="application/json",
             temperature=0.1,  # Baixa temperatura para respostas mais consistentes
             candidate_count=1,
-            max_output_tokens=2048  # Limite máximo de tokens para a resposta
+            max_output_tokens=2048,  # Limite máximo de tokens para a resposta
         )
 
         # Faz a requisição ao Gemini
         response = client.models.generate_content(
-            model='gemini-2.0-flash-exp',  # Usando o modelo mais rápido do Gemini
+            model="gemini-2.0-flash-exp",  # Usando o modelo mais rápido do Gemini
             contents=[
-                types.Part.from_data(mime_type='application/pdf', data=pdf_data),
-                types.Part.from_text(prompt)
+                types.Part.from_data(mime_type="application/pdf", data=pdf_data),
+                types.Part.from_text(prompt),
             ],
-            config=config
+            config=config,
         )
 
         # Parse da resposta JSON
@@ -635,19 +706,19 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
         return {
             "erro": f"Erro ao processar JSON: {str(e)}",
             "status_validacao": "falha",
-            "resposta_raw": response.text if 'response' in locals() else None,
+            "resposta_raw": response.text if "response" in locals() else None,
         }
     except ValidationError as e:
         return {
             "erro": str(e),
             "status_validacao": "falha",
-            "resposta_raw": response.text if 'response' in locals() else None,
+            "resposta_raw": response.text if "response" in locals() else None,
         }
     except Exception as e:
         return {
             "erro": str(e),
             "status_validacao": "falha",
-            "resposta_raw": response.text if 'response' in locals() else None,
+            "resposta_raw": response.text if "response" in locals() else None,
         }
 
 
@@ -664,11 +735,13 @@ async def upload_pdf(
 
     for file in files:
         if not file.filename.endswith(".pdf"):
-            results.append({
-                "status": "error",
-                "filename": file.filename,
-                "message": "Apenas arquivos PDF são permitidos",
-            })
+            results.append(
+                {
+                    "status": "error",
+                    "filename": file.filename,
+                    "message": "Apenas arquivos PDF são permitidos",
+                }
+            )
             continue
 
         if file.filename in processed_files:
@@ -695,7 +768,7 @@ async def upload_pdf(
                 "filename": file.filename,
                 "ficha_id": None,
                 "uploaded_file": None,
-                "num_sessoes": 0
+                "num_sessoes": 0,
             }
 
             dados_guia = info["json"]
@@ -706,10 +779,14 @@ async def upload_pdf(
             primeira_linha = dados_guia["registros"][0]
             data_formatada = primeira_linha["data_execucao"].replace("/", "-")
             nome_paciente = primeira_linha["paciente_nome"].strip()
-            nome_paciente = ''.join(c for c in nome_paciente if c.isalnum() or c.isspace())
+            nome_paciente = "".join(
+                c for c in nome_paciente if c.isalnum() or c.isspace()
+            )
             nome_paciente = nome_paciente.replace(" ", "-")
-            
-            novo_nome = f"{dados_guia['codigo_ficha']}-{nome_paciente}-{data_formatada}.pdf"
+
+            novo_nome = (
+                f"{dados_guia['codigo_ficha']}-{nome_paciente}-{data_formatada}.pdf"
+            )
             arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
 
             if arquivo_url:
@@ -724,13 +801,15 @@ async def upload_pdf(
                 "arquivo_digitalizado": arquivo_url,
                 "data_atendimento": primeira_linha["data_execucao"],
                 "status": "pendente",
-                "sessoes": []
+                "sessoes": [],
             }
 
             # Criar sessões para cada registro
             for registro in dados_guia["registros"]:
-                data_sessao = datetime.strptime(registro["data_execucao"], "%d/%m/%Y").strftime("%Y-%m-%d")
-                
+                data_sessao = datetime.strptime(
+                    registro["data_execucao"], "%d/%m/%Y"
+                ).strftime("%Y-%m-%d")
+
                 sessao = {
                     "data_sessao": data_sessao,
                     "possui_assinatura": registro["possui_assinatura"],
@@ -738,9 +817,9 @@ async def upload_pdf(
                     "tipo_terapia": None,
                     "profissional_executante": None,
                     "valor_sessao": None,
-                    "observacoes_sessao": None
+                    "observacoes_sessao": None,
                 }
-                
+
                 ficha_data["sessoes"].append(sessao)
 
             ficha_id = salvar_ficha_presenca(ficha_data)
@@ -754,11 +833,13 @@ async def upload_pdf(
 
         except Exception as e:
             logger.error(f"Erro ao processar arquivo {file.filename}: {str(e)}")
-            results.append({
-                "status": "error",
-                "filename": file.filename,
-                "message": str(e),
-            })
+            results.append(
+                {
+                    "status": "error",
+                    "filename": file.filename,
+                    "message": str(e),
+                }
+            )
         finally:
             # Limpar arquivo temporário
             if os.path.exists(temp_pdf_path):
@@ -904,26 +985,20 @@ async def list_excel(
 
         # Busca os dados no banco
         resultado = listar_dados_excel(
-            limit=per_page, 
-            offset=offset, 
-            paciente_nome=paciente_nome
+            limit=per_page, offset=offset, paciente_nome=paciente_nome
         )
 
         # Verifica se a busca foi bem sucedida
         if not resultado["success"]:
             raise HTTPException(
-                status_code=500, 
-                detail="Erro ao buscar dados das execuções"
+                status_code=500, detail="Erro ao buscar dados das execuções"
             )
 
         return resultado
 
     except Exception as e:
         logger.error(f"Erro ao listar execuções: {e}")
-        raise HTTPException(
-            status_code=500, 
-            detail=str(e)
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/clear-database/")
@@ -984,21 +1059,21 @@ async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
 
         # Realizar a auditoria com as datas no formato do banco
         resultado = realizar_auditoria_fichas_execucoes(data_inicial, data_final)
-        
+
         if not resultado.get("success"):
             raise HTTPException(
-                status_code=500, 
-                detail=resultado.get("error", "Erro ao realizar auditoria")
+                status_code=500,
+                detail=resultado.get("error", "Erro ao realizar auditoria"),
             )
-        
+
         # Atualiza os ficha_ids das divergências
         atualizar_ficha_ids_divergencias()
-        
+
         ultima_auditoria = obter_ultima_auditoria()
         return {
             "success": True,
-            "message": "Auditoria realizada com sucesso", 
-            "data": ultima_auditoria
+            "message": "Auditoria realizada com sucesso",
+            "data": ultima_auditoria,
         }
 
     except Exception as e:
@@ -1234,22 +1309,25 @@ async def listar_fichas(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
     search: str = Query(None, description="Buscar por nome do paciente"),
-    status: str = Query("pendente", description="Filtrar por status (pendente, conferida, todas)"),
-    order: str = Query("created_at.desc", description="Ordenação dos resultados")
+    status: str = Query(
+        "pendente", description="Filtrar por status (pendente, conferida, todas)"
+    ),
+    order: str = Query("created_at.desc", description="Ordenação dos resultados"),
 ):
     """Lista todas as fichas de presença com suporte a paginação e filtros"""
     try:
         result = listar_fichas_presenca(
-            limit=limit, 
-            offset=offset, 
+            limit=limit,
+            offset=offset,
             search=search,  # Changed from paciente_nome to search
             status=status,
-            order=order
+            order=order,
         )
         return result
     except Exception as e:
         logger.error(f"Erro ao listar fichas: {e}")
         raise HTTPException(status_code=500, detail="Erro ao listar fichas de presença")
+
 
 @app.post("/fichas-presenca")
 async def criar_ficha(ficha: FichaPresenca):
@@ -1257,17 +1335,19 @@ async def criar_ficha(ficha: FichaPresenca):
     try:
         # Prepare data for saving
         ficha_data = ficha.dict()
-        
+
         # If no sessions provided, create default session
-        if not ficha_data.get('sessoes'):
-            ficha_data['sessoes'] = [{
-                'data_sessao': datetime.now().strftime('%Y-%m-%d'),
-                'possui_assinatura': False,
-                'status': 'pendente'
-            }]
-            
+        if not ficha_data.get("sessoes"):
+            ficha_data["sessoes"] = [
+                {
+                    "data_sessao": datetime.now().strftime("%Y-%m-%d"),
+                    "possui_assinatura": False,
+                    "status": "pendente",
+                }
+            ]
+
         result = salvar_ficha_presenca(ficha_data)
-        
+
         if not result:
             raise HTTPException(
                 status_code=400, detail="Erro ao criar ficha de presença"
@@ -1416,7 +1496,9 @@ async def listar_guias_paciente_endpoint(paciente_id: str):
     try:
         resultado = listar_guias_paciente(paciente_id)
         if not resultado or not resultado["items"]:  # Corrigido aqui: || -> or
-            raise HTTPException(status_code=404, detail="Paciente não encontrado ou sem guias")
+            raise HTTPException(
+                status_code=404, detail="Paciente não encontrado ou sem guias"
+            )
         return resultado
     except Exception as e:
         logger.error(f"Erro ao buscar guias do paciente: {e}")
@@ -1431,8 +1513,7 @@ def listar_tipos_divergencia_route():
         return {"tipos": tipos}
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao listar tipos de divergência: {str(e)}"
+            status_code=500, detail=f"Erro ao listar tipos de divergência: {str(e)}"
         )
 
 
@@ -1454,6 +1535,7 @@ async def verificar_datas():
     """Endpoint para verificar formato das datas no banco"""
     try:
         from database_supabase import verificar_formatos_data_banco
+
         resultado = verificar_formatos_data_banco()
         return {"success": True, "amostras": resultado}
     except Exception as e:
@@ -1472,6 +1554,7 @@ from auditoria import router as auditoria_router
 # Add the router from auditoria.py
 app.include_router(auditoria_router, prefix="/auditoria")
 
+
 class SessaoUpdate(BaseModel):
     data_sessao: str
     tipo_terapia: str | None = None
@@ -1480,56 +1563,61 @@ class SessaoUpdate(BaseModel):
     valor_sessao: float | None = None
     observacoes_sessao: str | None = None
 
+
 @app.put("/sessoes/{sessao_id}")
 async def atualizar_sessao(sessao_id: str, sessao: SessaoUpdate):
     """Atualiza os dados de uma sessão específica"""
     try:
-        response = supabase.table("sessoes").update({
-            "data_sessao": sessao.data_sessao,
-            "tipo_terapia": sessao.tipo_terapia,
-            "profissional_executante": sessao.profissional_executante,
-            "possui_assinatura": sessao.possui_assinatura,
-            "valor_sessao": sessao.valor_sessao,
-            "observacoes_sessao": sessao.observacoes_sessao
-        }).eq("id", sessao_id).execute()
+        response = (
+            supabase.table("sessoes")
+            .update(
+                {
+                    "data_sessao": sessao.data_sessao,
+                    "tipo_terapia": sessao.tipo_terapia,
+                    "profissional_executante": sessao.profissional_executante,
+                    "possui_assinatura": sessao.possui_assinatura,
+                    "valor_sessao": sessao.valor_sessao,
+                    "observacoes_sessao": sessao.observacoes_sessao,
+                }
+            )
+            .eq("id", sessao_id)
+            .execute()
+        )
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
-        return {
-            "message": "Sessão atualizada com sucesso",
-            "data": response.data[0]
-        }
+        return {"message": "Sessão atualizada com sucesso", "data": response.data[0]}
 
     except Exception as e:
         logger.error(f"Erro ao atualizar sessão: {str(e)}")
         raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao atualizar sessão: {str(e)}"
+            status_code=500, detail=f"Erro ao atualizar sessão: {str(e)}"
         )
+
 
 @app.put("/sessoes/{sessao_id}/conferir")
 async def conferir_sessao(sessao_id: str):
     """Marca uma sessão como conferida"""
     try:
-        response = supabase.table("sessoes").update({
-            "status": "conferida"
-        }).eq("id", sessao_id).execute()
+        response = (
+            supabase.table("sessoes")
+            .update({"status": "conferida"})
+            .eq("id", sessao_id)
+            .execute()
+        )
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
-        return {
-            "message": "Sessão conferida com sucesso",
-            "data": response.data[0]
-        }
+        return {"message": "Sessão conferida com sucesso", "data": response.data[0]}
 
     except Exception as e:
         logger.error(f"Erro ao conferir sessão: {str(e)}")
         raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao conferir sessão: {str(e)}"
+            status_code=500, detail=f"Erro ao conferir sessão: {str(e)}"
         )
+
 
 @app.delete("/sessoes/{sessao_id}")
 async def deletar_sessao(sessao_id: str):
@@ -1537,18 +1625,19 @@ async def deletar_sessao(sessao_id: str):
     try:
         # Primeiro deleta as execuções relacionadas
         supabase.table("execucoes").delete().eq("sessao_id", sessao_id).execute()
-        
+
         # Depois deleta a sessão
         response = supabase.table("sessoes").delete().eq("id", sessao_id).execute()
-        
+
         if not response.data:
             raise HTTPException(status_code=404, detail="Sessão não encontrada")
-            
+
         return {"message": "Sessão deletada com sucesso"}
-        
+
     except Exception as e:
         logger.error(f"Erro ao deletar sessão: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao deletar sessão: {str(e)}")
+
 
 @app.get("/pacientes/{paciente_id}/estatisticas")
 async def get_patient_stats(paciente_id: str):
@@ -1561,8 +1650,7 @@ async def get_patient_stats(paciente_id: str):
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas do paciente: {e}")
         raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao obter estatísticas do paciente: {str(e)}"
+            status_code=500, detail=f"Erro ao obter estatísticas do paciente: {str(e)}"
         )
 
 
@@ -1578,11 +1666,10 @@ async def criar_guia_endpoint(paciente_id: str, dados_guia: dict = Body(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.put("/pacientes/{paciente_id}/guias/{guia_id}")
 async def atualizar_guia_endpoint(
-    paciente_id: str, 
-    guia_id: str, 
-    dados_guia: dict = Body(...)
+    paciente_id: str, guia_id: str, dados_guia: dict = Body(...)
 ):
     """Atualizar uma guia existente"""
     try:
@@ -1593,5 +1680,6 @@ async def atualizar_guia_endpoint(
             raise HTTPException(status_code=400, detail="Falha ao atualizar guia")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # ...rest of the file

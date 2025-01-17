@@ -6,6 +6,8 @@ import logging
 import traceback
 import uuid
 import random
+import os
+import pandas as pd
 
 def gerar_uuid_consistente(valor: str) -> str:
     """Gera um UUID v5 consistente usando um namespace fixo e o valor como nome."""
@@ -1362,3 +1364,51 @@ def atualizar_guia(guia_id: str, dados_guia: dict) -> bool:
         return False
 
 # ...rest of the file
+
+def criar_plano(dados: Dict):
+    """Cria um novo plano de saúde."""
+    try:
+        # Adiciona timestamps
+        dados['created_at'] = datetime.now(timezone.utc).isoformat()
+        dados['updated_at'] = datetime.now(timezone.utc).isoformat()
+        
+        # Gera um UUID para o id
+        dados['id'] = str(uuid.uuid4())
+        
+        response = supabase.table('planos_saude').insert(dados).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logging.error(f"Erro ao criar plano: {str(e)}")
+        return None
+
+def atualizar_plano(plano_id: str, dados: Dict):
+    """Atualiza um plano de saúde existente."""
+    try:
+        dados['updated_at'] = datetime.now(timezone.utc).isoformat()
+        response = supabase.table('planos_saude').update(dados).eq('id', plano_id).execute()
+        if not response.data:
+            raise ValueError("Plano não encontrado")
+        return response.data[0]
+    except Exception as e:
+        logging.error(f"Erro ao atualizar plano: {str(e)}")
+        raise
+
+def deletar_plano(plano_id: str):
+    """Deleta um plano de saúde."""
+    try:
+        response = supabase.table('planos_saude').delete().eq('id', plano_id).execute()
+        if not response.data:
+            raise ValueError("Plano não encontrado")
+        return True
+    except Exception as e:
+        logging.error(f"Erro ao deletar plano: {str(e)}")
+        raise
+
+def listar_planos():
+    """Lista todos os planos de saúde."""
+    try:
+        response = supabase.table('planos_saude').select('*').execute()
+        return response.data
+    except Exception as e:
+        logging.error(f"Erro ao listar planos: {str(e)}")
+        raise
