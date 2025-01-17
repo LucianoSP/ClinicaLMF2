@@ -29,3 +29,18 @@ export async function atualizarPaciente(
 export async function excluirPaciente(id: string): Promise<void> {
   await api.delete(`/pacientes/${id}`);
 }
+
+export async function buscarGuiasPaciente(id: string): Promise<{
+  items: any[];
+  carteirinhas: any[];
+  plano: any;
+  fichas: any[];
+}> {
+  const response = await api.get(`/pacientes/${id}/guias`);
+  return response.data;
+}
+
+export async function buscarEstatisticasPaciente(id: string): Promise<any> {
+  const response = await api.get(`/pacientes/${id}/estatisticas`);
+  return response.data;
+}

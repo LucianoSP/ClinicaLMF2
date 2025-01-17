@@ -20,7 +20,6 @@ import {
 import { PatientForm } from './components/patient-form'
 import PatientDetails from '@/components/PatientDetails'
 import { formatarData } from '@/lib/utils'
-import { API_URL } from '@/config/api'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Users,
@@ -30,11 +29,10 @@ import {
   Activity,
   CheckCircle2
 } from 'lucide-react'
+import { listarPacientes, buscarGuiasPaciente, buscarEstatisticasPaciente } from '@/services/pacienteService'
+import { Paciente } from '@/types/paciente'
 
-interface Patient {
-  id: string
-  nome: string
-  carteirinha?: string // Manter compatibilidade com formato antigo
+type Patient = Paciente & {
   carteirinhas?: Array<{
     numero_carteirinha: string
     nome_titular: string
@@ -120,13 +118,8 @@ export default function PatientsPage() {
 
     try {
       setIsLoading(true)
-      const params = new URLSearchParams()
-      params.append('paciente_nome', term.trim())
-
-      const response = await fetch(`${API_URL}/pacientes?${params.toString()}`)
-      if (!response.ok) throw new Error('Falha ao carregar pacientes')
-      const data = await response.json()
-      setPatients(data.items || [])
+      const { data } = await listarPacientes(1, 10, term.trim())
+      setPatients(data || [])
     } catch (error) {
       console.error('Erro ao carregar pacientes:', error)
       setPatients([])
@@ -161,18 +154,21 @@ export default function PatientsPage() {
 
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
-      const response = await fetch(`${API_URL}/pacientes/${patientId}/guias`)
-      if (!response.ok) throw new Error('Falha ao carregar guias')
-
-      const data = await response.json()
+      const data = await buscarGuiasPaciente(patientId)
       console.log('Dados recebidos:', data)
 
       // Atualiza as guias
       setPatientGuides(data.items || [])
-      
-      // Atualiza apenas as fichas do paciente
+
+      // Depois atualiza o paciente com o plano e fichas
       setSelectedPatient(prev => prev ? {
         ...prev,
+        carteirinhas: data.carteirinhas || [{
+          numero_carteirinha: prev.carteirinha || '',
+          nome_titular: prev.nome,
+          data_validade: null,
+          plano_saude: data.plano
+        }],
         fichas: data.fichas || []
       } : prev)
     } catch (error) {
@@ -184,9 +180,7 @@ export default function PatientsPage() {
   const loadPatientStats = useCallback(async (patientId: string) => {
     try {
       console.log('Carregando estatísticas para paciente:', patientId)
-      const response = await fetch(`${API_URL}/pacientes/${patientId}/estatisticas`)
-      if (!response.ok) throw new Error('Falha ao carregar estatísticas')
-      const data = await response.json()
+      const data = await buscarEstatisticasPaciente(patientId)
       console.log('Estatísticas recebidas:', data)
       setPatientStats(data)
     } catch (error) {
