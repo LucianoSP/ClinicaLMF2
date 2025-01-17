@@ -33,31 +33,33 @@ interface CarteirinhaResponse {
 
 // Função auxiliar para converter do formato do frontend para o backend
 function toBackendFormat(carteirinha: Partial<Carteirinha>) {
-  // Garantir que a data está no formato YYYY-MM-DD sem timezone
   const dataValidade = carteirinha.dataValidade 
-    ? carteirinha.dataValidade.split('T')[0]
+    ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
     : null;
 
   return {
-    numero: carteirinha.numero,
-    dataValidade: dataValidade,
+    numero_carteirinha: carteirinha.numero,
+    data_validade: dataValidade,
     titular: carteirinha.titular,
-    nomeTitular: carteirinha.nomeTitular,
-    planoId: carteirinha.planoId,
-    pacienteId: carteirinha.pacienteId,
+    nome_titular: carteirinha.nomeTitular,
+    plano_saude_id: carteirinha.planoId,
+    paciente_id: carteirinha.pacienteId,
+    ativo: true
   };
 }
+
+
 
 // Função auxiliar para converter do formato do backend para o frontend
 function toFrontendFormat(data: any): Carteirinha {
   return {
     id: data.id || "",
-    numero: data.numero || "",
-    dataValidade: data.dataValidade || "",
+    numero: data.numero_carteirinha || "",
+    dataValidade: data.data_validade || "",
     titular: data.titular || false,
-    nomeTitular: data.nomeTitular || "",
-    planoId: data.planoId || "",
-    pacienteId: data.pacienteId || "",
+    nomeTitular: data.nome_titular || "",
+    planoId: data.plano_saude_id || "",
+    pacienteId: data.paciente_id || "",
     paciente: data.paciente,
     plano_saude: data.plano_saude
   };

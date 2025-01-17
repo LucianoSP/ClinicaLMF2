@@ -2,12 +2,12 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Que
 from fastapi.middleware.cors import CORSMiddleware
 import database_supabase
 from auditoria import realizar_auditoria, realizar_auditoria_fichas_execucoes
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, validator
 import os
 import pandas as pd
 import tempfile
 import shutil
-from datetime import datetime
+from datetime import datetime, date, timezone
 from typing import List, Optional, Dict
 from database_supabase import (
     salvar_dados_excel,
@@ -45,7 +45,6 @@ from auditoria_repository import (
 from config import supabase  # Importar o cliente Supabase já inicializado
 from storage_r2 import storage  # Nova importação do R2
 import json
-from datetime import timedelta
 import asyncio
 import base64
 import anthropic
@@ -104,20 +103,38 @@ class Paciente(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-# Modelo para Carteirinha
+
 class Carteirinha(BaseModel):
     id: Optional[str] = None
     numero_carteirinha: str
     paciente_id: str
     plano_saude_id: str
     nome_titular: str
-    data_validade: Optional[str] = None
+    data_validade: Optional[date] = None  # Mudamos para date
     titular: bool = True
     ativo: bool = True
     paciente: Optional[Dict] = None
     plano_saude: Optional[Dict] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    @validator('data_validade', pre=True)
+    def parse_data_validade(cls, v):
+        if not v:
+            return None
+        if isinstance(v, date):
+            return v
+        try:
+            # Tenta converter a string para date
+            return datetime.strptime(v.split('T')[0], '%Y-%m-%d').date()
+        except (ValueError, AttributeError):
+            raise ValueError('Data de validade inválida')
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            date: lambda v: v.isoformat()
+        }
     
 
 # Rotas para Pacientes
@@ -1803,31 +1820,47 @@ def buscar_carteirinha_route(carteirinha_id: str):
     except Exception as e:
         logging.error(f"Erro ao buscar carteirinha: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.put("/carteirinhas/{carteirinha_id}")
-def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteirinha):
+async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteirinha):
     try:
+        logging.info(f"Atualizando carteirinha ID: {carteirinha_id}")
+        logging.info(f"Dados recebidos: {carteirinha.dict()}")
+        
         # Format data for database
         data = {
             'numero_carteirinha': carteirinha.numero_carteirinha,
-            'data_validade': carteirinha.data_validade,
+            'data_validade': carteirinha.data_validade.isoformat() if carteirinha.data_validade else None,
             'titular': carteirinha.titular,
             'nome_titular': carteirinha.nome_titular if not carteirinha.titular else None,
             'plano_saude_id': carteirinha.plano_saude_id,
             'paciente_id': carteirinha.paciente_id,
-            'updated_at': datetime.now(timezone.utc).isoformat()
+            'ativo': carteirinha.ativo,
+            'updated_at': datetime.now(timezone.utc).isoformat()  # Convertendo para string ISO
         }
+        
+        logging.info(f"Dados formatados para atualização: {data}")
 
         # Check if carteirinha exists
-        existing = supabase.table("carteirinhas").select("*").eq("id", carteirinha_id).execute()
-        if not existing.data:
-            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+        existing = supabase.table("carteirinhas").select("*").eq(
+            "id", carteirinha_id).execute()
             
+        if not existing.data:
+            raise HTTPException(status_code=404,
+                              detail="Carteirinha não encontrada")
+
         # Update carteirinha
-        response = supabase.table("carteirinhas").update(data).eq("id", carteirinha_id).execute()
+        response = supabase.table("carteirinhas").update(data).eq(
+            "id", carteirinha_id).execute()
         
+        if not response.data:
+            raise HTTPException(status_code=500,
+                              detail="Erro ao atualizar carteirinha no banco de dados")
+            
         updated_data = response.data[0]
-        
+        logging.info(f"Dados atualizados com sucesso: {updated_data}")
+
         # Format response
         return {
             'id': updated_data['id'],
@@ -1836,12 +1869,15 @@ def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteirinha):
             'titular': updated_data['titular'],
             'nomeTitular': updated_data['nome_titular'],
             'planoId': updated_data['plano_saude_id'],
-            'pacienteId': updated_data['paciente_id']
+            'pacienteId': updated_data['paciente_id'],
+            'ativo': updated_data['ativo']
         }
-    except HTTPException:
+
+    except HTTPException as http_ex:
+        logging.error(f"HTTP Exception: {http_ex}")
         raise
     except Exception as e:
-        logging.error(f"Erro ao atualizar carteirinha: {e}")
+        logging.error(f"Erro ao atualizar carteirinha: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/carteirinhas/{carteirinha_id}")

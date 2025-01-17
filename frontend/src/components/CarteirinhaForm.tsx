@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  criarCarteirinha,
+  atualizarCarteirinha,
+  type Carteirinha,
+} from "@/services/carteirinhaService";
+
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -104,13 +110,26 @@ export function CarteirinhaForm({
 
   async function onSubmit(values: CarteirinhaFormValues) {
     try {
-      // TODO: Implement create/update logic
+      if (carteirinha) {
+        await atualizarCarteirinha(carteirinha.id, values);
+        toast({
+          title: "Sucesso",
+          description: "Carteirinha atualizada com sucesso",
+        });
+      } else {
+        await criarCarteirinha(values);
+        toast({
+          title: "Sucesso",
+          description: "Carteirinha criada com sucesso",
+        });
+      }
       onSuccess?.();
       onOpenChange(false);
     } catch (error) {
+      console.error(error);
       toast({
         title: "Erro",
-        description: "Erro ao salvar carteirinha",
+        description: error instanceof Error ? error.message : "Erro ao salvar carteirinha",
         variant: "destructive",
       });
     }

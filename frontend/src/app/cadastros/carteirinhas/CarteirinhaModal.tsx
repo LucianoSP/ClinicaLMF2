@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Carteirinha } from "@/services/carteirinhaService";
+import { Carteirinha, toBackendFormat } from "@/services/carteirinhaService";
 import { format } from "date-fns";
 import {
   Select,
@@ -102,13 +102,14 @@ export function CarteirinhaModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Garantir que a data está no formato correto antes de enviar
     const dadosParaSalvar = {
       ...formData,
-      dataValidade: formData.dataValidade ? formData.dataValidade.split('T')[0] : null
+      dataValidade: formData.dataValidade ? formData.dataValidade.split('T')[0] : null,
+      id: carteirinha?.id // Preserve the ID if editing
     };
     console.log('Dados sendo enviados:', dadosParaSalvar);
-    onSave(dadosParaSalvar);
+    // Transform data to backend format before saving
+    onSave(toBackendFormat(dadosParaSalvar));
   };
 
   const handleChange = (
