@@ -24,10 +24,15 @@ from database_supabase import (
     listar_fichas_presenca,
     limpar_fichas_presenca,
     listar_guias_paciente,
-    listar_planos,  # Adicionado
-    criar_plano,  # Adicionado
-    atualizar_plano,  # Adicionado
-    deletar_plano,  # Adicionado
+    listar_planos,
+    criar_plano,
+    atualizar_plano,
+    deletar_plano,
+    criar_paciente,
+    atualizar_paciente,
+    deletar_paciente,
+    listar_pacientes,
+    buscar_paciente,
 )
 from auditoria_repository import (
     registrar_divergencia,
@@ -87,6 +92,76 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR)
 if not os.path.exists(GUIAS_RENOMEADAS_DIR):
     os.makedirs(GUIAS_RENOMEADAS_DIR)
+
+
+# Modelo para Paciente
+class Paciente(BaseModel):
+    id: Optional[str] = None
+    nome: str
+    nome_responsavel: str
+    data_nascimento: Optional[str] = None
+    cpf: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+# Rotas para Pacientes
+@app.get("/api/pacientes/")
+def listar_pacientes_route(
+    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+    offset: int = Query(0, ge=0, description="Número de itens para pular"),
+    search: str = Query(None, description="Buscar por nome do paciente ou responsável"),
+):
+    try:
+        return listar_pacientes(limit=limit, offset=offset, search=search)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/pacientes/")
+def criar_paciente_route(paciente: Paciente):
+    try:
+        return criar_paciente(paciente.model_dump(exclude_unset=True))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/pacientes/{paciente_id}")
+def buscar_paciente_route(paciente_id: str):
+    try:
+        paciente = buscar_paciente(paciente_id)
+        if not paciente:
+            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+        return paciente
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/pacientes/{paciente_id}")
+def atualizar_paciente_route(paciente_id: str, paciente: Paciente):
+    try:
+        paciente_atual = buscar_paciente(paciente_id)
+        if not paciente_atual:
+            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+
+        return atualizar_paciente(paciente_id, paciente.model_dump(exclude_unset=True))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/pacientes/{paciente_id}")
+def deletar_paciente_route(paciente_id: str):
+    try:
+        paciente = buscar_paciente(paciente_id)
+        if not paciente:
+            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+
+        deletar_paciente(paciente_id)
+        return {"message": "Paciente excluído com sucesso"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Modelo para Plano de Saúde
