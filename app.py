@@ -92,8 +92,6 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR)
 if not os.path.exists(GUIAS_RENOMEADAS_DIR):
     os.makedirs(GUIAS_RENOMEADAS_DIR)
-
-
 # Modelo para Paciente
 class Paciente(BaseModel):
     id: Optional[str] = None
@@ -106,6 +104,21 @@ class Paciente(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
+# Modelo para Carteirinha
+class Carteirinha(BaseModel):
+    id: Optional[str] = None
+    numero_carteirinha: str
+    paciente_id: str
+    plano_saude_id: str
+    nome_titular: str
+    data_validade: Optional[str] = None
+    titular: bool = True
+    ativo: bool = True
+    paciente: Optional[Dict] = None
+    plano_saude: Optional[Dict] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    
 
 # Rotas para Pacientes
 @app.get("/pacientes/")
@@ -1679,6 +1692,175 @@ async def conferir_sessao(sessao_id: str):
 
 
 @app.delete("/sessoes/{sessao_id}")
+
+# Rotas para Carteirinhas
+@app.get("/carteirinhas/")
+def listar_carteirinhas_route(
+    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+    offset: int = Query(0, ge=0, description="Número de itens para pular"),
+    search: str = Query(None, description="Buscar por número da carteirinha ou nome do titular"),
+    paciente_id: str = Query(None, description="Filtrar por paciente")
+):
+    try:
+        response = supabase.table("carteirinhas").select(
+            "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
+        )
+        
+        if search:
+            response = response.or_(f'numero_carteirinha.ilike.%{search}%,nome_titular.ilike.%{search}%')
+        
+        if paciente_id:
+            response = response.eq('paciente_id', paciente_id)
+            
+        # Get total count before pagination
+        total = len(response.execute().data)
+        
+        # Apply pagination
+        response = response.range(offset, offset + limit - 1)
+        
+        result = response.execute()
+        
+        # Format data for frontend
+        formatted_data = [{
+            'id': item['id'],
+            'numero': item['numero_carteirinha'],
+            'dataValidade': item['data_validade'],
+            'titular': item['titular'],
+            'nomeTitular': item['nome_titular'],
+            'planoId': item['plano_saude_id'],
+            'pacienteId': item['paciente_id'],
+            'paciente': item['pacientes'],
+            'plano_saude': item['planos_saude']
+        } for item in result.data]
+        
+        return {
+            "items": formatted_data,
+            "total": total,
+            "pages": ceil(total / limit)
+        }
+    except Exception as e:
+        logging.error(f"Erro ao listar carteirinhas: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/carteirinhas/")
+def criar_carteirinha_route(carteirinha: Carteirinha):
+    try:
+        # Format data for database
+        data = {
+            'numero_carteirinha': carteirinha.numero_carteirinha,
+            'data_validade': carteirinha.data_validade,
+            'titular': carteirinha.titular,
+            'nome_titular': carteirinha.nome_titular if not carteirinha.titular else None,
+            'plano_saude_id': carteirinha.plano_saude_id,
+            'paciente_id': carteirinha.paciente_id,
+            'ativo': True
+        }
+
+        # Validate if paciente exists
+        paciente = supabase.table("pacientes").select("*").eq("id", data['paciente_id']).execute()
+        if not paciente.data:
+            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+            
+        # Validate if plano exists
+        plano = supabase.table("planos_saude").select("*").eq("id", data['plano_saude_id']).execute()
+        if not plano.data:
+            raise HTTPException(status_code=404, detail="Plano de saúde não encontrado")
+            
+        # Create carteirinha
+        response = supabase.table("carteirinhas").insert(data).execute()
+        
+        created_data = response.data[0]
+        
+        # Format response
+        return {
+            'id': created_data['id'],
+            'numero': created_data['numero_carteirinha'],
+            'dataValidade': created_data['data_validade'],
+            'titular': created_data['titular'],
+            'nomeTitular': created_data['nome_titular'],
+            'planoId': created_data['plano_saude_id'],
+            'pacienteId': created_data['paciente_id']
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Erro ao criar carteirinha: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/carteirinhas/{carteirinha_id}")
+def buscar_carteirinha_route(carteirinha_id: str):
+    try:
+        response = supabase.table("carteirinhas").select(
+            "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
+        ).eq("id", carteirinha_id).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+            
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Erro ao buscar carteirinha: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/carteirinhas/{carteirinha_id}")
+def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteirinha):
+    try:
+        # Format data for database
+        data = {
+            'numero_carteirinha': carteirinha.numero_carteirinha,
+            'data_validade': carteirinha.data_validade,
+            'titular': carteirinha.titular,
+            'nome_titular': carteirinha.nome_titular if not carteirinha.titular else None,
+            'plano_saude_id': carteirinha.plano_saude_id,
+            'paciente_id': carteirinha.paciente_id,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }
+
+        # Check if carteirinha exists
+        existing = supabase.table("carteirinhas").select("*").eq("id", carteirinha_id).execute()
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+            
+        # Update carteirinha
+        response = supabase.table("carteirinhas").update(data).eq("id", carteirinha_id).execute()
+        
+        updated_data = response.data[0]
+        
+        # Format response
+        return {
+            'id': updated_data['id'],
+            'numero': updated_data['numero_carteirinha'],
+            'dataValidade': updated_data['data_validade'],
+            'titular': updated_data['titular'],
+            'nomeTitular': updated_data['nome_titular'],
+            'planoId': updated_data['plano_saude_id'],
+            'pacienteId': updated_data['paciente_id']
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Erro ao atualizar carteirinha: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/carteirinhas/{carteirinha_id}")
+def deletar_carteirinha_route(carteirinha_id: str):
+    try:
+        # Check if carteirinha exists
+        existing = supabase.table("carteirinhas").select("*").eq("id", carteirinha_id).execute()
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+            
+        # Delete carteirinha
+        supabase.table("carteirinhas").delete().eq("id", carteirinha_id).execute()
+        
+        return {"message": "Carteirinha excluída com sucesso"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Erro ao deletar carteirinha: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 async def deletar_sessao(sessao_id: str):
     """Deleta uma sessão específica e suas execuções relacionadas"""
     try:

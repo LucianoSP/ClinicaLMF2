@@ -1462,11 +1462,120 @@ def atualizar_guia(guia_id: str, dados_guia: dict) -> bool:
     except Exception as e:
         print(f"Erro ao atualizar guia: {e}")
         return False
-
-
 # Funções para Pacientes
 def criar_paciente(dados: Dict) -> Dict:
     """Cria um novo paciente."""
+
+# Funções para Carteirinhas
+def criar_carteirinha(dados: Dict) -> Dict:
+    """Cria uma nova carteirinha (cartão do plano de saúde)."""
+    try:
+        # Validar dados obrigatórios
+        campos_obrigatorios = ['paciente_id', 'plano_saude_id', 'numero_carteirinha']
+        for campo in campos_obrigatorios:
+            if campo not in dados:
+                raise ValueError(f'Campo obrigatório ausente: {campo}')
+
+        # Adiciona timestamps
+        dados['created_at'] = datetime.now(timezone.utc).isoformat()
+        dados['updated_at'] = datetime.now(timezone.utc).isoformat()
+
+        # Gera um UUID para o id se não fornecido
+        if 'id' not in dados:
+            dados['id'] = str(uuid.uuid4())
+
+        # Define valor padrão para ativo se não fornecido
+        if 'ativo' not in dados:
+            dados['ativo'] = True
+
+        response = supabase.table('carteirinhas').insert(dados).execute()
+        return response.data[0] if response.data else None
+
+    except Exception as e:
+        logging.error(f'Erro ao criar carteirinha: {e}')
+        raise e
+
+def listar_carteirinhas(
+    limit: int = 100,
+    offset: int = 0,
+    search: Optional[str] = None,
+    plano_id: Optional[str] = None,
+    ativo: Optional[bool] = None
+) -> Dict:
+    """Lista todas as carteirinhas com suporte a paginação, busca e filtros."""
+    try:
+        query = supabase.table('carteirinhas').select(
+            '*,'
+            'pacientes(nome),'
+            'planos_saude(nome)'
+        )
+
+        # Aplica filtros
+        if search:
+            query = query.or_(
+                f'numero_carteirinha.ilike.%{search}%,'
+                f'nome_titular.ilike.%{search}%'
+            )
+        
+        if plano_id:
+            query = query.eq('plano_saude_id', plano_id)
+            
+        if ativo is not None:
+            query = query.eq('ativo', ativo)
+
+        # Ordenação
+        query = query.order('created_at', desc=True)
+
+        # Contagem total antes da paginação
+        total = len(query.execute().data)
+
+        # Aplica paginação
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
+        response = query.execute()
+
+        return {
+            'data': response.data,
+            'total': total,
+            'pages': ceil(total / limit) if limit > 0 else 1
+        }
+
+    except Exception as e:
+        logging.error(f'Erro ao listar carteirinhas: {e}')
+        raise e
+
+def atualizar_carteirinha(carteirinha_id: str, dados: Dict) -> Dict:
+    """Atualiza uma carteirinha existente."""
+    try:
+        # Remove campos que não devem ser atualizados manualmente
+        dados_atualizacao = dados.copy()
+        dados_atualizacao.pop('created_at', None)
+        dados_atualizacao['updated_at'] = datetime.now(timezone.utc).isoformat()
+
+        response = supabase.table('carteirinhas')\
+            .update(dados_atualizacao)\
+            .eq('id', carteirinha_id)\
+            .execute()
+
+        return response.data[0] if response.data else None
+
+    except Exception as e:
+        logging.error(f'Erro ao atualizar carteirinha: {e}')
+        raise e
+
+def deletar_carteirinha(carteirinha_id: str) -> bool:
+    """Deleta uma carteirinha."""
+    try:
+        response = supabase.table('carteirinhas')\
+            .delete()\
+            .eq('id', carteirinha_id)\
+            .execute()
+        return bool(response.data)
+
+    except Exception as e:
+        logging.error(f'Erro ao deletar carteirinha: {e}')
+        raise e
     try:
         response = supabase.table("pacientes").insert(dados).execute()
         return response.data[0] if response.data else None

@@ -349,15 +349,43 @@ Lógica de negócio e endpoints:
 - safe_get_value()
 - listar_divergencias_route()
 
-## 6. Interface do Sistema
+## 6. Carteirinhas (Health Insurance Cards)
 
-### 6.1 Gerenciamento de Pacientes
+### 6.1 Overview
+Carteirinhas represent health insurance cards in the system, serving as a crucial link between patients (Pacientes) and health insurance plans (Planos de Saúde). They store essential information about a patient's insurance coverage and validity.
 
-#### Busca e Listagem de Pacientes
+### 6.2 Key Relationships
+- **Pacientes**: Each carteirinha is associated with a patient through `paciente_id`
+- **Planos de Saúde**: Links to a specific health plan through `plano_saude_id`
+
+### 6.3 API Endpoints
+
+#### GET /api/carteirinhas
+- Lists all carteirinhas with optional filtering
+- Supports pagination and search
+
+#### GET /api/carteirinhas/{id}
+- Retrieves detailed information about a specific carteirinha
+
+#### POST /api/carteirinhas
+- Creates a new carteirinha record
+- Validates data and relationships
+
+#### PUT /api/carteirinhas/{id}
+- Updates an existing carteirinha record
+
+#### DELETE /api/carteirinhas/{id}
+- Deactivates/removes a carteirinha record
+
+## 7. Interface do Sistema
+
+### 7.1 Gerenciamento de Pacientes
+
+#### Busca e Listagem de Pacientes e Carteirinhas
 - Campo de busca para localizar pacientes
 - Tabela interativa com informações básicas
-- Botão para cadastro de novos pacientes
-- Opção de edição para cada paciente
+- Botão para cadastro de novos pacientes e carteirinhas
+- Opção de edição para cada paciente e suas carteirinhas
 
 #### Informações do Paciente
 **Dados Pessoais:**
@@ -379,7 +407,7 @@ Lógica de negócio e endpoints:
 - Saldo disponível
 - Status da guia
 
-### 6.2 Página de Auditoria
+### 7.2 Página de Auditoria
 
 #### Dashboard
 - Total de protocolos analisados

@@ -89,6 +89,8 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>()
   const [patientGuides, setPatientGuides] = useState<Guide[]>([])
+  const [isLoadingCarteirinhas, setIsLoadingCarteirinhas] = useState(false)
+  const [carteirinhasError, setCarteirinhasError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -133,6 +135,30 @@ export default function PatientsPage() {
     }
   }, [])
 
+  const loadCarteirinhas = useCallback(async (patientId: string) => {
+    setIsLoadingCarteirinhas(true)
+    setCarteirinhasError(null)
+    try {
+      const response = await fetch(`${API_URL}/pacientes/${patientId}/carteirinhas`)
+      if (!response.ok) throw new Error('Falha ao carregar carteirinhas')
+
+      const data = await response.json()
+      setSelectedPatient(prev => prev ? {
+        ...prev,
+        carteirinhas: data.items || []
+      } : prev)
+    } catch (error) {
+      console.error('Erro ao carregar carteirinhas:', error)
+      setCarteirinhasError('Erro ao carregar carteirinhas')
+      setSelectedPatient(prev => prev ? {
+        ...prev,
+        carteirinhas: []
+      } : prev)
+    } finally {
+      setIsLoadingCarteirinhas(false)
+    }
+  }, [])
+
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
       const response = await fetch(`${API_URL}/pacientes/${patientId}/guias`)
@@ -143,16 +169,10 @@ export default function PatientsPage() {
 
       // Atualiza as guias
       setPatientGuides(data.items || [])
-
-      // Depois atualiza o paciente com o plano e fichas
+      
+      // Atualiza apenas as fichas do paciente
       setSelectedPatient(prev => prev ? {
         ...prev,
-        carteirinhas: data.carteirinhas || [{
-          numero_carteirinha: prev.carteirinha || '',
-          nome_titular: prev.nome,
-          data_validade: null,
-          plano_saude: data.plano
-        }],
         fichas: data.fichas || []
       } : prev)
     } catch (error) {
@@ -185,12 +205,13 @@ export default function PatientsPage() {
   useEffect(() => {
     if (selectedPatient) {
       console.log('Carregando guias para paciente:', selectedPatient.id)
+      loadCarteirinhas(selectedPatient.id)
       loadPatientGuides(selectedPatient.id).then(response => {
         console.log('Resposta do backend - guias:', response) // Verifique os valores aqui
       })
       loadPatientStats(selectedPatient.id)
     }
-  }, [selectedPatient?.id])
+  }, [selectedPatient?.id, loadCarteirinhas, loadPatientGuides, loadPatientStats])
 
   const handleEditPatient = (patient: Patient) => {
     setSelectedPatient(patient)
@@ -207,10 +228,11 @@ export default function PatientsPage() {
 
   const refreshPatientData = useCallback(() => {
     if (selectedPatient) {
+      loadCarteirinhas(selectedPatient.id);
       loadPatientGuides(selectedPatient.id);
       loadPatientStats(selectedPatient.id);
     }
-  }, [selectedPatient, loadPatientGuides, loadPatientStats]);
+  }, [selectedPatient, loadCarteirinhas, loadPatientGuides, loadPatientStats]);
 
   return (
     <div className="flex flex-col gap-6">

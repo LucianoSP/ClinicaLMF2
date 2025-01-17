@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS planos_saude (
 -- Carteirinhas
 CREATE TABLE IF NOT EXISTS carteirinhas (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    paciente_id uuid REFERENCES pacientes(id),
-    plano_saude_id uuid REFERENCES planos_saude(id),
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
+    plano_saude_id uuid REFERENCES planos_saude(id) ON DELETE RESTRICT,
     numero_carteirinha character varying(50) NOT NULL,
     data_validade date,
     titular boolean DEFAULT false,
@@ -53,8 +53,13 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
     ativo boolean DEFAULT true,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    UNIQUE(plano_saude_id, numero_carteirinha)
+    UNIQUE(plano_saude_id, numero_carteirinha),
+    CONSTRAINT carteirinhas_numero_carteirinha_check CHECK (numero_carteirinha ~ '^[0-9.\-]+$')
 );
+
+-- Index for faster carteirinha lookups
+CREATE INDEX IF NOT EXISTS idx_carteirinhas_numero ON carteirinhas(numero_carteirinha);
+CREATE INDEX IF NOT EXISTS idx_carteirinhas_paciente ON carteirinhas(paciente_id);
 
 -- Guias
 CREATE TABLE IF NOT EXISTS guias (
@@ -214,3 +219,29 @@ ON execucoes(numero_guia, data_execucao);
 GRANT ALL ON ALL TABLES IN SCHEMA public TO public;
 GRANT USAGE ON SCHEMA public TO public;
 ALTER TABLE auditoria_execucoes DISABLE ROW LEVEL SECURITY;
+
+-- Migration script for carteirinhas table updates
+DO $$ 
+BEGIN
+    -- Update foreign key constraints if they don't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'carteirinhas_paciente_id_fkey'
+    ) THEN
+        ALTER TABLE carteirinhas
+            DROP CONSTRAINT IF EXISTS carteirinhas_paciente_id_fkey,
+            ADD CONSTRAINT carteirinhas_paciente_id_fkey 
+                FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'carteirinhas_plano_saude_id_fkey'
+    ) THEN
+        ALTER TABLE carteirinhas
+            DROP CONSTRAINT IF EXISTS carteirinhas_plano_saude_id_fkey,
+            ADD CONSTRAINT carteirinhas_plano_saude_id_fkey 
+                FOREIGN KEY (plano_saude_id) REFERENCES planos_saude(id) ON DELETE RESTRICT;
+    END IF;
+
+END $$;
