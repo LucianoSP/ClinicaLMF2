@@ -31,8 +31,8 @@ interface CarteirinhaResponse {
   pages: number;
 }
 
-// Função auxiliar para converter do formato do frontend para o backend
-function toBackendFormat(carteirinha: Partial<Carteirinha>) {
+// Adicione a palavra-chave export aqui
+export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
   const dataValidade = carteirinha.dataValidade 
     ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
     : null;
@@ -48,10 +48,8 @@ function toBackendFormat(carteirinha: Partial<Carteirinha>) {
   };
 }
 
-
-
 // Função auxiliar para converter do formato do backend para o frontend
-function toFrontendFormat(data: any): Carteirinha {
+export function toFrontendFormat(data: any): Carteirinha {
   return {
     id: data.id || "",
     numero: data.numero_carteirinha || "",

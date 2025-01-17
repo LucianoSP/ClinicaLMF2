@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Carteirinha, toBackendFormat } from "@/services/carteirinhaService";
+import {  Carteirinha, toBackendFormat, toFrontendFormat  } from "@/services/carteirinhaService";
 import { format } from "date-fns";
 import {
   Select,
@@ -102,14 +102,23 @@ export function CarteirinhaModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Adicione um log para debug
+  console.log("Dados do formulário:", formData);
+
     const dadosParaSalvar = {
-      ...formData,
-      dataValidade: formData.dataValidade ? formData.dataValidade.split('T')[0] : null,
-      id: carteirinha?.id // Preserve the ID if editing
-    };
-    console.log('Dados sendo enviados:', dadosParaSalvar);
-    // Transform data to backend format before saving
-    onSave(toBackendFormat(dadosParaSalvar));
+    ...formData,
+    // Garantir que todos os campos obrigatórios estejam presentes
+    numero_carteirinha: formData.numero,
+    paciente_id: formData.pacienteId,
+    plano_saude_id: formData.planoId,
+    nome_titular: formData.nomeTitular || "",
+    data_validade: formData.dataValidade ? formData.dataValidade.split('T')[0] : null,
+    titular: formData.titular ?? true,
+    ativo: true
+  };
+  console.log("Dados para salvar:", dadosParaSalvar);
+  onSave(dadosParaSalvar);
   };
 
   const handleChange = (
