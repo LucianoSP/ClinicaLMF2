@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageTitle } from "@/components/ui/page-title";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlanosList } from "@/components/planos/PlanosList";
+import { PacientesList } from "@/components/pacientes/PacientesList";
 
 export default function CadastrosPage() {
   return (
@@ -16,12 +17,17 @@ export default function CadastrosPage() {
             <Tabs defaultValue="planos" className="w-full">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="planos">Planos de Saúde</TabsTrigger>
+                <TabsTrigger value="pacientes">Pacientes</TabsTrigger>
                 <TabsTrigger value="carteirinhas">Carteirinhas</TabsTrigger>
                 <TabsTrigger value="guias">Guias</TabsTrigger>
               </TabsList>
 
               <TabsContent value="planos" className="mt-4">
                 <PlanosList />
+              </TabsContent>
+
+              <TabsContent value="pacientes" className="mt-4">
+                <PacientesList />
               </TabsContent>
 
               <TabsContent value="carteirinhas" className="mt-4">
