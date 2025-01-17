@@ -757,30 +757,6 @@ def listar_execucoes(
         return [] if limit == 0 else {"execucoes": [], "total": 0, "total_pages": 1}
 
 
-def listar_pacientes(
-    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
-) -> Dict:
-    """Retorna todos os pacientes com suporte a paginação e filtro."""
-    try:
-        query = supabase.table("pacientes").select("*")
-
-        if paciente_nome:
-            query = query.ilike("nome", f"%{paciente_nome.upper()}%")
-
-        query = query.order("nome")
-        response = query.execute()
-
-        if not response.data:
-            return {"items": [], "total": 0}
-
-        return {"items": response.data, "total": len(response.data)}
-
-    except Exception as e:
-        print(f"Erro ao listar pacientes: {e}")
-        traceback.print_exc()
-        return {"items": [], "total": 0}
-
-
 def listar_guias_paciente(paciente_id: str) -> Dict:
     """Lista todas as guias de um paciente específico e suas informações de plano."""
     try:
@@ -1502,8 +1478,16 @@ def criar_paciente(dados: Dict) -> Dict:
 def atualizar_paciente(paciente_id: str, dados: Dict) -> Dict:
     """Atualiza um paciente existente."""
     try:
+        # Remove campos que não devem ser atualizados manualmente
+        dados_atualizacao = dados.copy()
+        dados_atualizacao.pop("created_at", None)
+        dados_atualizacao.pop("updated_at", None)
+
         response = (
-            supabase.table("pacientes").update(dados).eq("id", paciente_id).execute()
+            supabase.table("pacientes")
+            .update(dados_atualizacao)
+            .eq("id", paciente_id)
+            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -1526,26 +1510,33 @@ def listar_pacientes(
 ) -> Dict:
     """Lista todos os pacientes com suporte a paginação e busca."""
     try:
-        query = supabase.table("pacientes")
-
         if search:
-            query = query.or_(
-                f"nome.ilike.%{search}%,nome_responsavel.ilike.%{search}%"
+            response = (
+                supabase.table("pacientes")
+                .select("*")
+                .ilike("nome", f"%{search}%")
+                .order("created_at", desc=True)
+                .execute()
+            )
+        else:
+            response = (
+                supabase.table("pacientes")
+                .select("*")
+                .order("created_at", desc=True)
+                .execute()
             )
 
-        # Primeiro, conta o total de registros
-        count_response = query.count().execute()
-        total = count_response.count if count_response else 0
+        # Processa os resultados
+        all_data = response.data if response.data else []
+        total = len(all_data)
 
-        # Depois, busca os registros com paginação
-        response = (
-            query.order("created_at", desc=True)
-            .range(offset, offset + limit - 1)
-            .execute()
-        )
+        # Aplica paginação
+        start = offset
+        end = offset + limit
+        paginated_data = all_data[start:end]
 
         return {
-            "data": response.data,
+            "data": paginated_data,
             "total": total,
             "pages": ceil(total / limit) if total > 0 else 0,
         }

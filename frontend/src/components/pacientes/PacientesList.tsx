@@ -32,15 +32,18 @@ export function PacientesList() {
   const [pacienteParaExcluir, setPacienteParaExcluir] = useState<string | null>(null);
   const [pacienteParaEditar, setPacienteParaEditar] = useState<Paciente | null>(null);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
   const carregarPacientes = async () => {
     try {
-      const data = await listarPacientes();
-      setPacientes(data || []); // Garante que sempre será um array
+      const response = await listarPacientes(currentPage);
+      setPacientes(response.data);
+      setTotalPages(response.pages);
     } catch (error) {
       console.error('Erro ao carregar pacientes:', error);
-      setPacientes([]); // Em caso de erro, inicializa como array vazio
+      setPacientes([]);
       toast({
         title: "Erro",
         description: "Erro ao carregar pacientes",
@@ -48,6 +51,8 @@ export function PacientesList() {
       });
     }
   };
+
+  // ... resto do código permanece igual
 
   useEffect(() => {
     carregarPacientes();

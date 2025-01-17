@@ -108,19 +108,22 @@ class Paciente(BaseModel):
 
 
 # Rotas para Pacientes
-@app.get("/api/pacientes/")
+@app.get("/pacientes/")
 def listar_pacientes_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
     search: str = Query(None, description="Buscar por nome do paciente ou responsável"),
 ):
     try:
-        return listar_pacientes(limit=limit, offset=offset, search=search)
+        return database_supabase.listar_pacientes(
+            limit=limit, offset=offset, search=search
+        )
     except Exception as e:
+        logging.error(f"Erro ao listar pacientes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/pacientes/")
+@app.post("/pacientes/")
 def criar_paciente_route(paciente: Paciente):
     try:
         return criar_paciente(paciente.model_dump(exclude_unset=True))
@@ -128,7 +131,7 @@ def criar_paciente_route(paciente: Paciente):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/pacientes/{paciente_id}")
+@app.get("/pacientes/{paciente_id}")
 def buscar_paciente_route(paciente_id: str):
     try:
         paciente = buscar_paciente(paciente_id)
@@ -139,7 +142,7 @@ def buscar_paciente_route(paciente_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/api/pacientes/{paciente_id}")
+@app.put("/pacientes/{paciente_id}")
 def atualizar_paciente_route(paciente_id: str, paciente: Paciente):
     try:
         paciente_atual = buscar_paciente(paciente_id)
@@ -151,7 +154,7 @@ def atualizar_paciente_route(paciente_id: str, paciente: Paciente):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/api/pacientes/{paciente_id}")
+@app.delete("/pacientes/{paciente_id}")
 def deletar_paciente_route(paciente_id: str):
     try:
         paciente = buscar_paciente(paciente_id)
@@ -175,7 +178,7 @@ class Plano(BaseModel):
 
 
 # Rotas para Planos de Saúde
-@app.get("/api/planos", response_model=List[Plano])
+@app.get("/planos", response_model=List[Plano])
 async def listar_planos_route():
     try:
         return database_supabase.listar_planos()
@@ -183,7 +186,7 @@ async def listar_planos_route():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/planos", response_model=Plano)
+@app.post("/planos", response_model=Plano)
 async def criar_plano_route(plano: Plano):
     try:
         data = {"nome": plano.nome, "codigo": plano.codigo, "ativo": plano.ativo}
@@ -195,7 +198,7 @@ async def criar_plano_route(plano: Plano):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/api/planos/{plano_id}", response_model=Plano)
+@app.put("/planos/{plano_id}", response_model=Plano)
 async def atualizar_plano_route(plano_id: str, plano: Plano):  # Mudado para str
     try:
         data = {"nome": plano.nome, "codigo": plano.codigo, "ativo": plano.ativo}
@@ -206,7 +209,7 @@ async def atualizar_plano_route(plano_id: str, plano: Plano):  # Mudado para str
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/api/planos/{plano_id}")
+@app.delete("/planos/{plano_id}")
 async def deletar_plano_route(plano_id: str):  # Mudado para str
     try:
         database_supabase.deletar_plano(plano_id)
@@ -1544,25 +1547,6 @@ async def clear_fichas_presenca():
         raise HTTPException(
             status_code=500, detail=f"Erro ao limpar registros: {str(e)}"
         )
-
-
-@app.get("/pacientes")
-async def listar_pacientes(
-    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
-    offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
-):
-    """Lista todos os pacientes com suporte a paginação e filtro"""
-    try:
-        from database_supabase import listar_pacientes
-
-        result = listar_pacientes(
-            limit=limit, offset=offset, paciente_nome=paciente_nome
-        )
-        return result
-    except Exception as e:
-        logger.error(f"Erro ao listar pacientes: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao listar pacientes")
 
 
 @app.get("/pacientes/{paciente_id}/guias")
