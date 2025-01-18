@@ -4,7 +4,7 @@ import { TabContext, TabList, TabPanel } from '@mui/lab';
 
 import PacientesList from './pacientes/PacientesList';
 import PlanosSaudeList from './planos-saude/PlanosSaudeList';
-import CarteirinhasList from './carteirinhas/CarteirinhasList';
+import CarteirinhasList from '../../components/carteirinhas/CarteirinhasList';
 
 interface TabPanelProps {
   children?: React.ReactNode;
