@@ -1,4 +1,3 @@
-// components/carteirinhas/CarteirinhasList.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -11,6 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,45 +32,55 @@ import {
   excluirCarteirinha 
 } from "@/services/carteirinhaService";
 
+const ITEMS_PER_PAGE = 10;
+
+interface PaginatedData {
+  items: Carteirinha[];
+  total: number;
+  pages: number;
+  isLoading: boolean;
+}
+
 export function CarteirinhasList() {
-  const [data, setData] = useState<{
-    items: Carteirinha[];
-    isLoading: boolean;
-  }>({
+  const [data, setData] = useState<PaginatedData>({
     items: [],
+    total: 0,
+    pages: 1,
     isLoading: true,
   });
+  const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCarteirinha, setSelectedCarteirinha] = useState<Carteirinha | undefined>();
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await listarCarteirinhas();
-        setData({
-          items: response.items,
-          isLoading: false,
-        });
-      } catch (error) {
-        console.error('Error fetching carteirinhas:', error);
-        toast.error("Erro ao carregar carteirinhas");
-        setData({
-          items: [],
-          isLoading: false,
-        });
-      }
+  const fetchCarteirinhas = async (page: number) => {
+    try {
+      setData(prev => ({ ...prev, isLoading: true }));
+      const response = await listarCarteirinhas(page, ITEMS_PER_PAGE);
+      setData({
+        items: response.items,
+        total: response.total,
+        pages: response.pages,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Error fetching carteirinhas:', error);
+      toast.error("Erro ao carregar carteirinhas");
+      setData({
+        items: [],
+        total: 0,
+        pages: 1,
+        isLoading: false,
+      });
     }
+  };
 
-    fetchData();
-  }, []);
+  useEffect(() => {
+    fetchCarteirinhas(currentPage);
+  }, [currentPage]);
 
-  if (data.isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const handleSave = async (carteirinha: Partial<Carteirinha>) => {
     try {
@@ -75,10 +93,7 @@ export function CarteirinhasList() {
         toast.success("Carteirinha atualizada com sucesso!");
       } else {
         const created = await criarCarteirinha(carteirinha);
-        setData(prev => ({
-          ...prev,
-          items: [...prev.items, created]
-        }));
+        await fetchCarteirinhas(currentPage); // Recarrega a página atual
         toast.success("Carteirinha criada com sucesso!");
       }
       setIsModalOpen(false);
@@ -87,6 +102,88 @@ export function CarteirinhasList() {
       toast.error("Erro ao salvar carteirinha");
     }
   };
+
+  const handleDelete = async (carteirinha: Carteirinha) => {
+    try {
+      await excluirCarteirinha(carteirinha.id);
+      setData(prev => ({
+        ...prev,
+        items: prev.items.filter(c => c.id !== carteirinha.id),
+        total: prev.total - 1
+      }));
+      toast.success("Carteirinha excluída com sucesso!");
+      
+      // Se a página atual ficou vazia e não é a primeira página, volta uma página
+      if (data.items.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      }
+    } catch (error) {
+      console.error('Error deleting carteirinha:', error);
+      toast.error("Erro ao excluir carteirinha");
+    }
+  };
+
+  const renderPagination = () => {
+    if (data.pages <= 1) return null;
+
+    return (
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious 
+              onClick={() => handlePageChange(currentPage - 1)}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
+          
+          {[...Array(data.pages)].map((_, index) => {
+            const pageNumber = index + 1;
+            const shouldShowPage = 
+              pageNumber === 1 || 
+              pageNumber === data.pages || 
+              (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1);
+
+            if (!shouldShowPage) {
+              if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                return (
+                  <PaginationItem key={pageNumber}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                );
+              }
+              return null;
+            }
+
+            return (
+              <PaginationItem key={pageNumber}>
+                <PaginationLink
+                  onClick={() => handlePageChange(pageNumber)}
+                  isActive={currentPage === pageNumber}
+                >
+                  {pageNumber}
+                </PaginationLink>
+              </PaginationItem>
+            );
+          })}
+
+          <PaginationItem>
+            <PaginationNext
+              onClick={() => handlePageChange(currentPage + 1)}
+              className={currentPage === data.pages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
+  };
+
+  if (data.isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -107,66 +204,60 @@ export function CarteirinhasList() {
           </p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Número</TableHead>
-              <TableHead>Paciente</TableHead>
-              <TableHead>Plano de Saúde</TableHead>
-              <TableHead>Data de Validade</TableHead>
-              <TableHead>Titular</TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.items.map((carteirinha) => (
-              <TableRow key={carteirinha.id}>
-                <TableCell>{carteirinha.numero}</TableCell>
-                <TableCell>{carteirinha.paciente?.nome}</TableCell>
-                <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
-                <TableCell>
-                  {carteirinha.dataValidade ? 
-                    format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
-                    : '-'}
-                </TableCell>
-                <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSelectedCarteirinha(carteirinha);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={async () => {
-                        try {
-                          await excluirCarteirinha(carteirinha.id);
-                          setData(prev => ({
-                            ...prev,
-                            items: prev.items.filter(c => c.id !== carteirinha.id)
-                          }));
-                          toast.success("Carteirinha excluída com sucesso!");
-                        } catch (error) {
-                          console.error('Error deleting carteirinha:', error);
-                          toast.error("Erro ao excluir carteirinha");
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Número</TableHead>
+                <TableHead>Paciente</TableHead>
+                <TableHead>Plano de Saúde</TableHead>
+                <TableHead>Data de Validade</TableHead>
+                <TableHead>Titular</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {data.items.map((carteirinha) => (
+                <TableRow key={carteirinha.id}>
+                  <TableCell>{carteirinha.numero}</TableCell>
+                  <TableCell>{carteirinha.paciente?.nome}</TableCell>
+                  <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
+                  <TableCell>
+                    {carteirinha.dataValidade ? 
+                      format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
+                      : '-'}
+                  </TableCell>
+                  <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedCarteirinha(carteirinha);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(carteirinha)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          <div className="flex justify-center mt-4">
+            {renderPagination()}
+          </div>
+        </>
       )}
 
       <CarteirinhaModal
