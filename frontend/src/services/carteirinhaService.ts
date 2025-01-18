@@ -38,8 +38,25 @@ export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
 
   const backendData = {
     numero_carteirinha: carteirinha.numero,
-    data_validade: carteirinha.dataValidade 
-      ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
+    data_validade: carteirinha.dataValidade
+      ? (() => {
+          // If it's already a valid YYYY-MM-DD string, use it directly
+          if (
+            typeof carteirinha.dataValidade === 'string' &&
+            /^\d{4}-\d{2}-\d{2}$/.test(carteirinha.dataValidade)
+          ) {
+            return carteirinha.dataValidade;
+          }
+          // Otherwise, try to convert to Date and format
+          try {
+            const date = new Date(carteirinha.dataValidade);
+            if (isNaN(date.getTime())) throw new Error('Invalid date');
+            return date.toISOString().split('T')[0];
+          } catch (error) {
+            console.error('Error formatting date:', error);
+            return null;
+          }
+        })()
       : null,
     titular: carteirinha.titular ?? true,
     nome_titular: carteirinha.nomeTitular || "",

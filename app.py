@@ -102,15 +102,13 @@ class Paciente(BaseModel):
     email: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-
 class Carteirinha(BaseModel):
     id: Optional[str] = None
     numero_carteirinha: str
     paciente_id: str
     plano_saude_id: str
     nome_titular: str
-    data_validade: Optional[date] = None  # Mudamos para date
+    data_validade: Optional[date] = None
     titular: bool = True
     ativo: bool = True
     paciente: Optional[Dict] = None
@@ -122,13 +120,17 @@ class Carteirinha(BaseModel):
     def parse_data_validade(cls, v):
         if not v:
             return None
+        # If already a date object, return as is
         if isinstance(v, date):
             return v
+        # If string, try to parse it
         try:
-            # Tenta converter a string para date
-            return datetime.strptime(v.split('T')[0], '%Y-%m-%d').date()
-        except (ValueError, AttributeError):
-            raise ValueError('Data de validade inválida')
+            if isinstance(v, str):
+                # Handle both date-only and datetime strings
+                return datetime.strptime(v.split('T')[0], '%Y-%m-%d').date()
+            raise ValueError('Valor deve ser uma string de data ou objeto date')
+        except (ValueError, AttributeError, TypeError):
+            raise ValueError('Data de validade inválida - formato esperado: YYYY-MM-DD')
 
     class Config:
         json_encoders = {
@@ -1831,7 +1833,7 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
         # Format data for database
         data = {
             'numero_carteirinha': carteirinha.numero_carteirinha,
-            'data_validade': carteirinha.data_validade.isoformat() if carteirinha.data_validade else None,
+            'data_validade': None,
             'titular': carteirinha.titular,
             'nome_titular': carteirinha.nome_titular if not carteirinha.titular else None,
             'plano_saude_id': carteirinha.plano_saude_id,
@@ -1839,6 +1841,11 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
             'ativo': carteirinha.ativo,
             'updated_at': datetime.now(timezone.utc).isoformat()  # Convertendo para string ISO
         }
+        
+        # Handle data_validade conversion properly
+        if carteirinha.data_validade:
+            if isinstance(carteirinha.data_validade, date):
+                data['data_validade'] = carteirinha.data_validade.isoformat()
         
         logging.info(f"Dados formatados para atualização: {data}")
 

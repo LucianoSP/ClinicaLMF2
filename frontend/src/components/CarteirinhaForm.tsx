@@ -39,7 +39,12 @@ import {
 
 const formSchema = z.object({
   numero: z.string().min(1, "Número da carteirinha é obrigatório"),
-  dataValidade: z.string().min(1, "Data de validade é obrigatória"),
+  dataValidade: z.string()
+    .min(1, "Data de validade é obrigatória")
+    .regex(
+      /^\d{4}-\d{2}-\d{2}$/,
+      "Data deve estar no formato YYYY-MM-DD"
+    ),
   titular: z.boolean().default(false),
   nomeTitular: z.string().optional(),
   planoId: z.string().min(1, "Plano de saúde é obrigatório"),
@@ -110,14 +115,31 @@ export function CarteirinhaForm({
 
   async function onSubmit(values: CarteirinhaFormValues) {
     try {
+      // Validate and format the date
+      const dateValue = values.dataValidade;
+      if (!dateValue) {
+        throw new Error("Data de validade é obrigatória");
+      }
+
+      // Ensure the date is in YYYY-MM-DD format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(dateValue)) {
+        throw new Error("Data deve estar no formato YYYY-MM-DD");
+      }
+
+      const formattedValues = {
+        ...values,
+        dataValidade: dateValue,
+      };
+
       if (carteirinha) {
-        await atualizarCarteirinha(carteirinha.id, values);
+        await atualizarCarteirinha(carteirinha.id, formattedValues);
         toast({
           title: "Sucesso",
           description: "Carteirinha atualizada com sucesso",
         });
       } else {
-        await criarCarteirinha(values);
+        await criarCarteirinha(formattedValues);
         toast({
           title: "Sucesso",
           description: "Carteirinha criada com sucesso",
@@ -129,7 +151,8 @@ export function CarteirinhaForm({
       console.error(error);
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao salvar carteirinha",
+        description:
+          error instanceof Error ? error.message : "Erro ao salvar carteirinha",
         variant: "destructive",
       });
     }

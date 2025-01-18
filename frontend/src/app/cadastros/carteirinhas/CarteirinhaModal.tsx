@@ -46,8 +46,8 @@ export function CarteirinhaModal({
 }: CarteirinhaModalProps) {
   const [formData, setFormData] = useState<Partial<Carteirinha>>({
     numero: "",
-    dataValidade: "",
-    nomeTitular: "",
+    dataValidade: "",  // Will store date in YYYY-MM-DD format
+    nomeTitular: "", 
     titular: true,
     pacienteId: "",
     planoId: "",
@@ -55,7 +55,6 @@ export function CarteirinhaModal({
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchData = async () => {
       if (!isOpen) return;
@@ -85,7 +84,7 @@ export function CarteirinhaModal({
       console.log("Carteirinha para edição:", carteirinha);
       setFormData({
         numero: carteirinha.numero || "",
-        dataValidade: carteirinha.dataValidade?.split("T")[0] || "",
+        dataValidade: carteirinha.dataValidade || "",
         nomeTitular: carteirinha.nomeTitular || "",
         titular: carteirinha.titular ?? true,
         pacienteId: carteirinha.pacienteId || carteirinha.paciente?.id || "",
@@ -124,11 +123,9 @@ export function CarteirinhaModal({
       paciente_id: formData.pacienteId,
       plano_saude_id: formData.planoId,
       nome_titular: formData.nomeTitular || "",
-      data_validade: formData.dataValidade
-        ? formData.dataValidade.split("T")[0]
-        : null,
+      data_validade: formData.dataValidade || null,
       titular: formData.titular ?? true,
-      ativo: true,
+      ativo: true
     };
 
     console.log("Dados para salvar:", dadosParaSalvar);
@@ -144,13 +141,12 @@ export function CarteirinhaModal({
     if (name === "dataValidade") {
       setFormData((prev) => ({
         ...prev,
-        [name]: value ? value.split("T")[0] : "",
+        [name]: value || "",
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]:
-          type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
       }));
     }
   };
@@ -257,11 +253,7 @@ export function CarteirinhaModal({
                     id="dataValidade"
                     name="dataValidade"
                     type="date"
-                    value={
-                      formData.dataValidade
-                        ? formData.dataValidade.split("T")[0]
-                        : ""
-                    }
+                    value={formData.dataValidade || ""}
                     onChange={handleChange}
                   />
                 </div>

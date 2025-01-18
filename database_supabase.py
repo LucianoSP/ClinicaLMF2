@@ -1553,6 +1553,13 @@ def atualizar_carteirinha(carteirinha_id: str, dados: Dict) -> Dict:
         dados_atualizacao.pop('created_at', None)
         dados_atualizacao['updated_at'] = datetime.now(timezone.utc).isoformat()
 
+        # Handle data_validade field
+        if 'data_validade' in dados_atualizacao:
+            if hasattr(dados_atualizacao['data_validade'], 'isoformat'):
+                dados_atualizacao['data_validade'] = dados_atualizacao['data_validade'].isoformat()
+            elif dados_atualizacao['data_validade'] and not isinstance(dados_atualizacao['data_validade'], str):
+                raise ValueError('data_validade must be a date object or string')
+
         response = supabase.table('carteirinhas')\
             .update(dados_atualizacao)\
             .eq('id', carteirinha_id)\
