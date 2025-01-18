@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {  Carteirinha, toBackendFormat, toFrontendFormat  } from "@/services/carteirinhaService";
+import { Carteirinha, toBackendFormat } from "@/services/carteirinhaService";
 import { format } from "date-fns";
 import {
   Select,
@@ -59,15 +59,15 @@ export function CarteirinhaModal({
   useEffect(() => {
     const fetchData = async () => {
       if (!isOpen) return;
-      
+
       try {
         setLoading(true);
         const [pacientesResponse, planosResponse] = await Promise.all([
           listarPacientes(1, 100),
           listarPlanos(),
         ]);
-        console.log('Pacientes carregados:', pacientesResponse.items);
-        console.log('Planos carregados:', planosResponse);
+        console.log("Pacientes carregados:", pacientesResponse.items);
+        console.log("Planos carregados:", planosResponse);
         setPacientes(pacientesResponse.items || []);
         setPlanos(planosResponse || []);
       } catch (error) {
@@ -82,11 +82,15 @@ export function CarteirinhaModal({
 
   useEffect(() => {
     if (carteirinha) {
-      console.log('Carteirinha para edição:', carteirinha);
+      console.log("Carteirinha para edição:", carteirinha);
       setFormData({
-        ...carteirinha,
-        dataValidade: carteirinha.dataValidade?.split('T')[0] || "",
+        numero: carteirinha.numero || "",
+        dataValidade: carteirinha.dataValidade?.split("T")[0] || "",
+        nomeTitular: carteirinha.nomeTitular || "",
+        titular: carteirinha.titular ?? true,
         pacienteId: carteirinha.pacienteId || carteirinha.paciente?.id || "",
+        planoId: carteirinha.planoId || "",
+        ativo: carteirinha.ativo ?? true,
       });
     } else {
       setFormData({
@@ -96,6 +100,7 @@ export function CarteirinhaModal({
         titular: true,
         pacienteId: "",
         planoId: "",
+        ativo: true,
       });
     }
   }, [carteirinha]);
@@ -103,39 +108,49 @@ export function CarteirinhaModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Adicione um log para debug
-  console.log("Dados do formulário:", formData);
+    // Validação dos campos obrigatórios
+    if (!formData.numero || !formData.pacienteId || !formData.planoId) {
+      console.error("Campos obrigatórios faltando:", {
+        numero: formData.numero,
+        pacienteId: formData.pacienteId,
+        planoId: formData.planoId,
+      });
+      return;
+    }
 
     const dadosParaSalvar = {
-    ...formData,
-    // Garantir que todos os campos obrigatórios estejam presentes
-    numero_carteirinha: formData.numero,
-    paciente_id: formData.pacienteId,
-    plano_saude_id: formData.planoId,
-    nome_titular: formData.nomeTitular || "",
-    data_validade: formData.dataValidade ? formData.dataValidade.split('T')[0] : null,
-    titular: formData.titular ?? true,
-    ativo: true
-  };
-  console.log("Dados para salvar:", dadosParaSalvar);
-  onSave(dadosParaSalvar);
+      ...formData,
+      numero_carteirinha: formData.numero,
+      paciente_id: formData.pacienteId,
+      plano_saude_id: formData.planoId,
+      nome_titular: formData.nomeTitular || "",
+      data_validade: formData.dataValidade
+        ? formData.dataValidade.split("T")[0]
+        : null,
+      titular: formData.titular ?? true,
+      ativo: true,
+    };
+
+    console.log("Dados para salvar:", dadosParaSalvar);
+    onSave(dadosParaSalvar);
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    
+
     // Para campos de data, garantir que não tenha informação de timezone
-    if (name === 'dataValidade') {
-      setFormData(prev => ({
+    if (name === "dataValidade") {
+      setFormData((prev) => ({
         ...prev,
-        [name]: value ? value.split('T')[0] : ''
+        [name]: value ? value.split("T")[0] : "",
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+        [name]:
+          type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
       }));
     }
   };
@@ -163,7 +178,7 @@ export function CarteirinhaModal({
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="numero" className="text-right">
-                Número
+                Número*
               </Label>
               <Input
                 id="numero"
@@ -171,6 +186,7 @@ export function CarteirinhaModal({
                 value={formData.numero}
                 onChange={handleChange}
                 className="col-span-3"
+                required
               />
             </div>
 
@@ -181,14 +197,20 @@ export function CarteirinhaModal({
               {carteirinha ? (
                 <Input
                   id="paciente"
-                  value={carteirinha.paciente?.nome || pacientes.find(p => p.id === formData.pacienteId)?.nome || ''}
+                  value={
+                    carteirinha.paciente?.nome ||
+                    pacientes.find((p) => p.id === formData.pacienteId)?.nome ||
+                    ""
+                  }
                   disabled
                   className="col-span-3"
                 />
               ) : (
                 <Select
                   value={formData.pacienteId || ""}
-                  onValueChange={(value) => handleSelectChange("pacienteId", value)}
+                  onValueChange={(value) =>
+                    handleSelectChange("pacienteId", value)
+                  }
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Selecione um paciente" />
@@ -235,7 +257,11 @@ export function CarteirinhaModal({
                     id="dataValidade"
                     name="dataValidade"
                     type="date"
-                    value={formData.dataValidade ? formData.dataValidade.split('T')[0] : ''}
+                    value={
+                      formData.dataValidade
+                        ? formData.dataValidade.split("T")[0]
+                        : ""
+                    }
                     onChange={handleChange}
                   />
                 </div>

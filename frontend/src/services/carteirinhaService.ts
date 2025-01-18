@@ -31,25 +31,32 @@ interface CarteirinhaResponse {
   pages: number;
 }
 
-// Adicione a palavra-chave export aqui
+// Função auxiliar para converter do formato do frontend para o backend
 export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
-  const dataValidade = carteirinha.dataValidade 
-    ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
-    : null;
+  // Adicione um log para debug
+  console.log("Dados recebidos em toBackendFormat:", carteirinha);
 
-  return {
+  const backendData = {
     numero_carteirinha: carteirinha.numero,
-    data_validade: dataValidade,
-    titular: carteirinha.titular,
-    nome_titular: carteirinha.nomeTitular,
+    data_validade: carteirinha.dataValidade 
+      ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
+      : null,
+    titular: carteirinha.titular ?? true,
+    nome_titular: carteirinha.nomeTitular || "",
     plano_saude_id: carteirinha.planoId,
     paciente_id: carteirinha.pacienteId,
     ativo: true
   };
+
+  // Log dos dados formatados
+  console.log("Dados formatados para backend:", backendData);
+  
+  return backendData;
 }
 
+
 // Função auxiliar para converter do formato do backend para o frontend
-export function toFrontendFormat(data: any): Carteirinha {
+function toFrontendFormat(data: any): Carteirinha {
   return {
     id: data.id || "",
     numero: data.numero_carteirinha || "",
