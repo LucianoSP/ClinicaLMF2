@@ -1,3 +1,6 @@
+// src/components/CarteirinhasList.tsx
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,14 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Carteirinha, listarCarteirinhas, excluirCarteirinha, criarCarteirinha, atualizarCarteirinha } from "@/services/carteirinhaService";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CarteirinhaModal } from "./CarteirinhaModal";
 import { toast } from "sonner";
 
-export default function CarteirinhasList() {
+export function CarteirinhasList() {
   const [carteirinhas, setCarteirinhas] = useState<Carteirinha[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -28,11 +31,11 @@ export default function CarteirinhasList() {
     try {
       setLoading(true);
       const response = await listarCarteirinhas(page);
-      console.log('Response:', response);
-      setCarteirinhas(response.items || []);
-      setTotalPages(response.pages || 0);
+      setCarteirinhas(response?.items || []);
+      setTotalPages(response?.pages || 0);
     } catch (error) {
       console.error('Error fetching carteirinhas:', error);
+      toast.error("Erro ao carregar carteirinhas");
       setCarteirinhas([]);
     } finally {
       setLoading(false);
@@ -83,6 +86,25 @@ export default function CarteirinhasList() {
     setIsModalOpen(true);
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold tracking-tight">Carteirinhas</h2>
+          <Button onClick={handleNewCarteirinha} disabled>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Carteirinha
+          </Button>
+        </div>
+        <Card>
+          <CardContent className="p-6 flex justify-center items-center min-h-[200px]">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -95,51 +117,59 @@ export default function CarteirinhasList() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número da Carteirinha</TableHead>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Plano de Saúde</TableHead>
-                <TableHead>Data de Validade</TableHead>
-                <TableHead>Titular</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {carteirinhas?.map((carteirinha) => (
-                <TableRow key={carteirinha.id}>
-                  <TableCell>{carteirinha.numero}</TableCell>
-                  <TableCell>{carteirinha.paciente?.nome}</TableCell>
-                  <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
-                  <TableCell>
-                    {carteirinha.dataValidade ? 
-                      format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
-                      : '-'}
-                  </TableCell>
-                  <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(carteirinha)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(carteirinha)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {carteirinhas.length === 0 ? (
+            <div className="flex h-[200px] w-full items-center justify-center">
+              <p className="text-sm text-muted-foreground">
+                Nenhuma carteirinha encontrada
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número da Carteirinha</TableHead>
+                  <TableHead>Paciente</TableHead>
+                  <TableHead>Plano de Saúde</TableHead>
+                  <TableHead>Data de Validade</TableHead>
+                  <TableHead>Titular</TableHead>
+                  <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {carteirinhas.map((carteirinha) => (
+                  <TableRow key={carteirinha.id}>
+                    <TableCell>{carteirinha.numero}</TableCell>
+                    <TableCell>{carteirinha.paciente?.nome}</TableCell>
+                    <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
+                    <TableCell>
+                      {carteirinha.dataValidade ? 
+                        format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
+                        : '-'}
+                    </TableCell>
+                    <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(carteirinha)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(carteirinha)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
