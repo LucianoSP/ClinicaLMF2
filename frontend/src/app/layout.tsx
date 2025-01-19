@@ -1,8 +1,11 @@
+'use client'
+
 import './globals.css'
 import type { Metadata } from 'next'
 import { Sidebar } from '@/components/Sidebar'
 import { outfit } from '@/lib/fonts'
 import { Toaster } from '@/components/ui/toaster'
+import { AuthProvider } from '@/hooks/useAuth'
 import "react-datepicker/dist/react-datepicker.css";
 
 export const metadata: Metadata = {
@@ -24,15 +27,17 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={outfit.className}>
       <body className="min-h-screen">
-        <div className="flex h-full">
-          <Sidebar />
-          <div className="flex-1">
-            <main className="p-8">
-              {children}
-            </main>
+        <AuthProvider>
+          <div className="flex h-full">
+            <Sidebar />
+            <div className="flex-1">
+              <main className="p-8">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-        <Toaster />
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   )
