@@ -54,7 +54,7 @@ export default function CadastrosPage() {
       case 'pacientes':
         return <PacientesList />;
       case 'carteirinhas':
-        return <CarteirinhasList />;
+        return <CarteirinhasList carteirinhas={[]} onEdit={() => {}} onNovaCarteirinha={() => {}} />;
       case 'guias':
         return <div>Conteúdo das Guias</div>;
       default:

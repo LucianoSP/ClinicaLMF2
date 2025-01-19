@@ -108,7 +108,7 @@ class Carteirinha(BaseModel):
     paciente_id: str
     plano_saude_id: str
     nome_titular: str
-    data_validade: Optional[date] = None
+    data_validade: Optional[str] = None
     titular: bool = True
     ativo: bool = True
     paciente: Optional[Dict] = None
@@ -116,21 +116,27 @@ class Carteirinha(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    @validator('data_validade', pre=True)
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None,
+            date: lambda v: v.isoformat() if v else None
+        }
+
+    @validator('data_validade')
     def parse_data_validade(cls, v):
         if not v:
             return None
-        # If already a date object, return as is
-        if isinstance(v, date):
-            return v
-        # If string, try to parse it
         try:
-            if isinstance(v, str):
-                # Handle both date-only and datetime strings
-                return datetime.strptime(v.split('T')[0], '%Y-%m-%d').date()
-            raise ValueError('Valor deve ser uma string de data ou objeto date')
-        except (ValueError, AttributeError, TypeError):
-            raise ValueError('Data de validade inválida - formato esperado: YYYY-MM-DD')
+            # Se já é uma string no formato YYYY-MM-DD, retorna como está
+            if isinstance(v, str) and re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+                return v
+            # Se é um objeto date, converte para string
+            if isinstance(v, date):
+                return v.isoformat()
+            # Tenta converter para date e depois para string
+            return datetime.strptime(v, '%Y-%m-%d').date().isoformat()
+        except (ValueError, TypeError):
+            raise ValueError('Data inválida. Use o formato YYYY-MM-DD')
 
     class Config:
         json_encoders = {
@@ -1764,8 +1770,12 @@ def listar_carteirinhas_route(
 @app.post("/carteirinhas/")
 def criar_carteirinha_route(carteirinha: Carteirinha):
     try:
+        # Generate UUID for the new carteirinha
+        new_id = str(uuid.uuid4())
+        
         # Format data for database
         data = {
+            'id': new_id,
             'numero_carteirinha': carteirinha.numero_carteirinha,
             'data_validade': carteirinha.data_validade,
             'titular': carteirinha.titular,
@@ -1800,8 +1810,6 @@ def criar_carteirinha_route(carteirinha: Carteirinha):
             'planoId': created_data['plano_saude_id'],
             'pacienteId': created_data['paciente_id']
         }
-    except HTTPException:
-        raise
     except Exception as e:
         logging.error(f"Erro ao criar carteirinha: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1833,7 +1841,7 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
         # Format data for database
         data = {
             'numero_carteirinha': carteirinha.numero_carteirinha,
-            'data_validade': None,
+            'data_validade': carteirinha.data_validade,
             'titular': carteirinha.titular,
             'nome_titular': carteirinha.nome_titular if not carteirinha.titular else None,
             'plano_saude_id': carteirinha.plano_saude_id,
@@ -1964,6 +1972,3 @@ async def atualizar_guia_endpoint(
             raise HTTPException(status_code=400, detail="Falha ao atualizar guia")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ...rest of the file

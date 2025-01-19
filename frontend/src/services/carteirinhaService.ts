@@ -33,30 +33,10 @@ interface CarteirinhaResponse {
 
 // Função auxiliar para converter do formato do frontend para o backend
 export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
-  // Adicione um log para debug
-  console.log("Dados recebidos em toBackendFormat:", carteirinha);
-
   const backendData = {
     numero_carteirinha: carteirinha.numero,
     data_validade: carteirinha.dataValidade
-      ? (() => {
-          // If it's already a valid YYYY-MM-DD string, use it directly
-          if (
-            typeof carteirinha.dataValidade === 'string' &&
-            /^\d{4}-\d{2}-\d{2}$/.test(carteirinha.dataValidade)
-          ) {
-            return carteirinha.dataValidade;
-          }
-          // Otherwise, try to convert to Date and format
-          try {
-            const date = new Date(carteirinha.dataValidade);
-            if (isNaN(date.getTime())) throw new Error('Invalid date');
-            return date.toISOString().split('T')[0];
-          } catch (error) {
-            console.error('Error formatting date:', error);
-            return null;
-          }
-        })()
+      ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
       : null,
     titular: carteirinha.titular ?? true,
     nome_titular: carteirinha.nomeTitular || "",
@@ -64,13 +44,9 @@ export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
     paciente_id: carteirinha.pacienteId,
     ativo: true
   };
-
-  // Log dos dados formatados
-  console.log("Dados formatados para backend:", backendData);
   
   return backendData;
 }
-
 
 // Função auxiliar para converter do formato do backend para o frontend
 function toFrontendFormat(data: any): Carteirinha {
@@ -93,11 +69,10 @@ export async function listarCarteirinhas(
   search?: string
 ): Promise<CarteirinhaResponse> {
   const offset = (page - 1) * limit;
-  const response = await api.get("/carteirinhas", {
+  const response = await api.get("/carteirinhas/", {
     params: { limit, offset, search },
   });
   
-  // Os dados já vêm no formato correto do backend
   return {
     items: response.data.items || [],
     total: response.data.total || 0,
@@ -106,7 +81,7 @@ export async function listarCarteirinhas(
 }
 
 export async function criarCarteirinha(carteirinha: Partial<Carteirinha>): Promise<Carteirinha> {
-  const response = await api.post("/carteirinhas", toBackendFormat(carteirinha));
+  const response = await api.post("/carteirinhas/", toBackendFormat(carteirinha));
   return toFrontendFormat(response.data);
 }
 
@@ -114,10 +89,10 @@ export async function atualizarCarteirinha(
   id: string,
   carteirinha: Partial<Carteirinha>
 ): Promise<Carteirinha> {
-  const response = await api.put(`/carteirinhas/${id}`, toBackendFormat(carteirinha));
+  const response = await api.put(`/carteirinhas/${id}/`, toBackendFormat(carteirinha));
   return toFrontendFormat(response.data);
 }
 
 export async function excluirCarteirinha(id: string): Promise<void> {
-  await api.delete(`/carteirinhas/${id}`);
+  await api.delete(`/carteirinhas/${id}/`);
 }
