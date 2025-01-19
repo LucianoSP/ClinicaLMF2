@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CarteirinhasList } from '@/components/carteirinhas/CarteirinhasList';
 import { PacientesList } from '@/components/pacientes/PacientesList';
 import { PlanosList } from '@/components/planos/PlanosList';
+import { GuiasList } from '@/components/guias/GuiasList';
 
 interface NavigationCard {
   id: string;
@@ -54,9 +55,9 @@ export default function CadastrosPage() {
       case 'pacientes':
         return <PacientesList />;
       case 'carteirinhas':
-        return <CarteirinhasList carteirinhas={[]} onEdit={() => {}} onNovaCarteirinha={() => {}} />;
+        return <CarteirinhasList />;
       case 'guias':
-        return <div>Conteúdo das Guias</div>;
+        return <GuiasList />;
       default:
         return null;
     }

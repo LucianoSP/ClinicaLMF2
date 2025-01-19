@@ -336,33 +336,140 @@ def salvar_guia(dados: Dict) -> bool:
 
 
 def listar_guias(
-    limit: int = 100, offset: int = 0, paciente_nome: Optional[str] = None
+    limit: int = 100, offset: int = 0, search: Optional[str] = None
 ) -> Dict:
-    """Retorna todas as guias com suporte a paginação e filtro."""
+    """
+    Retorna todas as guias com suporte a paginação e busca.
+    """
     try:
-        query = supabase.table("guias").select("*")
+        query = supabase.table('guias').select(
+            'id, numero_guia, data_emissao, data_validade, tipo, status, ' +
+            'paciente_carteirinha, paciente_nome, quantidade_autorizada, quantidade_executada, ' +
+            'procedimento_codigo, procedimento_nome, profissional_solicitante, profissional_executante, ' +
+            'observacoes, created_at, updated_at',
+            count='exact'
+        )
 
-        if paciente_nome:
-            query = query.ilike("paciente_nome", f"%{paciente_nome}%")
+        if search:
+            query = query.or_(
+                f'numero_guia.ilike.%{search}%,paciente_nome.ilike.%{search}%'
+            )
 
-        total = len(query.execute().data)
+        # Primeiro, pegamos o total de registros
+        total = query.execute().count
 
-        if limit > 0:
-            query = query.range(offset, offset + limit - 1)
+        # Depois, aplicamos a paginação
+        query = query.order('created_at', desc=True) \
+            .range(offset, offset + limit - 1)
 
         response = query.execute()
 
-        if response.data is None:
-            return {"registros": [], "total": 0, "paginas": 0}
-
-        registros = response.data
-        paginas = ceil(total / limit) if limit > 0 else 1
-
-        return {"registros": registros, "total": total, "paginas": paginas}
+        return {
+            'items': response.data,
+            'total': total,
+            'pages': ceil(total / limit) if total > 0 else 0
+        }
 
     except Exception as e:
-        print(f"Erro ao listar guias: {str(e)}")
-        return {"registros": [], "total": 0, "paginas": 0}
+        logging.error(f"Erro ao listar guias: {str(e)}")
+        raise Exception(f"Erro ao listar guias: {str(e)}")
+
+
+def criar_guia(dados: Dict):
+    """
+    Cria uma nova guia.
+    """
+    try:
+        # Adiciona timestamps
+        dados['created_at'] = datetime.now(timezone.utc)
+        dados['updated_at'] = datetime.now(timezone.utc)
+
+        # Garante que quantidade_executada começa em 0
+        dados['quantidade_executada'] = 0
+
+        # Define status inicial como pendente se não especificado
+        if 'status' not in dados:
+            dados['status'] = 'pendente'
+
+        # Valida o tipo da guia
+        if dados.get('tipo') not in ['sp_sadt', 'consulta', 'internacao']:
+            raise Exception("Tipo de guia inválido")
+
+        # Valida o status da guia
+        if dados.get('status') not in ['pendente', 'em_andamento', 'concluida', 'cancelada']:
+            raise Exception("Status de guia inválido")
+
+        response = supabase.table('guias').insert(dados).execute()
+
+        if not response.data:
+            raise Exception("Falha ao criar guia")
+
+        return response.data[0]
+    except Exception as e:
+        logging.error(f"Erro ao criar guia: {str(e)}")
+        raise Exception(f"Erro ao criar guia: {str(e)}")
+
+
+def atualizar_guia(guia_id: str, dados: Dict):
+    """
+    Atualiza uma guia existente.
+    """
+    try:
+        # Atualiza o timestamp
+        dados['updated_at'] = datetime.now(timezone.utc)
+
+        # Não permite atualização direta de quantidade_executada
+        if 'quantidade_executada' in dados:
+            del dados['quantidade_executada']
+
+        # Valida o tipo da guia se estiver sendo atualizado
+        if dados.get('tipo') and dados['tipo'] not in ['sp_sadt', 'consulta', 'internacao']:
+            raise Exception("Tipo de guia inválido")
+
+        # Valida o status da guia se estiver sendo atualizado
+        if dados.get('status') and dados['status'] not in ['pendente', 'em_andamento', 'concluida', 'cancelada']:
+            raise Exception("Status de guia inválido")
+
+        response = supabase.table('guias') \
+            .update(dados) \
+            .eq('id', guia_id) \
+            .execute()
+
+        if not response.data:
+            raise Exception("Falha ao atualizar guia")
+
+        return response.data[0]
+    except Exception as e:
+        logging.error(f"Erro ao atualizar guia: {str(e)}")
+        raise Exception(f"Erro ao atualizar guia: {str(e)}")
+
+
+def excluir_guia(guia_id: str):
+    """
+    Exclui uma guia.
+    """
+    try:
+        # Primeiro verifica se existem execuções relacionadas
+        execucoes = supabase.table('execucoes') \
+            .select('id') \
+            .eq('guia_id', guia_id) \
+            .execute()
+
+        if execucoes.data:
+            raise Exception("Não é possível excluir uma guia que possui execuções")
+
+        response = supabase.table('guias') \
+            .delete() \
+            .eq('id', guia_id) \
+            .execute()
+
+        if not response.data:
+            raise Exception("Falha ao excluir guia")
+
+        return response.data[0]
+    except Exception as e:
+        logging.error(f"Erro ao excluir guia: {str(e)}")
+        raise Exception(f"Erro ao excluir guia: {str(e)}")
 
 
 def buscar_guia(guia_id: str) -> List[Dict]:
