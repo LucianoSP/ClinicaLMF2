@@ -3,13 +3,15 @@ import { Paciente } from "@/types/paciente";
 
 export async function listarPacientes(
   page: number = 1,
-  limit: number = 10,
-  search?: string
+  search?: string,
+  limit: number = 10
 ): Promise<{ items: Paciente[]; total: number; pages: number }> {
   const offset = (page - 1) * limit;
-  const response = await api.get("/pacientes", {
-    params: { limit, offset, search },
-  });
+  const params: any = { limit, offset };
+  if (search) {
+    params.search = search;
+  }
+  const response = await api.get("/pacientes", { params });
   return {
     items: response.data.data,
     total: response.data.total,

@@ -118,8 +118,8 @@ export default function PatientsPage() {
 
     try {
       setIsLoading(true)
-      const { data } = await listarPacientes(1, 10, term.trim())
-      setPatients(data || [])
+      const response = await listarPacientes(1, term.trim())
+      setPatients(response.items || [])
     } catch (error) {
       console.error('Erro ao carregar pacientes:', error)
       setPatients([])
@@ -296,14 +296,6 @@ export default function PatientsPage() {
                 </Command>
               </PopoverContent>
             </Popover>
-
-            <Button
-              variant="outline"
-              onClick={() => setIsFormOpen(true)}
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Novo Paciente
-            </Button>
           </div>
 
           {/* Patient section */}
