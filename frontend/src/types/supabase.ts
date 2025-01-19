@@ -1,8 +1,11 @@
 export type Usuario = {
   id: string
-  email: string
+  auth_user_id: string
   nome: string
-  role: 'admin' | 'profissional' | 'secretaria'
+  email: string
+  tipo_usuario: string
+  ativo: boolean
+  ultimo_acesso: string
   created_at: string
   updated_at: string
 }
