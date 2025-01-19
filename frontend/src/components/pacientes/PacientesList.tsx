@@ -41,7 +41,7 @@ export function PacientesList() {
   const carregarPacientes = async () => {
     try {
       const response = await listarPacientes(currentPage);
-      setPacientes(response.data);
+      setPacientes(response.items);
       setTotalPages(response.pages);
     } catch (error) {
       console.error('Erro ao carregar pacientes:', error);

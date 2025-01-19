@@ -5,12 +5,16 @@ export async function listarPacientes(
   page: number = 1,
   limit: number = 10,
   search?: string
-): Promise<{ data: Paciente[]; total: number; pages: number }> {
+): Promise<{ items: Paciente[]; total: number; pages: number }> {
   const offset = (page - 1) * limit;
   const response = await api.get("/pacientes", {
     params: { limit, offset, search },
   });
-  return response.data;
+  return {
+    items: response.data.data,
+    total: response.data.total,
+    pages: response.data.pages
+  };
 }
 
 export async function criarPaciente(paciente: Paciente): Promise<Paciente> {
