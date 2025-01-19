@@ -4,7 +4,7 @@ import { parse } from 'date-fns';
 import { DivergenciaBadge } from "../ui/divergencia-badge";
 import { StatusBadge } from "../ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Divergencia } from "@/app/auditoria/page";
+import { Divergencia } from "@/app/(auth)/auditoria/page";
 import { CheckCircle2, X } from "lucide-react";
 
 interface DetalheDivergenciaProps {

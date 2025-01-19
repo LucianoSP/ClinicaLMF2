@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={outfit.className}>
-      <body className="min-h-screen">
+      <body className="min-h-screen bg-gray-50">
         <Providers>
           {children}
           <Toaster />

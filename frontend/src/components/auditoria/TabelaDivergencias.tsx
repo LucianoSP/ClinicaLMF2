@@ -5,7 +5,7 @@ import { Eye } from "lucide-react";
 import { useState } from "react";
 import { DetalheDivergencia } from "./DetalheDivergencia";
 import { BadgeStatus } from "@/components/ui/badge-status";
-import { Divergencia } from "@/app/auditoria/page";
+import { Divergencia } from "@/app/(auth)/auditoria/page";
 import SortableTable, { Column } from '@/components/SortableTable';
 
 interface TabelaDivergenciasProps {

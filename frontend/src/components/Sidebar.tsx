@@ -19,7 +19,7 @@ import { Button } from './ui/button';
 const navigation = [
   {
     name: 'Home',
-    href: '/',
+    href: '/dashboard',
     icon: HomeIcon
   },
   {
@@ -72,20 +72,16 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col w-64 sidebar-bg min-h-screen shadow-lg">
+    <div className="fixed top-0 left-0 h-full w-64 bg-[#1e2a4a] shadow-lg flex flex-col z-50">
       <div className="flex flex-col h-full">
         <div className="flex items-start justify-center flex-shrink-0 px-8 mb-4 pt-6">
-          <BanknotesIcon className="h-13 w-13 text-white/90 mr-4 -mt-1" />
-          <div className="flex flex-col" style={{ lineHeight: '0.9' }}>
-            <h1 className="text-xl text-white font-light tracking-wider">
-              Gestão de Faturamento
-            </h1>
-            <h1 className="text-xl text-white font-light tracking-wider">
-            
-            </h1>
-          </div>
+          <BanknotesIcon className="h-8 w-8 text-white/90 mr-3" />
+          <h1 className="text-xl text-white font-light tracking-wider">
+            Gestão de Faturamento
+          </h1>
         </div>
-        <nav className="flex-1 px-4 space-y-2">
+
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -99,8 +95,8 @@ export function Sidebar() {
                 }`}
               >
                 <item.icon
-                  className={`mr-3 flex-shrink-0 h-5 w-5 ${
-                    isActive ? 'text-white' : 'text-white/80'
+                  className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                    isActive ? 'text-white' : 'text-white/80 group-hover:text-white'
                   }`}
                   aria-hidden="true"
                 />
@@ -110,21 +106,19 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Informações do usuário e botão de logout */}
         {user && (
-          <div className="mt-auto p-4 border-t border-white/10">
-            <div className="mb-4">
-              <p className="text-white font-medium truncate">{user.nome}</p>
-              <p className="text-white/70 text-sm truncate">{user.email}</p>
-              <p className="text-white/70 text-sm capitalize">{user.tipo_usuario}</p>
+          <div className="p-4 border-t border-white/10">
+            <div className="flex flex-col space-y-2 text-sm text-white/80">
+              <div>{user.nome}</div>
+              <div className="text-xs">{user.email}</div>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-white/80 hover:text-white hover:bg-white/5"
+                onClick={handleLogout}
+              >
+                Sair
+              </Button>
             </div>
-            <Button 
-              variant="outline" 
-              className="w-full text-white hover:text-white hover:bg-white/10 border-white/20"
-              onClick={handleLogout}
-            >
-              Sair
-            </Button>
           </div>
         )}
       </div>
