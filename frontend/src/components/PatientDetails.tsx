@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { api } from '@/lib/api'
 
 // Consolidated interfaces at the top
 interface PlanoSaude {
@@ -25,10 +26,14 @@ interface PlanoSaude {
 }
 
 interface Carteirinha {
-  numero_carteirinha: string
-  nome_titular: string
+  id: string
+  paciente_carteirinha: string
+  paciente_nome: string
   data_validade: string | null
-  plano_saude?: PlanoSaude
+  plano: {
+    nome: string
+    codigo: string
+  }
 }
 
 interface Guide {
@@ -293,11 +298,16 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
   // Define columns for Carteirinhas table
   const carteirinhaColumns: Column<Carteirinha>[] = [
     {
-      key: 'numero_carteirinha',
+      key: 'paciente_carteirinha',
       label: 'Número da Carteirinha'
     },
     {
-      key: 'nome_titular',
+      key: 'plano',
+      label: 'Plano de Saúde',
+      render: (value) => value?.nome || '-'
+    },
+    {
+      key: 'paciente_nome',
       label: 'Nome do Titular'
     },
     {
@@ -306,9 +316,22 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
       render: (value) => formatDate(value as string)
     },
     {
-      key: 'plano_saude',
-      label: 'Plano de Saúde',
-      render: (value) => (value as PlanoSaude)?.nome || '-'
+      key: 'ativo',
+      label: 'Status',
+      render: (_, item: Carteirinha) => {
+        const dataValidade = item.data_validade ? new Date(item.data_validade) : null
+        const hoje = new Date()
+        const ativo = dataValidade ? dataValidade > hoje : true
+
+        return (
+          <span className={cn(
+            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+            ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          )}>
+            {ativo ? 'Ativo' : 'Inativo'}
+          </span>
+        )
+      }
     }
   ]
 
@@ -334,7 +357,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Convênio:</span>
-                      <span className="text-sm">{carteirinha?.plano_saude?.nome || 'Não informado'}</span>
+                      <span className="text-sm">{carteirinha?.plano.nome || 'Não informado'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Nome do Responsável:</span>
@@ -431,14 +454,14 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
 </div>
 
         {/* Plano de Saúde */}
-        {carteirinha?.plano_saude && (
+        {carteirinha?.plano && (
           <>
             <h2 className="section-title">Plano de Saúde</h2>
             <div className="border border-gray-200 rounded-lg shadow-sm bg-white p-6">
               <div className="space-y-6">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-base font-medium">{carteirinha.plano_saude.nome}</span>
+                  <span className="text-base font-medium">{carteirinha.plano.nome}</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -446,12 +469,12 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
                     <div>
                       <p className="text-sm text-muted-foreground">Número da Carteirinha</p>
                       <p className="text-base mt-1">
-                        {patient.guias[0]?.paciente_carteirinha || carteirinha.numero_carteirinha || '-'}
+                        {patient.guias[0]?.paciente_carteirinha || carteirinha.paciente_carteirinha || '-'}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Código do Plano</p>
-                      <p className="text-base mt-1">{carteirinha.plano_saude.codigo || '-'}</p>
+                      <p className="text-base mt-1">{carteirinha.plano.codigo || '-'}</p>
                     </div>
                   </div>
 
@@ -528,7 +551,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
           onClose={() => setIsGuideFormOpen(false)}
           onSuccess={handleGuideSuccess}
           patientId={patient.id}
-          carteirinha={patient.carteirinhas?.[0]?.numero_carteirinha}
+          carteirinha={patient.carteirinhas?.[0]?.paciente_carteirinha}
         />
       </div>
       <GuideForm
@@ -539,7 +562,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
         }}
         onSuccess={onGuideCreated}
         patientId={patient.id}
-        carteirinha={patient.carteirinhas?.[0]?.numero_carteirinha}
+        carteirinha={patient.carteirinhas?.[0]?.paciente_carteirinha}
         guia={selectedGuide}
       />
     </>
