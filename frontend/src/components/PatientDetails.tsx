@@ -290,6 +290,28 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
     },
   ]
 
+  // Define columns for Carteirinhas table
+  const carteirinhaColumns: Column<Carteirinha>[] = [
+    {
+      key: 'numero_carteirinha',
+      label: 'Número da Carteirinha'
+    },
+    {
+      key: 'nome_titular',
+      label: 'Nome do Titular'
+    },
+    {
+      key: 'data_validade',
+      label: 'Data de Validade',
+      render: (value) => formatDate(value as string)
+    },
+    {
+      key: 'plano_saude',
+      label: 'Plano de Saúde',
+      render: (value) => (value as PlanoSaude)?.nome || '-'
+    }
+  ]
+
   return (
     <>
       <div className="space-y-6">
@@ -447,6 +469,17 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
               </div>
             </div>
           </>
+        )}
+
+        {/* Carteirinhas */}
+        {patient.carteirinhas && patient.carteirinhas.length > 0 && (
+          <div className="mt-8">
+            <h3 className="section-title">Carteirinhas</h3>
+            <SortableTable
+              data={patient.carteirinhas}
+              columns={carteirinhaColumns}
+            />
+          </div>
         )}
 
         {/* Guias */}
