@@ -80,8 +80,8 @@ CREATE TABLE guias (
     numero_guia text,
     data_emissao date,
     data_validade date,
-    tipo USER-DEFINED,
-    status USER-DEFINED,
+    tipo USER-DEFINED,  -- Valores: 'sp_sadt', 'consulta', 'internacao'
+    status USER-DEFINED, -- Valores: 'pendente', 'em_andamento', 'concluida', 'cancelada'
     paciente_carteirinha text,
     paciente_nome text,
     quantidade_autorizada integer,
@@ -95,6 +95,16 @@ CREATE TABLE guias (
     updated_at timestamp with time zone
 );
 ```
+
+A tabela `guias` armazena todas as guias médicas do sistema. Cada guia possui:
+- Informações básicas como número, datas de emissão e validade
+- Tipo da guia (sp_sadt, consulta, internacao)
+- Status atual (pendente, em_andamento, concluida, cancelada)
+- Informações do paciente (nome e carteirinha)
+- Quantidades autorizadas e executadas
+- Informações do procedimento e profissionais envolvidos
+
+O campo `quantidade_executada` é atualizado automaticamente através de triggers quando novas execuções são registradas.
 
 #### `fichas_presenca`
 ```sql
@@ -226,18 +236,51 @@ CREATE TABLE agendamentos (
 ```sql
 CREATE TABLE auditoria_execucoes (
     id uuid PRIMARY KEY,
-    data_execucao timestamp with time zone,
-    data_inicial date,
-    data_final date,
-    total_protocolos integer,
-    total_divergencias integer,
-    total_execucoes integer,
-    divergencias_por_tipo jsonb,
-    created_by uuid REFERENCES usuarios(id),
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    execucao_id uuid REFERENCES execucoes(id),
+    tipo_alteracao text,
+    dados_anteriores jsonb,
+    dados_novos jsonb,
+    usuario_id uuid,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
 );
 ```
+
+A tabela `auditoria_execucoes` registra todas as alterações feitas nas execuções, mantendo um histórico completo de modificações para fins de auditoria.
+
+#### `autorizacoes_guias`
+```sql
+CREATE TABLE autorizacoes_guias (
+    id uuid PRIMARY KEY,
+    guia_id uuid REFERENCES guias(id),
+    tipo_autorizacao text,
+    status text,
+    data_solicitacao timestamp with time zone,
+    data_autorizacao timestamp with time zone,
+    usuario_autorizador uuid,
+    observacoes text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+```
+
+A tabela `autorizacoes_guias` controla o processo de autorização das guias, registrando quando e por quem as autorizações foram concedidas.
+
+#### `historico_carteirinhas`
+```sql
+CREATE TABLE historico_carteirinhas (
+    id uuid PRIMARY KEY,
+    carteirinha_id uuid REFERENCES carteirinhas(id),
+    tipo_alteracao text,
+    dados_anteriores jsonb,
+    dados_novos jsonb,
+    usuario_id uuid,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+```
+
+A tabela `historico_carteirinhas` mantém um registro histórico de todas as alterações feitas nas carteirinhas dos pacientes, incluindo mudanças de plano, renovações e cancelamentos.
 
 ## 4. Tipos de Divergências e Status
 
@@ -349,33 +392,48 @@ Lógica de negócio e endpoints:
 - safe_get_value()
 - listar_divergencias_route()
 
-## 6. Carteirinhas (Health Insurance Cards)
+## 6. Componentes do Frontend
 
-### 6.1 Overview
-Carteirinhas represent health insurance cards in the system, serving as a crucial link between patients (Pacientes) and health insurance plans (Planos de Saúde). They store essential information about a patient's insurance coverage and validity.
+### 6.1 Páginas Principais
 
-### 6.2 Key Relationships
-- **Pacientes**: Each carteirinha is associated with a patient through `paciente_id`
-- **Planos de Saúde**: Links to a specific health plan through `plano_saude_id`
+#### Cadastros (`/cadastros`)
+- Interface unificada para gerenciamento de cadastros
+- Navegação por cards para diferentes seções:
+  - Planos de Saúde
+  - Pacientes
+  - Carteirinhas
+  - Guias
 
-### 6.3 API Endpoints
+### 6.2 Componentes Principais
 
-#### GET /api/carteirinhas
-- Lists all carteirinhas with optional filtering
-- Supports pagination and search
+#### GuiasList
+- Listagem de guias com paginação
+- Exibe informações essenciais:
+  - Número da guia
+  - Paciente e carteirinha
+  - Tipo da guia
+  - Quantidades autorizadas e executadas
+  - Status atual
+- Suporte a ações de edição e exclusão
 
-#### GET /api/carteirinhas/{id}
-- Retrieves detailed information about a specific carteirinha
+#### GuiaModal
+- Modal para criação e edição de guias
+- Campos validados com Zod
+- Suporte a todos os campos do modelo:
+  - Informações básicas da guia
+  - Dados do paciente
+  - Quantidades e procedimentos
+  - Profissionais envolvidos
 
-#### POST /api/carteirinhas
-- Creates a new carteirinha record
-- Validates data and relationships
+### 6.3 Serviços
 
-#### PUT /api/carteirinhas/{id}
-- Updates an existing carteirinha record
-
-#### DELETE /api/carteirinhas/{id}
-- Deactivates/removes a carteirinha record
+#### guiaService
+- Interface TypeScript para o modelo Guia
+- Funções para operações CRUD:
+  - listarGuias: Busca paginada com suporte a filtros
+  - criarGuia: Criação com validação
+  - atualizarGuia: Atualização parcial
+  - excluirGuia: Remoção com verificação de dependências
 
 ## 7. Interface do Sistema
 
