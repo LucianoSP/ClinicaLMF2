@@ -34,8 +34,9 @@ import { Paciente } from '@/types/paciente'
 
 type Patient = Paciente & {
   carteirinhas?: Array<{
-    numero_carteirinha: string
-    nome_titular: string
+    id: string
+    paciente_carteirinha: string
+    paciente_nome: string
     data_validade: string | null
     plano_saude?: {
       id: string
@@ -138,10 +139,15 @@ export default function PatientsPage() {
       setSelectedPatient(prev => prev ? {
         ...prev,
         carteirinhas: data.items.map((guia: any) => ({
+          id: guia.id,
           paciente_carteirinha: guia.paciente_carteirinha,
           paciente_nome: guia.paciente_nome,
           data_validade: guia.data_validade,
-          plano: data.plano
+          plano_saude: guia.plano ? {
+            id: guia.plano.codigo,
+            nome: guia.plano.nome,
+            codigo: guia.plano.codigo
+          } : undefined
         })) || [],
         fichas: data.fichas || []
       } : prev)

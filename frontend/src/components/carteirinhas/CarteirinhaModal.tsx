@@ -50,7 +50,8 @@ export function CarteirinhaModal({
     nomeTitular: "", 
     titular: true,
     pacienteId: "",
-    planoId: "",
+    planoSaudeId: "",
+    ativo: true,
   });
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
@@ -88,7 +89,7 @@ export function CarteirinhaModal({
         nomeTitular: carteirinha.nomeTitular || "",
         titular: carteirinha.titular ?? true,
         pacienteId: carteirinha.pacienteId || carteirinha.paciente?.id || "",
-        planoId: carteirinha.planoId || "",
+        planoSaudeId: carteirinha.planoSaudeId || "",
         ativo: carteirinha.ativo ?? true,
       });
     } else {
@@ -98,7 +99,7 @@ export function CarteirinhaModal({
         nomeTitular: "",
         titular: true,
         pacienteId: "",
-        planoId: "",
+        planoSaudeId: "",
         ativo: true,
       });
     }
@@ -108,11 +109,11 @@ export function CarteirinhaModal({
     e.preventDefault();
 
     // Validação dos campos obrigatórios
-    if (!formData.numero || !formData.pacienteId || !formData.planoId) {
+    if (!formData.numero || !formData.pacienteId || !formData.planoSaudeId) {
       console.error("Campos obrigatórios faltando:", {
         numero: formData.numero,
         pacienteId: formData.pacienteId,
-        planoId: formData.planoId,
+        planoSaudeId: formData.planoSaudeId,
       });
       return;
     }
@@ -121,7 +122,7 @@ export function CarteirinhaModal({
       ...formData,
       numero_carteirinha: formData.numero,
       paciente_id: formData.pacienteId,
-      plano_saude_id: formData.planoId,
+      plano_saude_id: formData.planoSaudeId,
       nome_titular: formData.nomeTitular || "",
       data_validade: formData.dataValidade || null,
       titular: formData.titular ?? true,
@@ -223,12 +224,12 @@ export function CarteirinhaModal({
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="planoId" className="text-right">
+              <Label htmlFor="planoSaudeId" className="text-right">
                 Plano de Saúde
               </Label>
               <Select
-                value={formData.planoId || ""}
-                onValueChange={(value) => handleSelectChange("planoId", value)}
+                value={formData.planoSaudeId || ""}
+                onValueChange={(value) => handleSelectChange("planoSaudeId", value)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione um plano" />

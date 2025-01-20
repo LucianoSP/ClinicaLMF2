@@ -47,7 +47,7 @@ const formSchema = z.object({
     ),
   titular: z.boolean().default(false),
   nomeTitular: z.string().optional(),
-  planoId: z.string().min(1, "Plano de saúde é obrigatório"),
+  planoSaudeId: z.string().min(1, "Plano de saúde é obrigatório"),
   pacienteId: z.string().min(1, "Paciente é obrigatório"),
 });
 
@@ -60,8 +60,13 @@ interface CarteirinhaFormProps {
     dataValidade: string;
     titular: boolean;
     nomeTitular?: string;
-    planoId: string;
+    planoSaudeId: string;
     pacienteId: string;
+    plano_saude?: {
+      id: string;
+      nome: string;
+      codigo: string;
+    };
   } | null;
   planos: Array<{ id: string; nome: string }>;
   pacientes: Array<{ id: string; nome: string }>;
@@ -86,7 +91,7 @@ export function CarteirinhaForm({
       dataValidade: "",
       titular: false,
       nomeTitular: "",
-      planoId: "",
+      planoSaudeId: "",
       pacienteId: "",
     },
   });
@@ -98,7 +103,7 @@ export function CarteirinhaForm({
         dataValidade: carteirinha.dataValidade,
         titular: carteirinha.titular,
         nomeTitular: carteirinha.nomeTitular,
-        planoId: carteirinha.planoId,
+        planoSaudeId: carteirinha.planoSaudeId,
         pacienteId: carteirinha.pacienteId,
       });
     } else {
@@ -107,7 +112,7 @@ export function CarteirinhaForm({
         dataValidade: "",
         titular: false,
         nomeTitular: "",
-        planoId: "",
+        planoSaudeId: "",
         pacienteId: "",
       });
     }
@@ -228,7 +233,7 @@ export function CarteirinhaForm({
             )}
             <FormField
               control={form.control}
-              name="planoId"
+              name="planoSaudeId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Plano de Saúde</FormLabel>

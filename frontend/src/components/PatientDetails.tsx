@@ -30,7 +30,8 @@ interface Carteirinha {
   paciente_carteirinha: string
   paciente_nome: string
   data_validade: string | null
-  plano: {
+  plano_saude?: {
+    id: string
     nome: string
     codigo: string
   }
@@ -302,7 +303,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
       label: 'Número da Carteirinha'
     },
     {
-      key: 'plano',
+      key: 'plano_saude',
       label: 'Plano de Saúde',
       render: (value) => value?.nome || '-'
     },
@@ -357,7 +358,7 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Convênio:</span>
-                      <span className="text-sm">{carteirinha?.plano.nome || 'Não informado'}</span>
+                      <span className="text-sm">{carteirinha?.plano_saude?.nome || 'Não informado'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Nome do Responsável:</span>
@@ -454,27 +455,25 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
 </div>
 
         {/* Plano de Saúde */}
-        {carteirinha?.plano && (
+        {carteirinha?.plano_saude && (
           <>
             <h2 className="section-title">Plano de Saúde</h2>
             <div className="border border-gray-200 rounded-lg shadow-sm bg-white p-6">
               <div className="space-y-6">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-base font-medium">{carteirinha.plano.nome}</span>
+                  <span className="text-base font-medium">{carteirinha.plano_saude.nome}</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Número da Carteirinha</p>
-                      <p className="text-base mt-1">
-                        {patient.guias[0]?.paciente_carteirinha || carteirinha.paciente_carteirinha || '-'}
-                      </p>
+                      <p className="text-base mt-1">{carteirinha.paciente_carteirinha || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Código do Plano</p>
-                      <p className="text-base mt-1">{carteirinha.plano.codigo || '-'}</p>
+                      <p className="text-sm text-muted-foreground">Nome do Titular</p>
+                      <p className="text-base mt-1">{carteirinha.paciente_nome || '-'}</p>
                     </div>
                   </div>
 
