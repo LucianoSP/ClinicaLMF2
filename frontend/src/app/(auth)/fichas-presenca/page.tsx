@@ -50,9 +50,11 @@ interface FichaPresenca {
   sessoes_status?: string;
 }
 
-interface EditedSessao extends Partial<Sessao> { }
+interface EditedSessao extends Omit<Partial<Sessao>, 'id'> {
+  id?: string;
+}
 
-interface EditedFicha extends Partial<FichaPresenca> {
+interface EditedFicha extends Omit<Partial<FichaPresenca>, 'sessoes'> {
   sessoes?: EditedSessao[];
   data_atendimento?: string;
 }
