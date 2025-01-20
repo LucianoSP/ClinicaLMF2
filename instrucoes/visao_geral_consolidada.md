@@ -6,7 +6,7 @@ I'll help create a comprehensive consolidated document that maintains all the de
 
 ## 1. Visão Geral do Sistema
 
-O sistema foi desenvolvido para automatizar e controlar o processo de auditoria de atendimentos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O principal objetivo é garantir que todos os atendimentos realizados estejam corretamente documentados e faturados, mantendo a integridade entre documentação física e registros digitais.
+Esse sistema foi desenvolvido para automatizar e controlar o processo de auditoria de atendimentos médicos, focando na validação entre fichas físicas assinadas e execuções registradas no sistema da Unimed. O principal objetivo é garantir que todos os atendimentos realizados estejam corretamente documentados e faturados, mantendo a integridade entre documentação física e registros digitais.
 
 ## 2. Fluxo do Processo
 
