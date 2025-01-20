@@ -64,6 +64,7 @@ type Column<T> = {
   label: string;
   className?: string;
   sortable?: boolean;
+  type?: 'text' | 'date' | 'number';
   render?: (value: any, item: T) => React.ReactNode;
 };
 
