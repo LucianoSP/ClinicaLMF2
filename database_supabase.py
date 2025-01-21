@@ -1832,3 +1832,123 @@ def listar_planos():
     except Exception as e:
         logging.error(f"Erro ao listar planos: {str(e)}")
         raise
+
+
+def save_unimed_guide(guide_data: Dict) -> Optional[Dict]:
+    """Save or update a Unimed guide record in the database.
+
+    Args:
+        guide_data: Dictionary containing guide data with fields matching guias_unimed table
+
+    Returns:
+        The saved guide record if successful, None if failed
+    """
+    try:
+        # Validate required fields
+        required_fields = [
+            'numero_guia',
+            'carteira', 
+            'nome_beneficiario',
+            'codigo_procedimento',
+            'data_atendimento',
+            'nome_profissional',
+            'conselho_profissional',
+            'numero_conselho',
+            'uf_conselho',
+            'codigo_cbo'
+        ]
+
+        for field in required_fields:
+            if field not in guide_data:
+                raise ValueError(f'Required field missing: {field}')
+
+        # Format dates
+        if isinstance(guide_data['data_atendimento'], str):
+            guide_data['data_atendimento'] = datetime.strptime(
+                guide_data['data_atendimento'], '%d/%m/%Y'
+            ).strftime('%Y-%m-%d')
+
+        if 'data_execucao' in guide_data and guide_data['data_execucao']:
+            guide_data['data_execucao'] = datetime.strptime(
+                guide_data['data_execucao'], '%d/%m/%Y'
+            ).strftime('%Y-%m-%d')
+
+        # Add timestamps
+        guide_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+        
+        # Check if guide exists
+        existing = supabase.table('guias_unimed')\
+            .select('id')\
+            .eq('numero_guia', guide_data['numero_guia'])\
+            .execute()
+
+        if existing.data:
+            # Update existing guide
+            response = supabase.table('guias_unimed')\
+                .update(guide_data)\
+                .eq('numero_guia', guide_data['numero_guia'])\
+                .execute()
+        else:
+            # Insert new guide
+            guide_data['created_at'] = datetime.now(timezone.utc).isoformat()
+            response = supabase.table('guias_unimed')\
+                .insert(guide_data)\
+                .execute()
+
+        return response.data[0] if response.data else None
+
+    except Exception as e:
+        logging.error(f'Error saving Unimed guide: {str(e)}')
+        return None
+
+
+def get_unimed_guides(
+    limit: int = 100,
+    offset: int = 0,
+    filters: Optional[Dict] = None
+) -> Dict:
+    """Get Unimed guides with filtering and pagination.
+
+    Args:
+        limit: Number of records to return
+        offset: Number of records to skip
+        filters: Dictionary of filters to apply
+
+    Returns:
+        Dictionary containing guides data and pagination info
+    """
+    try:
+        query = supabase.table('guias_unimed').select('*')
+
+        # Apply filters
+        if filters:
+            if filters.get('numero_guia'):
+                query = query.eq('numero_guia', filters['numero_guia'])
+            if filters.get('carteira'):
+                query = query.eq('carteira', filters['carteira'])
+            if filters.get('data_inicio'):
+                query = query.gte('data_atendimento', filters['data_inicio'])
+            if filters.get('data_fim'):
+                query = query.lte('data_atendimento', filters['data_fim'])
+            if filters.get('status'):
+                query = query.eq('status', filters['status'])
+
+        # Get total count
+        total = len(query.execute().data)
+
+        # Apply pagination
+        query = query.order('created_at', desc=True)
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
+        response = query.execute()
+
+        return {
+            'guides': response.data,
+            'total': total,
+            'pages': ceil(total / limit) if limit > 0 else 1
+        }
+
+    except Exception as e:
+        logging.error(f'Error getting Unimed guides: {str(e)}')
+        return {'guides': [], 'total': 0, 'pages': 0}
