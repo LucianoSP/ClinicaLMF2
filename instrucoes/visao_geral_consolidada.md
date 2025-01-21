@@ -282,6 +282,25 @@ CREATE TABLE historico_carteirinhas (
 
 A tabela `historico_carteirinhas` mantém um registro histórico de todas as alterações feitas nas carteirinhas dos pacientes, incluindo mudanças de plano, renovações e cancelamentos.
 
+#### `unimed_scraping_tasks`
+```sql
+CREATE TABLE unimed_scraping_tasks (
+    id uuid PRIMARY KEY,
+    task_id text,
+    status text,  -- 'pending', 'processing', 'completed', 'failed'
+    start_date date,
+    end_date date,
+    total_guides integer,
+    processed_guides integer,
+    error_message text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    completed_at timestamp with time zone
+);
+```
+
+A tabela `unimed_scraping_tasks` controla as tarefas de scraping da Unimed, mantendo o estado e progresso de cada execução.
+
 ## 4. Tipos de Divergências e Status
 
 ### 4.1 Tipos de Divergências (tipo_divergencia)
@@ -478,6 +497,84 @@ Lógica de negócio e endpoints:
 - Visualização detalhada de divergências
 - Marcação de resolução
 - Registro de observações
+
+## 7. Serviço de Scraping Unimed
+
+### 7.1 Visão Geral
+O serviço de scraping da Unimed é um componente separado do sistema principal, responsável por automatizar a coleta de informações de guias e execuções diretamente do portal da Unimed. Este serviço foi desenvolvido para operar de forma independente, utilizando filas para processamento assíncrono e garantindo a integridade dos dados coletados.
+
+### 7.2 Estrutura do Serviço
+
+#### Componentes Principais
+- `main.py`: API FastAPI que gerencia as requisições de scraping
+- `scraper.py`: Implementação do scraper usando Selenium
+- `requirements.txt`: Dependências do projeto
+- `.env`: Configurações do ambiente
+
+#### Funcionalidades
+1. **Captura de Guias**
+   - Login automático no sistema da Unimed
+   - Navegação pelas páginas de guias
+   - Extração de informações básicas das guias
+   - Suporte à paginação
+
+2. **Processamento de Guias**
+   - Extração de dados detalhados de cada guia
+   - Captura de informações biométricas
+   - Coleta de dados dos profissionais
+   - Validação de execuções
+
+3. **Integração com Backend**
+   - Envio automático dos dados para a API principal
+   - Sistema de filas com Redis para processamento assíncrono
+   - Tratamento de erros e retry automático
+
+### 7.3 Endpoints da API
+
+#### POST /scrape
+Inicia uma nova tarefa de scraping
+```json
+{
+  "username": "string",
+  "password": "string",
+  "start_date": "DD/MM/YYYY",  // opcional
+  "end_date": "DD/MM/YYYY"     // opcional
+}
+```
+
+#### GET /status/{task_id}
+Verifica o status de uma tarefa de scraping
+
+### 7.4 Configurações
+
+#### Variáveis de Ambiente
+```env
+# Configurações do Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# URL da API principal
+MAIN_API_URL=http://localhost:8000
+
+# Configurações do Chrome
+PRODUCTION=false
+CHROME_BINARY_PATH=/usr/bin/google-chrome
+```
+
+### 7.5 Fluxo de Dados
+1. Frontend solicita scraping via API
+2. Serviço inicia processo em background usando Redis
+3. Scraper navega pelo portal da Unimed
+4. Dados são coletados e processados
+5. Informações são enviadas para o backend principal
+6. Frontend é notificado da conclusão
+
+### 7.6 Segurança
+- Uso de perfil Chrome para manter sessão
+- Simulação de comportamento humano
+- Tratamento de timeouts e erros
+- Logs detalhados para auditoria
 
 Esta documentação consolidada serve como referência completa para o sistema de auditoria de atendimentos médicos, abrangendo todos os aspectos técnicos e funcionais necessários para sua implementação e manutenção.
 
