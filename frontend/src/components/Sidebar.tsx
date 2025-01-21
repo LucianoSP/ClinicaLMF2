@@ -12,6 +12,7 @@ import {
   UserGroupIcon,
   BanknotesIcon,
   CalendarIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from './ui/button';
@@ -46,6 +47,11 @@ const navigation = [
     name: 'Execuções',
     href: '/excel',
     icon: TableCellsIcon
+  },
+  {
+    name: 'Guias Unimed',
+    href: '/unimed',
+    icon: DocumentIcon
   },
   {
     name: 'Storage',
