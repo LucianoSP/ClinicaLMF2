@@ -1,6 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
@@ -14,6 +14,7 @@ import logging
 
 
 class UnimedScraper:
+
     def __init__(self, chrome_profile_path: str = None):
         self.chrome_profile_path = chrome_profile_path or os.path.join(
             os.environ["USERPROFILE"], "AppData/Local/Google/Chrome/User Data"
@@ -26,8 +27,7 @@ class UnimedScraper:
 
     def setup_logging(self):
         logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
         )
         self.logger = logging.getLogger(__name__)
 
@@ -208,7 +208,9 @@ class UnimedScraper:
             self.protocol_data.append(protocol_entry)
 
         except Exception as e:
-            self.logger.error(f"Error processing guide {guide_data['guide_number']}: {str(e)}")
+            self.logger.error(
+                f"Error processing guide {guide_data['guide_number']}: {str(e)}"
+            )
             raise
 
     def _extract_biometric_data(self, execution_date: str) -> str:
