@@ -50,9 +50,11 @@ interface FichaPresenca {
   sessoes_status?: string;
 }
 
-interface EditedSessao extends Partial<Sessao> { }
+interface EditedSessao extends Omit<Partial<Sessao>, 'id'> {
+  id?: string;
+}
 
-interface EditedFicha extends Partial<FichaPresenca> {
+interface EditedFicha extends Omit<Partial<FichaPresenca>, 'sessoes'> {
   sessoes?: EditedSessao[];
   data_atendimento?: string;
 }
@@ -62,6 +64,7 @@ type Column<T> = {
   label: string;
   className?: string;
   sortable?: boolean;
+  type?: 'boolean' | 'text' | 'string' | 'date';
   render?: (value: any, item: T) => React.ReactNode;
 };
 

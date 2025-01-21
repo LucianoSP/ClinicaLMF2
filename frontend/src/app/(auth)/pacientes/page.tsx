@@ -34,8 +34,9 @@ import { Paciente } from '@/types/paciente'
 
 type Patient = Paciente & {
   carteirinhas?: Array<{
-    numero_carteirinha: string
-    nome_titular: string
+    id: string
+    paciente_carteirinha: string
+    paciente_nome: string
     data_validade: string | null
     plano_saude?: {
       id: string
@@ -131,17 +132,24 @@ export default function PatientsPage() {
       const data = await buscarGuiasPaciente(patientId)
       console.log('Dados recebidos:', data)
 
+      const planoSaude = data.plano ? {
+        id: data.plano.id,
+        nome: data.plano.nome,
+        codigo: data.plano.codigo
+      } : undefined;
+
       // Atualiza as guias
       setPatientGuides(data.items || [])
 
       // Depois atualiza o paciente com o plano e carteirinhas
       setSelectedPatient(prev => prev ? {
         ...prev,
-        carteirinhas: data.items.map((guia: any) => ({
-          paciente_carteirinha: guia.paciente_carteirinha,
-          paciente_nome: guia.paciente_nome,
-          data_validade: guia.data_validade,
-          plano: data.plano
+        carteirinhas: data.items.map((item: any) => ({
+          id: item.carteirinha_id,
+          paciente_carteirinha: item.paciente_carteirinha,
+          paciente_nome: item.paciente_nome,
+          data_validade: item.data_validade,
+          plano_saude: planoSaude
         })) || [],
         fichas: data.fichas || []
       } : prev)

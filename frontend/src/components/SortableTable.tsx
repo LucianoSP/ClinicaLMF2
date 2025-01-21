@@ -27,7 +27,8 @@ export default function SortableTable<T>({
   onSave,
   onCancelEdit,
   onCellEdit,
-  actions
+  actions,
+  loading
 }: {
   data: T[];
   columns: Column<T>[];
@@ -38,6 +39,7 @@ export default function SortableTable<T>({
   onCancelEdit?: () => void;
   onCellEdit?: (item: T, key: keyof T, value: any) => void;
   actions?: (item: T) => React.ReactNode;
+  loading?: boolean;
 }) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -114,108 +116,112 @@ export default function SortableTable<T>({
           </tr>
         </thead>
         <tbody>
-          {sortedData.map((item, index) => (
-            <tr
-              key={index}
-              className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
-            >
-              {columns.map((column) => (
-                <td
-                  key={String(column.key)}
-                  className={`px-4 py-3.5 align-middle text-sm ${column.className || ''}`}
-                  style={column.style}
-                >
-                  {column.editable && editingId === (item as any).codigo_ficha ? (
-                    column.type === 'boolean' ? (
-                      <select
-                        value={String(item[column.key])}
-                        onChange={(e) => onCellEdit?.(item, column.key, e.target.value === 'true')}
-                        className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
-                      >
-                        <option value="true">Sim</option>
-                        <option value="false">Não</option>
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={String(item[column.key] || '')}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          onCellEdit?.(item, column.key, e.target.value);
-                        }}
-                        onBlur={(e) => {
-                          if (column.key === 'codigo_ficha') {
-                            e.stopPropagation();
-                          }
-                        }}
-                        className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
-                        autoFocus={column.key !== 'codigo_ficha'}
-                      />
-                    )
-                  ) : (
-                    <span className="block w-full">
-                      {column.render ? (
-                        column.render(item[column.key], item)
-                      ) : column.type === 'boolean' ? (
-                        <div className="flex items-center">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            item[column.key] === true || String(item[column.key]) === 'true'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-amber-50 text-amber-700'
-                          }`}>
-                            {item[column.key] === true || String(item[column.key]) === 'true' ? (
-                              <><FiCheck className="w-3 h-3" />Sim</>
-                            ) : (
-                              <><FiX className="w-3 h-3" />Não</>
-                            )}
-                          </span>
-                        </div>
-                      ) : String(item[column.key] || '')}
-                    </span>
-                  )}
-                </td>
-              ))}
-              {(onEdit || onDelete || onSave || actions) && (
-                <td className="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap w-[100px]">
-                  <div className="flex items-center justify-center space-x-2">
-                    {actions ? (
-                      actions(item)
-                    ) : (
-                      <>
-                        {onEdit && (
-                          <button
-                            onClick={() => onEdit(item)}
-                            className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors"
-                            title="Editar"
-                          >
-                            <FiEdit className="w-4 h-4" />
-                          </button>
-                        )}
-                        {onDelete && (
-                          <button
-                            onClick={() => onDelete(item)}
-                            className="text-red-600 hover:text-red-700 transition-colors"
-                            title="Excluir"
-                          >
-                            <FiTrash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </td>
-              )}
-            </tr>
-          ))}
-          {sortedData.length === 0 && (
+          {loading ? (
             <tr>
-              <td
-                colSpan={columns.length + ((onEdit || onDelete || onSave || actions) ? 1 : 0)}
-                className="px-4 py-2.5 text-center text-xs text-gray-500"
-              >
+              <td colSpan={columns.length + (onEdit || onDelete || actions ? 1 : 0)} className="text-center py-4">
+                Carregando...
+              </td>
+            </tr>
+          ) : sortedData.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length + (onEdit || onDelete || actions ? 1 : 0)} className="text-center py-4">
                 Nenhum registro encontrado
               </td>
             </tr>
+          ) : (
+            sortedData.map((item, index) => (
+              <tr
+                key={index}
+                className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
+              >
+                {columns.map((column) => (
+                  <td
+                    key={String(column.key)}
+                    className={`px-4 py-3.5 align-middle text-sm ${column.className || ''}`}
+                    style={column.style}
+                  >
+                    {column.editable && editingId === (item as any).codigo_ficha ? (
+                      column.type === 'boolean' ? (
+                        <select
+                          value={String(item[column.key])}
+                          onChange={(e) => onCellEdit?.(item, column.key, e.target.value === 'true')}
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
+                        >
+                          <option value="true">Sim</option>
+                          <option value="false">Não</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={String(item[column.key] || '')}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            onCellEdit?.(item, column.key, e.target.value);
+                          }}
+                          onBlur={(e) => {
+                            if (column.key === 'codigo_ficha') {
+                              e.stopPropagation();
+                            }
+                          }}
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
+                          autoFocus={column.key !== 'codigo_ficha'}
+                        />
+                      )
+                    ) : (
+                      <span className="block w-full">
+                        {column.render ? (
+                          column.render(item[column.key], item)
+                        ) : column.type === 'boolean' ? (
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              item[column.key] === true || String(item[column.key]) === 'true'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {item[column.key] === true || String(item[column.key]) === 'true' ? (
+                                <><FiCheck className="w-3 h-3" />Sim</>
+                              ) : (
+                                <><FiX className="w-3 h-3" />Não</>
+                              )}
+                            </span>
+                          </div>
+                        ) : String(item[column.key] || '')}
+                      </span>
+                    )}
+                  </td>
+                ))}
+                {(onEdit || onDelete || onSave || actions) && (
+                  <td className="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap w-[100px]">
+                    <div className="flex items-center justify-center space-x-2">
+                      {actions ? (
+                        actions(item)
+                      ) : (
+                        <>
+                          {onEdit && (
+                            <button
+                              onClick={() => onEdit(item)}
+                              className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors"
+                              title="Editar"
+                            >
+                              <FiEdit className="w-4 h-4" />
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button
+                              onClick={() => onDelete(item)}
+                              className="text-red-600 hover:text-red-700 transition-colors"
+                              title="Excluir"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))
           )}
         </tbody>
       </table>
