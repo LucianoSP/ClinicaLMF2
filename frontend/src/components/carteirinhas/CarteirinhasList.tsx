@@ -32,6 +32,7 @@ import {
 } from '@/services/carteirinhaService';
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -204,45 +205,7 @@ export function CarteirinhasList() {
                 <TableCell>{carteirinha.plano_saude?.nome || '-'}</TableCell>
                 <TableCell>{format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                 <TableCell>
-                  {(() => {
-                    const status = (carteirinha.status || '').toLowerCase();
-                    console.log("Status da carteirinha:", status, typeof status);
-                    let variant: "default" | "destructive" | "outline" | "secondary" = "default";
-                    let label = "";
-                    
-                    switch (status) {
-                      case "ativa":
-                        variant = "default";
-                        label = "Ativa";
-                        break;
-                      case "vencida":
-                        variant = "destructive";
-                        label = "Vencida";
-                        break;
-                      case "cancelada":
-                        variant = "destructive";
-                        label = "Cancelada";
-                        break;
-                      case "suspensa":
-                        variant = "outline";
-                        label = "Suspensa";
-                        break;
-                      case "em_analise":
-                        variant = "secondary";
-                        label = "Em Análise";
-                        break;
-                      default:
-                        console.log("Status não reconhecido:", status);
-                        variant = "outline";
-                        label = status || "Desconhecido";
-                    }
-                    
-                    return (
-                      <Badge variant={variant}>
-                        {label}
-                      </Badge>
-                    );
-                  })()}
+                  <StatusBadge status={carteirinha.status || ''} />
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
