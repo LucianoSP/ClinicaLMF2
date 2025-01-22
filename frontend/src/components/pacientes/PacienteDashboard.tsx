@@ -1,22 +1,28 @@
 'use client'
 
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import {
   Users,
   ClipboardCheck,
   Timer,
   BarChart,
-  AlertTriangle
 } from 'lucide-react'
 
 interface PacienteEstatisticas {
-  total: number;
-  items: {
-    status: string;
-  }[];
-  fichas: {
-    status: string;
-  }[];
+  total_carteirinhas: number;
+  carteirinhas_ativas: number;
+  total_guias: number;
+  guias_ativas: number;
+  sessoes_autorizadas: number;
+  sessoes_executadas: number;
+  divergencias_pendentes: number;
+  taxa_execucao: number;
+  guias_por_status: {
+    pendente: number;
+    em_andamento: number;
+    concluida: number;
+    cancelada: number;
+  };
 }
 
 interface PacienteDashboardProps {
@@ -30,52 +36,59 @@ export function PacienteDashboard({ estatisticas }: PacienteDashboardProps) {
   const cards = [
     {
       title: 'Carteirinhas',
-      value: estatisticas.items?.length || 0,
-      description: `${estatisticas.total || 0} total`,
+      value: estatisticas.carteirinhas_ativas,
+      description: `${estatisticas.total_carteirinhas} total`,
       icon: Users,
       color: 'text-blue-500'
     },
     {
       title: 'Guias',
-      value: estatisticas.items?.filter(item => item.status === 'pendente').length || 0,
-      description: `${estatisticas.items?.length || 0} total`,
+      value: estatisticas.guias_ativas,
+      description: `${estatisticas.total_guias} total`,
       icon: ClipboardCheck,
       color: 'text-green-500'
     },
     {
       title: 'Sessões',
-      value: estatisticas.fichas?.length || 0,
-      description: `${estatisticas.fichas?.filter(f => f.status === 'pendente').length || 0} pendentes`,
+      value: estatisticas.sessoes_executadas,
+      description: `${estatisticas.sessoes_autorizadas} autorizadas`,
       icon: Timer,
       color: 'text-purple-500'
     },
     {
-      title: 'Divergências',
-      value: 0,
-      description: 'pendentes',
-      icon: AlertTriangle,
-      color: 'text-red-500'
+      title: 'Taxa de Execução',
+      value: `${estatisticas.taxa_execucao}%`,
+      description: 'das sessões',
+      icon: BarChart,
+      color: 'text-orange-500'
     }
-  ];
+  ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card, i) => (
-        <Card key={i}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {card.title}
-            </CardTitle>
-            <card.icon className={`h-4 w-4 ${card.color}`} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{card.value}</div>
-            <p className="text-xs text-muted-foreground">
-              {card.description}
-            </p>
-          </CardContent>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {cards.map((card, index) => (
+        <Card
+          key={index}
+          className="bg-white border shadow-sm hover:bg-gray-50/50 transition-colors duration-200"
+        >
+          <div className="p-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-sm font-medium text-gray-700">
+                  {card.title}
+                </h3>
+                <p className="text-2xl font-bold mt-1 text-gray-900">
+                  {card.value}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {card.description}
+                </p>
+              </div>
+              <card.icon className={`h-5 w-5 ${card.color}`} />
+            </div>
+          </div>
         </Card>
       ))}
     </div>
-  );
+  )
 }

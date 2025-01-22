@@ -82,22 +82,23 @@ export async function excluirPaciente(id: string): Promise<void> {
 export async function buscarEstatisticasPaciente(id: string): Promise<PacienteEstatisticas> {
   try {
     const response = await api.get(`/pacientes/${id}/estatisticas`);
-    const data = response.data.data;
+    const data = response.data;
+    console.log('Dados brutos da API:', data);
     
     return {
-      total_carteirinhas: data.total_carteirinhas || 0,
-      carteirinhas_ativas: data.carteirinhas_ativas || 0,
-      total_guias: data.total_guias || 0,
-      guias_ativas: data.guias_ativas || 0,
-      sessoes_autorizadas: data.sessoes_autorizadas || 0,
-      sessoes_executadas: data.sessoes_executadas || 0,
-      divergencias_pendentes: data.divergencias_pendentes || null,
-      taxa_execucao: data.taxa_execucao || 0,
+      total_carteirinhas: Number(data.total_carteirinhas) || 0,
+      carteirinhas_ativas: Number(data.carteirinhas_ativas) || 0,
+      total_guias: Number(data.total_guias) || 0,
+      guias_ativas: Number(data.guias_ativas) || 0,
+      sessoes_autorizadas: Number(data.sessoes_autorizadas) || 0,
+      sessoes_executadas: Number(data.sessoes_executadas) || 0,
+      divergencias_pendentes: Number(data.divergencias_pendentes) || 0,
+      taxa_execucao: Number(data.taxa_execucao) || 0,
       guias_por_status: {
-        pendente: data.guias_por_status?.pendente || 0,
-        em_andamento: data.guias_por_status?.em_andamento || 0,
-        concluida: data.guias_por_status?.concluida || 0,
-        cancelada: data.guias_por_status?.cancelada || 0,
+        pendente: Number(data.guias_por_status?.pendente) || 0,
+        em_andamento: Number(data.guias_por_status?.em_andamento) || 0,
+        concluida: Number(data.guias_por_status?.concluida) || 0,
+        cancelada: Number(data.guias_por_status?.cancelada) || 0,
       },
     };
   } catch (error) {
@@ -109,7 +110,7 @@ export async function buscarEstatisticasPaciente(id: string): Promise<PacienteEs
       guias_ativas: 0,
       sessoes_autorizadas: 0,
       sessoes_executadas: 0,
-      divergencias_pendentes: null,
+      divergencias_pendentes: 0,
       taxa_execucao: 0,
       guias_por_status: {
         pendente: 0,

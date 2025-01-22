@@ -367,22 +367,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
         </div>
 
         {/* Stats Cards */}
-        <PacienteDashboard estatisticas={{
-          total_carteirinhas: stats.total_carteirinhas,
-          carteirinhas_ativas: stats.carteirinhas_ativas,
-          total_guias: stats.total_guias,
-          guias_ativas: stats.guias_ativas,
-          sessoes_autorizadas: stats.sessoes_autorizadas,
-          sessoes_executadas: stats.sessoes_executadas,
-          divergencias_pendentes: stats.divergencias_pendentes,
-          taxa_execucao: stats.taxa_execucao,
-          guias_por_status: stats.guias_por_status || {
-            pendente: 0,
-            em_andamento: 0,
-            concluida: 0,
-            cancelada: 0
-          }
-        }} />
+        <PacienteDashboard estatisticas={stats} />
 
         {/* Plano de Saúde */}
         {carteirinha?.plano_saude && (
