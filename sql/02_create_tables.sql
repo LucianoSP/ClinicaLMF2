@@ -49,9 +49,8 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
     plano_saude_id uuid REFERENCES planos_saude(id) ON DELETE RESTRICT,
     numero_carteirinha character varying(50) NOT NULL,
     data_validade date,
-    titular boolean DEFAULT false,
     nome_titular character varying(255),
-    status status_carteirinha DEFAULT 'ativa',
+    status status_carteirinha NOT NULL DEFAULT 'ativa',
     motivo_inativacao text,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
@@ -258,25 +257,38 @@ ALTER TABLE auditoria_execucoes DISABLE ROW LEVEL SECURITY;
 -- Migration script for carteirinhas table updates
 DO $$ 
 BEGIN
+    -- Remove titular column if it exists
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'carteirinhas' AND column_name = 'titular'
+    ) THEN
+        ALTER TABLE carteirinhas DROP COLUMN titular;
+    END IF;
+
     -- Update foreign key constraints if they don't exist
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 
+        FROM information_schema.table_constraints 
         WHERE constraint_name = 'carteirinhas_paciente_id_fkey'
     ) THEN
         ALTER TABLE carteirinhas
-            DROP CONSTRAINT IF EXISTS carteirinhas_paciente_id_fkey,
             ADD CONSTRAINT carteirinhas_paciente_id_fkey 
-                FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE;
+            FOREIGN KEY (paciente_id) 
+            REFERENCES pacientes(id) ON DELETE CASCADE;
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
+        SELECT 1 
+        FROM information_schema.table_constraints 
         WHERE constraint_name = 'carteirinhas_plano_saude_id_fkey'
     ) THEN
         ALTER TABLE carteirinhas
-            DROP CONSTRAINT IF EXISTS carteirinhas_plano_saude_id_fkey,
             ADD CONSTRAINT carteirinhas_plano_saude_id_fkey 
-                FOREIGN KEY (plano_saude_id) REFERENCES planos_saude(id) ON DELETE RESTRICT;
+            FOREIGN KEY (plano_saude_id) 
+            REFERENCES planos_saude(id) ON DELETE RESTRICT;
     END IF;
 
+    -- Update existing carteirinhas to have status 'ativa'
+    UPDATE carteirinhas SET status = 'ativa' WHERE status IS NULL OR status = '';
 END $$;

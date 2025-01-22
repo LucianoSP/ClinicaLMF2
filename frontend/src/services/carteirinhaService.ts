@@ -5,17 +5,15 @@ export interface Carteirinha {
   paciente_id: string;
   plano_saude_id: string;
   numero_carteirinha: string;
-  data_emissao: string | null;
-  data_validade: string | null;
-  titular: boolean;
-  nome_titular: string | null;
+  numero?: string; // Campo auxiliar para compatibilidade
+  data_emissao?: string;
+  data_validade?: string;
+  dataValidade?: string; // Campo auxiliar para o frontend
+  nome_titular?: string;
   status: 'ativa' | 'vencida' | 'cancelada' | 'suspensa' | 'em_analise';
-  motivo_inativacao: string | null;
-  created_at: string;
-  updated_at: string;
-  // Campos auxiliares para o frontend
-  numero?: string;
-  dataValidade?: string;
+  motivo_inativacao?: string;
+  created_at?: string;
+  updated_at?: string;
   paciente?: {
     id: string;
     nome: string;
@@ -41,7 +39,6 @@ export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
     data_validade: carteirinha.data_validade || carteirinha.dataValidade
       ? new Date(carteirinha.data_validade || carteirinha.dataValidade).toISOString().split('T')[0]
       : null,
-    titular: carteirinha.titular ?? true,
     nome_titular: carteirinha.nome_titular || "",
     paciente_id: carteirinha.paciente_id,
     plano_saude_id: carteirinha.plano_saude_id,
@@ -72,7 +69,6 @@ export function toFrontendFormat(data: any): Carteirinha {
     data_emissao: data.data_emissao,
     data_validade: data.data_validade,
     dataValidade: data.data_validade, // Campo auxiliar para o frontend
-    titular: data.titular ?? false,
     nome_titular: data.nome_titular || "",
     status: data.status || 'ativa',
     motivo_inativacao: data.motivo_inativacao,

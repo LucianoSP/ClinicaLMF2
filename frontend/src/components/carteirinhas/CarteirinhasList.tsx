@@ -191,7 +191,6 @@ export function CarteirinhasList() {
               <TableHead>Número</TableHead>
               <TableHead>Paciente</TableHead>
               <TableHead>Plano de Saúde</TableHead>
-              <TableHead>Titular</TableHead>
               <TableHead>Data de Validade</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[100px]">Ações</TableHead>
@@ -203,11 +202,6 @@ export function CarteirinhasList() {
                 <TableCell>{carteirinha.numero_carteirinha || carteirinha.numero}</TableCell>
                 <TableCell>{carteirinha.paciente?.nome || '-'}</TableCell>
                 <TableCell>{carteirinha.plano_saude?.nome || '-'}</TableCell>
-                <TableCell>
-                  <Badge variant={carteirinha.titular ? "default" : "secondary"}>
-                    {carteirinha.titular ? "Sim" : "Não"}
-                  </Badge>
-                </TableCell>
                 <TableCell>{format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                 <TableCell>
                   {(() => {

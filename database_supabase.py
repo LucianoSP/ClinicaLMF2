@@ -125,7 +125,6 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                         "paciente_id": id_para_uuid[id_excel],
                         "nome_titular": str(registro["paciente_nome"]).upper(),
                         "data_validade": None,
-                        "titular": True,
                         "plano_saude_id": planos[codigo_plano],
                     }
                 )
@@ -1014,8 +1013,9 @@ def gerar_dados_teste() -> bool:
             execucao = {
                 "numero_guia": ficha["numero_guia"],
                 "paciente_nome": ficha["paciente_nome"],
-                "paciente_carteirinha": ficha["paciente_carteirinha"],
                 "data_execucao": ficha["data_atendimento"],
+                "paciente_carteirinha": ficha["paciente_carteirinha"],
+                "codigo_ficha": ficha["codigo_ficha"],
             }
 
             if tipo_divergencia == "normal":
@@ -1581,7 +1581,16 @@ def listar_carteirinhas(
     """Lista todas as carteirinhas com suporte a paginação, busca e filtros."""
     try:
         query = supabase.table('carteirinhas').select(
-            '*,'
+            'id,'
+            'paciente_id,'
+            'plano_saude_id,'
+            'numero_carteirinha,'
+            'data_validade,'
+            'nome_titular,'
+            'status,'
+            'motivo_inativacao,'
+            'created_at,'
+            'updated_at,'
             'pacientes(id,nome,cpf,email,telefone,data_nascimento,nome_responsavel),'
             'planos_saude(id,nome,ativo,codigo)'
         )
@@ -1671,13 +1680,6 @@ def atualizar_carteirinha(carteirinha_id: str, dados: Dict) -> Dict:
         if dados_atualizacao.get('status') in ['cancelada', 'suspensa']:
             if not dados_atualizacao.get('motivo_inativacao'):
                 raise ValueError('Motivo é obrigatório para carteirinhas canceladas ou suspensas')
-
-        # Handle data_validade field
-        if 'data_validade' in dados_atualizacao:
-            if hasattr(dados_atualizacao['data_validade'], 'isoformat'):
-                dados_atualizacao['data_validade'] = dados_atualizacao['data_validade'].isoformat()
-            elif dados_atualizacao['data_validade'] and not isinstance(dados_atualizacao['data_validade'], str):
-                raise ValueError('data_validade must be a date object or string')
 
         response = supabase.table('carteirinhas')\
             .update(dados_atualizacao)\

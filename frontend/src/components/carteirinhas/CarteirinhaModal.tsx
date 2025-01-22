@@ -25,7 +25,6 @@ import { listarPlanos } from "@/services/planoService";
 import { Plano } from "@/types/plano";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 
 interface CarteirinhaModalProps {
   isOpen: boolean;
@@ -48,12 +47,11 @@ export function CarteirinhaModal({
   const [formData, setFormData] = useState<Partial<Carteirinha>>({
     numero_carteirinha: "",
     dataValidade: "",
-    titular: true,
-    nome_titular: "",
     paciente_id: "",
     plano_saude_id: "",
     status: "ativa",
-    motivo_inativacao: ""
+    motivo_inativacao: "",
+    nome_titular: ""
   });
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
@@ -92,24 +90,22 @@ export function CarteirinhaModal({
       setFormData({
         numero_carteirinha: carteirinha.numero_carteirinha || carteirinha.numero || "",
         dataValidade: carteirinha.dataValidade || carteirinha.data_validade || "",
-        nome_titular: carteirinha.nome_titular || "",
-        titular: carteirinha.titular ?? true,
         paciente_id: carteirinha.paciente_id || carteirinha.paciente?.id || "",
         plano_saude_id: carteirinha.plano_saude_id || carteirinha.plano_saude?.id || "",
         status: carteirinha.status || "ativa",
-        motivo_inativacao: carteirinha.motivo_inativacao || ""
+        motivo_inativacao: carteirinha.motivo_inativacao || "",
+        nome_titular: carteirinha.nome_titular || ""
       });
       console.log("FormData após atualização:", formData);
     } else {
       setFormData({
         numero_carteirinha: "",
         dataValidade: "",
-        nome_titular: "",
-        titular: true,
         paciente_id: "",
         plano_saude_id: "",
         status: "ativa",
-        motivo_inativacao: ""
+        motivo_inativacao: "",
+        nome_titular: ""
       });
     }
   }, [carteirinha, isOpen]);
@@ -190,18 +186,6 @@ export function CarteirinhaModal({
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="numero_carteirinha" className="text-right">
-                Número
-              </Label>
-              <Input
-                id="numero_carteirinha"
-                name="numero_carteirinha"
-                value={formData.numero_carteirinha}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="paciente_id" className="text-right">
                 Paciente
               </Label>
@@ -257,6 +241,18 @@ export function CarteirinhaModal({
                     ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="numero_carteirinha" className="text-right">
+                Número
+              </Label>
+              <Input
+                id="numero_carteirinha"
+                name="numero_carteirinha"
+                value={formData.numero_carteirinha}
+                onChange={handleInputChange}
+                className="col-span-3"
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="dataValidade" className="text-right">
@@ -317,21 +313,6 @@ export function CarteirinhaModal({
                 onChange={handleInputChange}
                 className="col-span-3"
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="titular" className="text-right">
-                Titular
-              </Label>
-              <div className="col-span-3">
-                <Switch
-                  id="titular"
-                  name="titular"
-                  checked={formData.titular}
-                  onCheckedChange={(checked) =>
-                    handleInputChange({ target: { name: "titular", value: checked } })
-                  }
-                />
-              </div>
             </div>
           </div>
           <DialogFooter>
