@@ -32,6 +32,9 @@ interface ScrapingStatus {
   total_guides?: number;
   processed_guides?: number;
   error?: string;
+  result?: {
+    total_guides: number;
+  };
 }
 
 export default function UnimedPage() {
@@ -113,51 +116,63 @@ export default function UnimedPage() {
     }
   };
 
-  const getStatusMessage = () => {
-    if (!scrapingStatus) return null;
-
+  const getStatusMessage = (scrapingStatus: ScrapingStatus) => {
     switch (scrapingStatus.status) {
-      case 'iniciando':
+      case 'starting':
         return 'Iniciando o processo...';
       case 'login':
         return 'Realizando login na Unimed...';
       case 'extraindo':
         return 'Extraindo guias do sistema...';
       case 'enviando':
-        return `Enviando guias: ${scrapingStatus.processed_guides} de ${scrapingStatus.total_guides}`;
+        const processedGuides = scrapingStatus.processed_guides || 0;
+        const totalGuides = scrapingStatus.total_guides || 0;
+        return `Enviando guias: ${processedGuides} de ${totalGuides}`;
       case 'completed':
-        return `Concluído! Total de guias: ${scrapingStatus.result?.total_guides}`;
+        const resultGuides = scrapingStatus.result?.total_guides || 0;
+        return `Concluído! Total de guias: ${resultGuides}`;
       case 'failed':
-        return `Erro: ${scrapingStatus.error}`;
+        return `Erro: ${scrapingStatus.error || 'Erro desconhecido'}`;
       default:
         return 'Processando...';
     }
   };
 
-  const columns: Column[] = [
+  const columns: Column<GuiaUnimed>[] = [
     {
       key: 'numero_guia',
-      header: 'Número da Guia',
+      label: 'Número da Guia',
     },
     {
       key: 'carteira',
-      header: 'Carteira',
+      label: 'Carteira',
     },
     {
       key: 'nome_paciente',
-      header: 'Paciente',
+      label: 'Paciente',
     },
     {
       key: 'data_execucao',
-      header: 'Data Execução',
+      label: 'Data de Execução',
+      render: (value) => format(new Date(value), 'dd/MM/yyyy', { locale: ptBR }),
     },
     {
       key: 'nome_profissional',
-      header: 'Profissional',
+      label: 'Profissional',
     },
     {
       key: 'status',
-      header: 'Status',
+      label: 'Status',
+      render: (value) => (
+        <span className={cn(
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+          value === 'Pendente' && "bg-yellow-100 text-yellow-800",
+          value === 'Enviado' && "bg-green-100 text-green-800",
+          value === 'Erro' && "bg-red-100 text-red-800"
+        )}>
+          {value}
+        </span>
+      ),
     },
   ];
 
@@ -197,11 +212,9 @@ export default function UnimedPage() {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                  mode="single"
                   selected={dataInicial}
                   onSelect={setDataInicial}
-                  initialFocus
-                  locale={ptBR}
+                  className="rounded-md border"
                 />
               </PopoverContent>
             </Popover>
@@ -224,11 +237,9 @@ export default function UnimedPage() {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                  mode="single"
                   selected={dataFinal}
                   onSelect={setDataFinal}
-                  initialFocus
-                  locale={ptBR}
+                  className="rounded-md border"
                 />
               </PopoverContent>
             </Popover>
@@ -245,7 +256,7 @@ export default function UnimedPage() {
 
         {isLoading && (
           <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
-            <p className="font-medium">{getStatusMessage()}</p>
+            <p className="font-medium">{getStatusMessage(scrapingStatus!)}</p>
             {scrapingStatus?.status === 'enviando' && (
               <div className="w-full bg-blue-200 rounded-full h-2.5 mt-2">
                 <div

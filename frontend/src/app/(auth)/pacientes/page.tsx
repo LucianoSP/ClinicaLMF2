@@ -30,42 +30,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { listarPacientes, buscarGuiasPaciente, buscarEstatisticasPaciente } from '@/services/pacienteService'
-import { Paciente } from '@/types/paciente'
-
-type Patient = Paciente & {
-  carteirinhas?: Array<{
-    id: string
-    paciente_carteirinha: string
-    paciente_nome: string
-    data_validade: string | null
-    plano_saude?: {
-      id: string
-      nome: string
-      codigo: string
-    }
-  }>
-  fichas?: any[]
-}
-
-interface Guide {
-  id: string
-  numero_guia: string
-  data_emissao: string
-  data_validade: string
-  tipo: string
-  status: string
-  paciente_carteirinha: string
-  paciente_nome: string
-  quantidade_autorizada: number
-  quantidade_executada: number
-  procedimento_codigo?: string
-  procedimento_nome?: string
-  profissional_solicitante?: string
-  profissional_executante?: string
-  observacoes?: string
-  created_at: string
-  updated_at: string
-}
+import { Paciente, Guide, FichaPresenca } from '@/types/paciente'
 
 interface PatientStats {
   total_carteirinhas: number;
@@ -85,8 +50,8 @@ interface PatientStats {
 }
 
 export default function PatientsPage() {
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [selectedPatient, setSelectedPatient] = useState<Patient | undefined>()
+  const [patients, setPatients] = useState<Paciente[]>([])
+  const [selectedPatient, setSelectedPatient] = useState<Paciente | undefined>()
   const [patientGuides, setPatientGuides] = useState<Guide[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -109,23 +74,28 @@ export default function PatientsPage() {
     }
   })
 
-  const loadPatients = useCallback(async (term: string) => {
-    if (!term.trim()) {
-      setPatients([])
-      return
-    }
-
+  const carregarPacientes = async (term = '') => {
     try {
       setIsLoading(true)
       const response = await listarPacientes(1, term.trim())
-      setPatients(response.items || [])
+      const patientsData: Paciente[] = (response.items || []).map((paciente: Paciente) => ({
+        ...paciente,
+        nome_responsavel: paciente.nome_responsavel || '',
+        data_nascimento: paciente.data_nascimento || new Date().toISOString(),
+        created_at: paciente.created_at || new Date().toISOString(),
+        telefone: paciente.telefone || '',
+        carteirinhas: paciente.carteirinhas || [],
+        guias: [],
+        fichas: []
+      }))
+      setPatients(patientsData)
     } catch (error) {
       console.error('Erro ao carregar pacientes:', error)
       setPatients([])
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }
 
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
@@ -173,11 +143,11 @@ export default function PatientsPage() {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      loadPatients(searchTerm)
+      carregarPacientes(searchTerm)
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, loadPatients])
+  }, [searchTerm])
 
   useEffect(() => {
     if (selectedPatient) {
@@ -187,12 +157,12 @@ export default function PatientsPage() {
     }
   }, [selectedPatient?.id, loadPatientGuides, loadPatientStats])
 
-  const handleEditPatient = (patient: Patient) => {
+  const handleEditPatient = (patient: Paciente) => {
     setSelectedPatient(patient)
     setIsFormOpen(true)
   }
 
-  const handleSelectPatient = (patient: Patient) => {
+  const handleSelectPatient = (patient: Paciente) => {
     setSelectedPatient(patient)
     setPatientGuides([]) // Limpa as guias antes de carregar novas
     setOpen(false)
@@ -282,9 +252,16 @@ export default function PatientsPage() {
             <div className="mt-6">
               <PatientDetails
                 patient={{
-                  ...selectedPatient,
+                  id: selectedPatient.id,
+                  nome: selectedPatient.nome,
+                  nome_responsavel: selectedPatient.nome_responsavel || '',
+                  data_nascimento: selectedPatient.data_nascimento || new Date().toISOString(),
+                  created_at: selectedPatient.created_at || new Date().toISOString(),
+                  telefone: selectedPatient.telefone || '',
+                  carteirinhas: selectedPatient.carteirinhas || [],
                   guias: patientGuides,
-                  fichas: selectedPatient.fichas || []
+                  fichas: selectedPatient.fichas || [],
+                  ...selectedPatient
                 }}
                 stats={patientStats}
                 onGuideCreated={refreshPatientData}

@@ -22,11 +22,19 @@ import {
   MoreHorizontal,
   AlertCircle
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Badge } from '@/components/ui/badge'
-import { GuideForm } from './GuideForm'
+import { GuiaForm } from './guias/GuiaForm'
 import { PacienteDashboard } from './pacientes/PacienteDashboard'
-import SortableTable, { Column } from './SortableTable'
+import SortableTable from './SortableTable'
 import { PencilIcon } from 'lucide-react'
 import {
   Tooltip,
@@ -35,85 +43,38 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { api } from '@/lib/api'
+import { Paciente, Guide, FichaPresenca, Carteirinha } from '@/types/paciente'
+import { Guia } from '@/services/guiaService'
 
 // Consolidated interfaces at the top
-interface PlanoSaude {
-  id: string
-  nome: string
-  codigo: string
-}
-
-interface Carteirinha {
-  id: string
-  paciente_carteirinha: string
-  paciente_nome: string
-  data_validade: string | null
-  plano_saude?: {
-    id: string
-    nome: string
-    codigo: string
-  }
-}
-
-interface Guide {
-  id: string
-  numero_guia: string
-  data_emissao: string | null
-  data_validade: string | null
-  quantidade_autorizada: number
-  quantidade_executada: number
-  status: string
-  tipo: string
-  procedimento_nome?: string
-  paciente_carteirinha: string
-}
-
-interface FichaPresenca {
-  id: string
-  data_atendimento: string
-  paciente_carteirinha: string
-  paciente_nome: string
-  numero_guia: string
-  codigo_ficha: string
-  possui_assinatura: boolean
-  arquivo_digitalizado?: string | null
-  observacoes?: string | null
-}
 
 interface PatientStats {
-  total_carteirinhas: number;
-  carteirinhas_ativas: number;
-  total_guias: number;
-  guias_ativas: number;
-  sessoes_autorizadas: number;
-  sessoes_executadas: number;
-  divergencias_pendentes: number;
-  taxa_execucao: number;
+  total_carteirinhas: number
+  carteirinhas_ativas: number
+  total_guias: number
+  guias_ativas: number
+  sessoes_autorizadas: number
+  sessoes_executadas: number
+  divergencias_pendentes: number
+  taxa_execucao: number
   guias_por_status: {
-    pendente: number;
-    em_andamento: number;
-    concluida: number;
-    cancelada: number;
-  };
+    pendente: number
+    em_andamento: number
+    concluida: number
+    cancelada: number
+  }
 }
 
 interface PatientDetailsProps {
-  patient: {
-    id: string
-    nome: string
-    nome_responsavel: string
-    idade?: number
-    photo?: string
-    plano_nome?: string
-    data_nascimento: string
-    created_at: string
-    telefone: string
-    carteirinhas: Carteirinha[]
-    guias: Guide[]
-    fichas: FichaPresenca[]
-  }
-  stats: PatientStats;
-  onGuideCreated: () => void;
+  patient: Paciente
+  stats: PatientStats
+  onGuideCreated: () => void
+}
+
+interface Column<T> {
+  key: keyof T
+  label: string
+  render?: (value: T[keyof T], item: T) => React.ReactNode
 }
 
 const formatDate = (dateStr: string | null) => {
@@ -130,28 +91,28 @@ const formatStatus = (status: string) => {
   // Convert status to lowercase for case-insensitive comparison
   const normalizedStatus = status?.toLowerCase() || '';
 
-  const statusMap: { [key: string]: { label: string; className: string } } = {
+  const statusMap: { [key: string]: { label: string; color: string } } = {
     'pendente': {
       label: 'Pendente',
-      className: 'bg-yellow-100 text-yellow-800'
+      color: 'bg-yellow-100 text-yellow-800'
     },
     'em_andamento': {
       label: 'Em andamento',
-      className: 'bg-blue-100 text-blue-800'
+      color: 'bg-blue-100 text-blue-800'
     },
     'concluida': {
       label: 'Concluída',
-      className: 'bg-green-100 text-green-800'
+      color: 'bg-green-100 text-green-800'
     },
     'cancelada': {
       label: 'Cancelada',
-      className: 'bg-red-100 text-red-800'
+      color: 'bg-red-100 text-red-800'
     }
   }
 
   const defaultStatus = {
     label: status || '',
-    className: 'bg-gray-100 text-gray-800'
+    color: 'bg-gray-100 text-gray-800'
   }
 
   return statusMap[normalizedStatus] || defaultStatus
@@ -191,13 +152,22 @@ const ProgressBar = ({ value, max }: { value: number; max: number }) => {
 
 export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetailsProps) {
   console.log('PatientDetails - stats recebidos:', stats);
-  const [isGuideFormOpen, setIsGuideFormOpen] = useState(false)
-  const [selectedGuide, setSelectedGuide] = useState<Guide | undefined>()
+  const [isGuiaFormOpen, setIsGuiaFormOpen] = useState(false)
+  const [selectedGuide, setSelectedGuide] = useState<Guia | undefined>()
   const carteirinha = patient.carteirinhas?.[0]
 
   // Ordenar guias por data de emissão (mais recentes primeiro)
-  const sortedGuias = [...patient.guias].sort((a, b) => {
-    return new Date(b.data_emissao || '').getTime() - new Date(a.data_emissao || '').getTime()
+  const sortedGuias = [...(patient.guias || [])].sort((a, b) => {
+    const dateA = a.data_emissao ? new Date(a.data_emissao).getTime() : 0
+    const dateB = b.data_emissao ? new Date(b.data_emissao).getTime() : 0
+    return dateB - dateA
+  })
+
+  // Ordenar fichas por data de atendimento (mais recentes primeiro)
+  const sortedFichas = [...(patient.fichas || [])].sort((a, b) => {
+    const dateA = a.data_atendimento ? new Date(a.data_atendimento).getTime() : 0
+    const dateB = b.data_atendimento ? new Date(b.data_atendimento).getTime() : 0
+    return dateB - dateA
   })
 
   // Calcular totalizadores
@@ -214,21 +184,22 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
 
   const handleNewGuide = () => {
     setSelectedGuide(undefined)
-    setIsGuideFormOpen(true)
+    setIsGuiaFormOpen(true)
   }
 
-  const handleEditGuide = (guiaId: string) => {
-    const guia = patient.guias.find(g => g.id === guiaId)
-    if (guia) {
-      setSelectedGuide(guia)
-      setIsGuideFormOpen(true)
-    }
+  const handleEditGuia = (guia: Guide) => {
+    setSelectedGuide(guia as unknown as Guia)
+    setIsGuiaFormOpen(true)
   }
 
-  const handleGuideSuccess = () => {
-    onGuideCreated()
-    setIsGuideFormOpen(false)
+  const handleCloseGuiaForm = () => {
+    setIsGuiaFormOpen(false)
     setSelectedGuide(undefined)
+  }
+
+  const handleGuiaCreated = () => {
+    onGuideCreated()
+    handleCloseGuiaForm()
   }
 
   // Define columns for Guides table
@@ -239,27 +210,18 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
     },
     {
       key: 'data_emissao',
-      label: 'Data de Emissão',
-      render: (value) => formatDate(value as string)
+      label: 'Data Emissão',
+      render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
       key: 'data_validade',
-      label: 'Data de Validade',
-      render: (value) => formatDate(value as string)
+      label: 'Data Validade',
+      render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
-      key: 'paciente_carteirinha',
-      label: 'Carteirinha'
-    },
-    {
-      key: 'procedimento_nome',
-      label: 'Tipo de Procedimento',
-      render: (value) => value || '-'
-    },
-    {
-      key: 'sessoes',
+      key: 'quantidade_executada',
       label: 'Sessões',
-      render: (_, item: Guide) => (
+      render: (_, item) => (
         <ProgressBar
           value={item.quantidade_executada}
           max={item.quantidade_autorizada}
@@ -273,14 +235,14 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
         const status = formatStatus(value as string)
         return (
           <span className={cn(
-            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-            status.className
+            'px-2 py-1 rounded-full text-xs font-medium',
+            status.color
           )}>
             {status.label}
           </span>
         )
       }
-    },
+    }
   ]
 
   // Define columns for Attendance Records table
@@ -292,33 +254,22 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
     {
       key: 'data_atendimento',
       label: 'Data',
-      render: (value) => formatDate(value as string)
-    },
-    {
-      key: 'numero_guia',
-      label: 'Guia'
+      render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
       key: 'possui_assinatura',
-      label: 'Assinado',
+      label: 'Status',
       render: (value) => (
-        <div className="flex items-center justify-center">
-          <span className={cn(
-            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-            value
-              ? 'bg-[#dcfce7] text-[#15803d]'
-              : 'bg-[#fef9c3] text-[#854d0e]'
-          )}>
-            {value ? (
-              <><FiCheck className="w-3 h-3" />Sim</>
-            ) : (
-              <><FiX className="w-3 h-3" />Não</>
-            )}
-          </span>
-        </div>
-      ),
-      className: 'text-center'
-    },
+        <span className={cn(
+          'px-2 py-1 rounded-full text-xs font-medium',
+          value
+            ? 'bg-green-100 text-green-700'
+            : 'bg-yellow-100 text-yellow-700'
+        )}>
+          {value ? 'Assinada' : 'Pendente'}
+        </span>
+      )
+    }
   ]
 
   // Define columns for Carteirinhas table
@@ -330,7 +281,12 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
     {
       key: 'plano_saude',
       label: 'Plano de Saúde',
-      render: (value) => value?.nome || '-'
+      render: (value) => {
+        if (value && typeof value === 'object' && 'nome' in value) {
+          return <span>{value.nome}</span>
+        }
+        return <span>-</span>
+      }
     },
     {
       key: 'paciente_nome',
@@ -339,22 +295,24 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
     {
       key: 'data_validade',
       label: 'Data de Validade',
-      render: (value) => formatDate(value as string)
+      render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
-      key: 'ativo',
+      key: 'data_validade',
       label: 'Status',
-      render: (_, item: Carteirinha) => {
+      render: (_, item) => {
         const dataValidade = item.data_validade ? new Date(item.data_validade) : null
         const hoje = new Date()
-        const ativo = dataValidade ? dataValidade > hoje : true
+        const ativo = dataValidade ? dataValidade > hoje : false
 
         return (
           <span className={cn(
-            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-            ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            'px-2 py-1 rounded-full text-xs font-medium',
+            ativo
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
           )}>
-            {ativo ? 'Ativo' : 'Inativo'}
+            {ativo ? 'Ativa' : 'Inativa'}
           </span>
         )
       }
@@ -498,7 +456,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
                 variant="ghost"
                 size="sm"
                 className="hover:bg-[#8B4513] hover:text-white transition-colors"
-                onClick={() => handleEditGuide(item.id)}
+                onClick={() => handleEditGuia(item)}
               >
                 <FiEdit className="h-4 w-4" />
                 <span className="sr-only">Editar</span>
@@ -511,31 +469,21 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
         <div className="mt-8">
           <h3 className="section-title">Fichas de Presença</h3>
           <SortableTable
-            data={patient.fichas}
+            data={sortedFichas}
             columns={fichaColumns}
           />
         </div>
 
-        {/* Add GuideForm component */}
-        <GuideForm
-          isOpen={isGuideFormOpen}
-          onClose={() => setIsGuideFormOpen(false)}
-          onSuccess={handleGuideSuccess}
-          patientId={patient.id}
+        {/* Add GuiaForm component */}
+        <GuiaForm
+          isOpen={isGuiaFormOpen}
+          onClose={handleCloseGuiaForm}
+          onSuccess={handleGuiaCreated}
+          pacienteId={patient.id}
           carteirinha={patient.carteirinhas?.[0]?.paciente_carteirinha}
+          guia={selectedGuide}
         />
       </div>
-      <GuideForm
-        isOpen={isGuideFormOpen}
-        onClose={() => {
-          setIsGuideFormOpen(false)
-          setSelectedGuide(undefined)
-        }}
-        onSuccess={onGuideCreated}
-        patientId={patient.id}
-        carteirinha={patient.carteirinhas?.[0]?.paciente_carteirinha}
-        guia={selectedGuide}
-      />
     </>
   )
 }

@@ -1,23 +1,24 @@
 import { api } from '@/lib/api';
 
 export interface Guia {
-  id?: string;
+  id: string;
   numero_guia: string;
-  data_emissao?: string;
-  data_validade?: string;
+  data_emissao: string;
+  data_validade: string;
   tipo: 'sp_sadt' | 'consulta' | 'internacao';
   status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada';
+  carteirinha_id: string;
   paciente_carteirinha: string;
   paciente_nome: string;
   quantidade_autorizada: number;
-  quantidade_executada?: number;
-  procedimento_codigo?: string;
-  procedimento_nome?: string;
-  profissional_solicitante?: string;
-  profissional_executante?: string;
-  observacoes?: string;
-  created_at?: string;
-  updated_at?: string;
+  quantidade_executada: number;
+  procedimento_codigo: string;
+  procedimento_nome: string;
+  profissional_solicitante: string;
+  profissional_executante: string;
+  observacoes: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface GuiaFormData extends Omit<Guia, 'id' | 'created_at' | 'updated_at' | 'quantidade_executada'> {}

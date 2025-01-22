@@ -2,12 +2,17 @@ import { api } from "@/lib/api";
 
 export interface Carteirinha {
   id: string;
-  numero: string;
-  dataValidade: string;
+  paciente_id: string;
+  plano_saude_id: string;
+  numero_carteirinha: string;
+  data_emissao?: string;
+  data_validade?: string;
   titular: boolean;
-  nomeTitular: string;
-  planoId: string;
-  pacienteId: string;
+  nome_titular?: string;
+  status?: string;
+  motivo_inativacao?: string;
+  created_at?: string;
+  updated_at?: string;
   paciente?: {
     id: string;
     nome: string;
@@ -34,14 +39,14 @@ interface CarteirinhaResponse {
 // Função auxiliar para converter do formato do frontend para o backend
 export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
   const backendData = {
-    numero_carteirinha: carteirinha.numero,
-    data_validade: carteirinha.dataValidade
-      ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
+    numero_carteirinha: carteirinha.numero_carteirinha,
+    data_validade: carteirinha.data_validade
+      ? new Date(carteirinha.data_validade).toISOString().split('T')[0]
       : null,
     titular: carteirinha.titular ?? true,
-    nome_titular: carteirinha.nomeTitular || "",
-    plano_saude_id: carteirinha.planoId,
-    paciente_id: carteirinha.pacienteId,
+    nome_titular: carteirinha.nome_titular || "",
+    plano_saude_id: carteirinha.plano_saude_id,
+    paciente_id: carteirinha.paciente_id,
     ativo: true
   };
   
@@ -52,12 +57,17 @@ export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
 function toFrontendFormat(data: any): Carteirinha {
   return {
     id: data.id || "",
-    numero: data.numero_carteirinha || "",
-    dataValidade: data.data_validade || "",
+    paciente_id: data.paciente_id || "",
+    plano_saude_id: data.plano_saude_id || "",
+    numero_carteirinha: data.numero_carteirinha || "",
+    data_emissao: data.data_emissao || "",
+    data_validade: data.data_validade || "",
     titular: data.titular || false,
-    nomeTitular: data.nome_titular || "",
-    planoId: data.plano_saude_id || "",
-    pacienteId: data.paciente_id || "",
+    nome_titular: data.nome_titular || "",
+    status: data.status || "",
+    motivo_inativacao: data.motivo_inativacao || "",
+    created_at: data.created_at || "",
+    updated_at: data.updated_at || "",
     paciente: data.paciente,
     plano_saude: data.plano_saude
   };

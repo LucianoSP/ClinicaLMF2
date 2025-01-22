@@ -34,7 +34,9 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
           <div className="grid grid-cols-4 gap-6">
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">ID da Sessão</h4>
-              <p className="mt-1 text-gray-800 font-medium">{divergencia.sessao_id || divergencia.detalhes?.sessao_id || '-'}</p>
+              <p className="mt-1 text-gray-800 font-medium">
+                {divergencia.sessao_id || divergencia.detalhes?.sessao_id || 'Não informado'}
+              </p>
             </div>
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Guia</h4>
@@ -42,11 +44,11 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
             </div>
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Paciente</h4>
-              <p className="mt-1 text-gray-800 font-medium">{divergencia.paciente_nome || '-'}</p>
+              <p className="mt-1 text-gray-800 font-medium">{divergencia.paciente_nome || 'Não informado'}</p>
             </div>
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Carteirinha</h4>
-              <p className="mt-1 text-gray-800 font-medium">{divergencia.carteirinha || '-'}</p>
+              <p className="mt-1 text-gray-800 font-medium">{divergencia.carteirinha || 'Não informado'}</p>
             </div>
           </div>
 
@@ -55,14 +57,14 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
               <h4 className="text-sm font-medium text-gray-500">Data do Atendimento</h4>
               <p className="mt-1 text-gray-800 font-medium">
                 {(() => {
-                  if (!divergencia.data_atendimento) return '-';
+                  if (!divergencia.data_atendimento) return 'Não informado';
                   try {
                     const date = divergencia.data_atendimento.includes('/') 
                       ? parse(divergencia.data_atendimento, 'dd/MM/yyyy', new Date()) 
                       : new Date(divergencia.data_atendimento);
                     return formatarData(date);
                   } catch {
-                    return '-';
+                    return 'Não informado';
                   }
                 })()} 
               </p>
@@ -71,14 +73,14 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
               <h4 className="text-sm font-medium text-gray-500">Data da Execução</h4>
               <p className="mt-1 text-gray-800 font-medium">
                 {(() => {
-                  if (!divergencia.data_execucao) return '-';
+                  if (!divergencia.data_execucao) return 'Não informado';
                   try {
                     const date = divergencia.data_execucao.includes('/') 
                       ? parse(divergencia.data_execucao, 'dd/MM/yyyy', new Date()) 
                       : new Date(divergencia.data_execucao);
                     return formatarData(date);
                   } catch {
-                    return '-';
+                    return 'Não informado';
                   }
                 })()} 
               </p>
@@ -87,14 +89,14 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
               <h4 className="text-sm font-medium text-gray-500">Data de Identificação</h4>
               <p className="mt-1 text-gray-800 font-medium">
                 {(() => {
-                  if (!divergencia.data_identificacao) return '-';
+                  if (!divergencia.data_identificacao) return 'Não informado';
                   try {
                     const date = divergencia.data_identificacao.includes('/') 
                       ? parse(divergencia.data_identificacao, 'dd/MM/yyyy', new Date()) 
                       : new Date(divergencia.data_identificacao);
                     return formatarData(date);
                   } catch {
-                    return '-';
+                    return 'Não informado';
                   }
                 })()} 
               </p>
@@ -117,13 +119,13 @@ export function DetalheDivergencia({ divergencia, open, onClose, onResolverClick
 
           <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <h4 className="text-sm font-medium text-gray-500">Descrição</h4>
-            <p className="mt-1 text-gray-800">{divergencia.descricao || '-'}</p>
+            <p className="mt-1 text-gray-800">{divergencia.descricao || 'Não informado'}</p>
           </div>
 
-          {divergencia.observacoes && (
+          {divergencia.detalhes?.observacoes && (
             <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="text-sm font-medium text-gray-500">Observações</h4>
-              <p className="mt-1 text-gray-800">{divergencia.observacoes}</p>
+              <p className="mt-1 text-gray-800">{divergencia.detalhes.observacoes}</p>
             </div>
           )}
         </div>

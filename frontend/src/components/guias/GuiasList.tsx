@@ -19,8 +19,6 @@ import {
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { GuiaModal } from './GuiaModal';
 import { 
@@ -192,12 +190,16 @@ export function GuiasList() {
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => currentPage > 1 && setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''}`}
+                  >
+                    Anterior
+                  </Button>
                 </PaginationItem>
-                
+
                 {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
                   <PaginationItem key={page}>
                     <PaginationLink
@@ -208,12 +210,16 @@ export function GuiasList() {
                     </PaginationLink>
                   </PaginationItem>
                 ))}
-                
+
                 <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, data.pages))}
-                    disabled={currentPage === data.pages}
-                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => currentPage < data.pages && setCurrentPage(prev => Math.min(prev + 1, data.pages))}
+                    className={`${currentPage >= data.pages ? 'pointer-events-none opacity-50' : ''}`}
+                  >
+                    Próximo
+                  </Button>
                 </PaginationItem>
               </PaginationContent>
             </Pagination>

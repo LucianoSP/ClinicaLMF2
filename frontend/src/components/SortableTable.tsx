@@ -28,7 +28,7 @@ export default function SortableTable<T>({
   onCancelEdit,
   onCellEdit,
   actions,
-  loading
+  loading = false
 }: {
   data: T[];
   columns: Column<T>[];
@@ -43,6 +43,22 @@ export default function SortableTable<T>({
 }) {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  if (loading) {
+    return (
+      <div className="overflow-x-auto border rounded-md bg-white">
+        <div className="p-4 text-center">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="overflow-x-auto border rounded-md bg-white">
+        <div className="p-4 text-center">Nenhum dado encontrado</div>
+      </div>
+    );
+  }
 
   const handleSort = (key: keyof T) => {
     if (sortKey === key) {
@@ -79,15 +95,15 @@ export default function SortableTable<T>({
   });
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse bg-white">
-        <thead className="bg-gray-50/80">
+    <div className="overflow-x-auto border rounded-md bg-white">
+      <table className="w-full border-collapse">
+        <thead className="bg-gray-50 border-b">
           <tr>
             {columns.map((column) => (
               <th
                 key={String(column.key)}
                 onClick={() => handleSort(column.key)}
-                className={`h-12 px-4 py-3.0 text-left align-middle text-base font-normal hover:bg-gray-100/80 transition-colors [&:has([role=checkbox])]:pr-0 ${
+                className={`h-12 px-4 py-3.0 text-left align-middle text-base font-medium hover:bg-gray-100/80 transition-colors [&:has([role=checkbox])]:pr-0 border-b ${
                   column.className?.includes('text-center') ? 'text-center' : ''
                 } ${column.className || ''}`}
                 style={{ whiteSpace: 'nowrap', ...column.style }}
@@ -109,120 +125,103 @@ export default function SortableTable<T>({
               </th>
             ))}
             {(onEdit || onDelete || onSave || actions) && (
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[100px]">
+              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[100px] border-b">
                 <div className="text-center">Ações</div>
               </th>
             )}
           </tr>
         </thead>
         <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan={columns.length + (onEdit || onDelete || actions ? 1 : 0)} className="text-center py-4">
-                Carregando...
-              </td>
-            </tr>
-          ) : sortedData.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length + (onEdit || onDelete || actions ? 1 : 0)} className="text-center py-4">
-                Nenhum registro encontrado
-              </td>
-            </tr>
-          ) : (
-            sortedData.map((item, index) => (
-              <tr
-                key={index}
-                className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
-              >
-                {columns.map((column) => (
-                  <td
-                    key={String(column.key)}
-                    className={`px-4 py-3.5 align-middle text-sm ${column.className || ''}`}
-                    style={column.style}
-                  >
-                    {column.editable && editingId === (item as any).codigo_ficha ? (
-                      column.type === 'boolean' ? (
-                        <select
-                          value={String(item[column.key])}
-                          onChange={(e) => onCellEdit?.(item, column.key, e.target.value === 'true')}
-                          className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
-                        >
-                          <option value="true">Sim</option>
-                          <option value="false">Não</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={String(item[column.key] || '')}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            onCellEdit?.(item, column.key, e.target.value);
-                          }}
-                          onBlur={(e) => {
-                            if (column.key === 'codigo_ficha') {
-                              e.stopPropagation();
-                            }
-                          }}
-                          className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
-                          autoFocus={column.key !== 'codigo_ficha'}
-                        />
-                      )
+          {sortedData.map((item, index) => (
+            <tr key={index} className="hover:bg-gray-50/50">
+              {columns.map((column) => (
+                <td
+                  key={String(column.key)}
+                  className={`px-4 py-2 border-b ${column.className || ''}`}
+                  style={column.style}
+                >
+                  {column.editable && editingId === (item as any).codigo_ficha ? (
+                    column.type === 'boolean' ? (
+                      <select
+                        value={String(item[column.key])}
+                        onChange={(e) => onCellEdit?.(item, column.key, e.target.value === 'true')}
+                        className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
+                      >
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                      </select>
                     ) : (
-                      <span className="block w-full">
-                        {column.render ? (
-                          column.render(item[column.key], item)
-                        ) : column.type === 'boolean' ? (
-                          <div className="flex items-center">
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              item[column.key] === true || String(item[column.key]) === 'true'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }`}>
-                              {item[column.key] === true || String(item[column.key]) === 'true' ? (
-                                <><FiCheck className="w-3 h-3" />Sim</>
-                              ) : (
-                                <><FiX className="w-3 h-3" />Não</>
-                              )}
-                            </span>
-                          </div>
-                        ) : String(item[column.key] || '')}
-                      </span>
+                      <input
+                        type="text"
+                        value={String(item[column.key] || '')}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          onCellEdit?.(item, column.key, e.target.value);
+                        }}
+                        onBlur={(e) => {
+                          if (column.key === 'codigo_ficha') {
+                            e.stopPropagation();
+                          }
+                        }}
+                        className="w-full px-2 py-1 border rounded focus:outline-none focus:border-[#b49d6b]"
+                        autoFocus={column.key !== 'codigo_ficha'}
+                      />
+                    )
+                  ) : (
+                    <span className="block w-full">
+                      {column.render ? (
+                        column.render(item[column.key], item)
+                      ) : column.type === 'boolean' ? (
+                        <div className="flex items-center">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            item[column.key] === true || String(item[column.key]) === 'true'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {item[column.key] === true || String(item[column.key]) === 'true' ? (
+                              <><FiCheck className="w-3 h-3" />Sim</>
+                            ) : (
+                              <><FiX className="w-3 h-3" />Não</>
+                            )}
+                          </span>
+                        </div>
+                      ) : String(item[column.key] || '')}
+                    </span>
+                  )}
+                </td>
+              ))}
+              {(onEdit || onDelete || onSave || actions) && (
+                <td className="px-4 py-2 text-sm text-gray-500 whitespace-nowrap w-[100px] border-b">
+                  <div className="flex items-center justify-center space-x-2">
+                    {actions ? (
+                      actions(item)
+                    ) : (
+                      <>
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(item)}
+                            className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors"
+                            title="Editar"
+                          >
+                            <FiEdit className="w-4 h-4" />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(item)}
+                            className="text-red-600 hover:text-red-700 transition-colors"
+                            title="Excluir"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </>
                     )}
-                  </td>
-                ))}
-                {(onEdit || onDelete || onSave || actions) && (
-                  <td className="px-4 py-3.5 text-sm text-gray-500 whitespace-nowrap w-[100px]">
-                    <div className="flex items-center justify-center space-x-2">
-                      {actions ? (
-                        actions(item)
-                      ) : (
-                        <>
-                          {onEdit && (
-                            <button
-                              onClick={() => onEdit(item)}
-                              className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors"
-                              title="Editar"
-                            >
-                              <FiEdit className="w-4 h-4" />
-                            </button>
-                          )}
-                          {onDelete && (
-                            <button
-                              onClick={() => onDelete(item)}
-                              className="text-red-600 hover:text-red-700 transition-colors"
-                              title="Excluir"
-                            >
-                              <FiTrash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))
-          )}
+                  </div>
+                </td>
+              )}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

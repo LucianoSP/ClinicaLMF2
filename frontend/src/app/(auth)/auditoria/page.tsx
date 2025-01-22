@@ -34,19 +34,24 @@ interface AuditoriaResultado {
 export interface Divergencia {
   id: string;
   numero_guia: string;
-  data_execucao: string;
-  data_atendimento: string;
-  data_identificacao: string;
-  codigo_ficha: string;
-  paciente_nome: string;
-  carteirinha: string;
-  status: string;
   tipo_divergencia: string;
   descricao: string;
+  paciente_nome: string;
+  codigo_ficha: string;
+  data_execucao: string;
+  data_atendimento: string;
+  carteirinha: string;
   prioridade: string;
-  observacoes?: string;
-  resolvido_por?: string;
+  status: string;
+  data_identificacao: string;
   data_resolucao?: string;
+  resolvido_por?: string;
+  detalhes?: any;
+  ficha_id?: string;
+  execucao_id?: string;
+  sessao_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function AuditoriaPage() {

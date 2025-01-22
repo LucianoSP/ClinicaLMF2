@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { listarPacientes } from "@/services/pacienteService";
 import { listarPlanos } from "@/services/planoService";
+import { Plano } from "@/types/plano";
 
 interface CarteirinhaModalProps {
   isOpen: boolean;
@@ -33,11 +36,6 @@ interface Paciente {
   nome: string;
 }
 
-interface Plano {
-  id: string;
-  nome: string;
-}
-
 export function CarteirinhaModal({
   isOpen,
   onClose,
@@ -45,13 +43,13 @@ export function CarteirinhaModal({
   carteirinha,
 }: CarteirinhaModalProps) {
   const [formData, setFormData] = useState<Partial<Carteirinha>>({
-    numero: "",
-    dataValidade: "",  // Will store date in YYYY-MM-DD format
-    nomeTitular: "", 
+    numero_carteirinha: "",
+    data_validade: "",
     titular: true,
-    pacienteId: "",
-    planoSaudeId: "",
-    ativo: true,
+    nome_titular: "",
+    paciente_id: "",
+    plano_saude_id: "",
+    status: "ativo"
   });
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
@@ -63,7 +61,7 @@ export function CarteirinhaModal({
       try {
         setLoading(true);
         const [pacientesResponse, planosResponse] = await Promise.all([
-          listarPacientes(1, 100),
+          listarPacientes(1, "", 100),
           listarPlanos(),
         ]);
         console.log("Pacientes carregados:", pacientesResponse.items);
@@ -84,23 +82,23 @@ export function CarteirinhaModal({
     if (carteirinha) {
       console.log("Carteirinha para edição:", carteirinha);
       setFormData({
-        numero: carteirinha.numero || "",
-        dataValidade: carteirinha.dataValidade || "",
-        nomeTitular: carteirinha.nomeTitular || "",
+        numero_carteirinha: carteirinha.numero_carteirinha || "",
+        data_validade: carteirinha.data_validade || "",
+        nome_titular: carteirinha.nome_titular || "",
         titular: carteirinha.titular ?? true,
-        pacienteId: carteirinha.pacienteId || carteirinha.paciente?.id || "",
-        planoSaudeId: carteirinha.planoSaudeId || "",
-        ativo: carteirinha.ativo ?? true,
+        paciente_id: carteirinha.paciente_id || carteirinha.paciente?.id || "",
+        plano_saude_id: carteirinha.plano_saude_id || "",
+        status: carteirinha.status ?? "ativo",
       });
     } else {
       setFormData({
-        numero: "",
-        dataValidade: "",
-        nomeTitular: "",
+        numero_carteirinha: "",
+        data_validade: "",
+        nome_titular: "",
         titular: true,
-        pacienteId: "",
-        planoSaudeId: "",
-        ativo: true,
+        paciente_id: "",
+        plano_saude_id: "",
+        status: "ativo",
       });
     }
   }, [carteirinha]);
@@ -109,24 +107,17 @@ export function CarteirinhaModal({
     e.preventDefault();
 
     // Validação dos campos obrigatórios
-    if (!formData.numero || !formData.pacienteId || !formData.planoSaudeId) {
+    if (!formData.numero_carteirinha || !formData.paciente_id || !formData.plano_saude_id) {
       console.error("Campos obrigatórios faltando:", {
-        numero: formData.numero,
-        pacienteId: formData.pacienteId,
-        planoSaudeId: formData.planoSaudeId,
+        numero_carteirinha: formData.numero_carteirinha,
+        paciente_id: formData.paciente_id,
+        plano_saude_id: formData.plano_saude_id,
       });
       return;
     }
 
     const dadosParaSalvar = {
       ...formData,
-      numero_carteirinha: formData.numero,
-      paciente_id: formData.pacienteId,
-      plano_saude_id: formData.planoSaudeId,
-      nome_titular: formData.nomeTitular || "",
-      data_validade: formData.dataValidade || null,
-      titular: formData.titular ?? true,
-      ativo: true
     };
 
     console.log("Dados para salvar:", dadosParaSalvar);
@@ -139,7 +130,7 @@ export function CarteirinhaModal({
     const { name, value, type } = e.target;
 
     // Para campos de data, garantir que não tenha informação de timezone
-    if (name === "dataValidade") {
+    if (name === "data_validade") {
       setFormData((prev) => ({
         ...prev,
         [name]: value || "",
@@ -174,13 +165,13 @@ export function CarteirinhaModal({
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="numero" className="text-right">
+              <Label htmlFor="numero_carteirinha" className="text-right">
                 Número*
               </Label>
               <Input
-                id="numero"
-                name="numero"
-                value={formData.numero}
+                id="numero_carteirinha"
+                name="numero_carteirinha"
+                value={formData.numero_carteirinha}
                 onChange={handleChange}
                 className="col-span-3"
                 required
@@ -188,7 +179,7 @@ export function CarteirinhaModal({
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="pacienteId" className="text-right">
+              <Label htmlFor="paciente_id" className="text-right">
                 Paciente
               </Label>
               {carteirinha ? (
@@ -196,7 +187,7 @@ export function CarteirinhaModal({
                   id="paciente"
                   value={
                     carteirinha.paciente?.nome ||
-                    pacientes.find((p) => p.id === formData.pacienteId)?.nome ||
+                    pacientes.find((p) => p.id === formData.paciente_id)?.nome ||
                     ""
                   }
                   disabled
@@ -204,9 +195,9 @@ export function CarteirinhaModal({
                 />
               ) : (
                 <Select
-                  value={formData.pacienteId || ""}
+                  value={formData.paciente_id || ""}
                   onValueChange={(value) =>
-                    handleSelectChange("pacienteId", value)
+                    handleSelectChange("paciente_id", value)
                   }
                 >
                   <SelectTrigger className="col-span-3">
@@ -224,22 +215,24 @@ export function CarteirinhaModal({
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="planoSaudeId" className="text-right">
+              <Label htmlFor="plano_saude_id" className="text-right">
                 Plano de Saúde
               </Label>
               <Select
-                value={formData.planoSaudeId || ""}
-                onValueChange={(value) => handleSelectChange("planoSaudeId", value)}
+                value={formData.plano_saude_id || ""}
+                onValueChange={(value) => handleSelectChange("plano_saude_id", value)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
                 <SelectContent>
-                  {planos?.map((plano) => (
-                    <SelectItem key={plano.id} value={plano.id}>
-                      {plano.nome}
-                    </SelectItem>
-                  ))}
+                  {planos
+                    .filter(plano => plano.id && plano.ativo)
+                    .map((plano) => (
+                      <SelectItem key={plano.id} value={plano.id}>
+                        {plano.nome}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -247,14 +240,14 @@ export function CarteirinhaModal({
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="dataValidade" className="text-sm font-medium">
+                  <label htmlFor="data_validade" className="text-sm font-medium">
                     Data de Validade
                   </label>
                   <Input
-                    id="dataValidade"
-                    name="dataValidade"
+                    id="data_validade"
+                    name="data_validade"
                     type="date"
-                    value={formData.dataValidade || ""}
+                    value={formData.data_validade || ""}
                     onChange={handleChange}
                   />
                 </div>
@@ -262,13 +255,13 @@ export function CarteirinhaModal({
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nomeTitular" className="text-right">
+              <Label htmlFor="nome_titular" className="text-right">
                 Nome do Titular
               </Label>
               <Input
-                id="nomeTitular"
-                name="nomeTitular"
-                value={formData.nomeTitular}
+                id="nome_titular"
+                name="nome_titular"
+                value={formData.nome_titular}
                 onChange={handleChange}
                 className="col-span-3"
               />

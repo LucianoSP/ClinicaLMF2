@@ -12,21 +12,18 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Paciente } from '@/types/paciente'
 
 interface PatientFormProps {
   isOpen: boolean
   onClose: () => void
-  patient?: {
-    id: string
-    nome: string
-    carteirinha: string
-  }
+  patient?: Paciente
 }
 
 export function PatientForm({ isOpen, onClose, patient }: PatientFormProps) {
   const [formData, setFormData] = useState({
     nome: patient?.nome || '',
-    carteirinha: patient?.carteirinha || '',
+    carteirinha: patient?.carteirinhas?.[0]?.paciente_carteirinha || '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {

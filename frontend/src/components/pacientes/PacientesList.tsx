@@ -5,14 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import SortableTable, { Column } from '@/components/SortableTable';
 import { Paciente } from '@/types/paciente';
 import { PacienteDialog } from './PacienteDialog';
 import { PacienteDetalhes } from './PacienteDetalhes';
@@ -118,147 +111,112 @@ export function PacientesList() {
     }
   };
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
+  const columns: Column<Paciente>[] = [
+    {
+      key: 'nome',
+      label: 'Nome',
+      render: (value, item) => (
+        <button
+          onClick={() => setPacienteSelecionado(item)}
+          className="hover:underline text-left w-full"
+        >
+          {value}
+        </button>
+      )
+    },
+    {
+      key: 'data_nascimento',
+      label: 'Data de Nascimento',
+      render: (value) => value ? format(parseISO(value), 'dd/MM/yyyy', { locale: ptBR }) : '-'
+    },
+    {
+      key: 'cpf',
+      label: 'CPF'
+    },
+    {
+      key: 'telefone',
+      label: 'Telefone'
+    },
+    {
+      key: 'email',
+      label: 'Email'
+    }
+  ];
 
   return (
-    <div className="space-y-6">
-      {pacienteSelecionado ? (
-        <div className="space-y-6">
-          <Button 
-            variant="outline" 
-            onClick={() => setPacienteSelecionado(null)}
-            className="mb-4"
-          >
-            Voltar para lista
-          </Button>
-          <PacienteDetalhes
-            paciente={{
-              ...pacienteSelecionado,
-              estatisticas: pacienteSelecionado.estatisticas
-            }}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            placeholder="Buscar pacientes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-[300px]"
           />
         </div>
-      ) : (
-        <>
-          <div className="flex justify-between items-center">
-            <div className="flex-1 max-w-sm">
-              <Input
-                placeholder="Buscar paciente..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full"
-              />
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Paciente
+        </Button>
+      </div>
+
+      <div className="rounded-md border">
+        <SortableTable
+          data={pacientes}
+          columns={columns}
+          loading={isLoading}
+          actions={(paciente) => (
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleEdit(paciente)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(paciente.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
-            <Button onClick={() => {
-              setPacienteParaEditar(null);
-              setOpen(true);
-            }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Paciente
-            </Button>
-          </div>
+          )}
+        />
+      </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Convênio</TableHead>
-                  <TableHead>Data de Nascimento</TableHead>
-                  <TableHead>Data de Cadastro</TableHead>
-                  <TableHead className="text-right pr-8">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
-                      <div className="flex justify-center items-center">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                        <span className="ml-2">Carregando...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : pacientes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
-                      Nenhum paciente encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pacientes.map((paciente) => (
-                    <TableRow 
-                      key={paciente.id}
-                      className="cursor-pointer hover:bg-accent/5"
-                      onClick={() => handleRowClick(paciente)}
-                    >
-                      <TableCell>{paciente.nome}</TableCell>
-                      <TableCell>{paciente.nome_responsavel}</TableCell>
-                      <TableCell>{paciente.tipo_responsavel || '-'}</TableCell>
-                      <TableCell>
-                        {paciente.data_nascimento ? format(new Date(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {paciente.created_at ? format(new Date(paciente.created_at), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(paciente);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(paciente.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </>
+      {open && (
+        <PacienteDialog
+          open={open}
+          onOpenChange={setOpen}
+          paciente={pacienteParaEditar}
+          onSuccess={handleSuccess}
+        />
       )}
-
-      <PacienteDialog
-        open={open}
-        onOpenChange={setOpen}
-        paciente={pacienteParaEditar}
-        onSuccess={handleSuccess}
-      />
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Paciente</AlertDialogTitle>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este paciente? Esta ação não pode ser desfeita.
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o paciente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
-              Confirmar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete}>Continuar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {pacienteSelecionado && (
+        <PacienteDetalhes
+          paciente={pacienteSelecionado}
+          onClose={() => setPacienteSelecionado(null)}
+        />
+      )}
     </div>
   );
 }

@@ -85,16 +85,16 @@ const FiltrosAuditoria: FC<FiltrosAuditoriaProps> = ({
 
         <div className="grid grid-cols-5 gap-4">  {/* Alterado de 4 para 5 colunas */}
           <div className="flex flex-col">
-            <Label className="mb-2">Data Inicial</Label>
             <DatePicker
+              label="Data Inicial"
               date={dataInicial}
               setDate={setDataInicial}
             />
           </div>
 
           <div className="flex flex-col">
-            <Label className="mb-2">Data Final</Label>
             <DatePicker
+              label="Data Final"
               date={dataFinal}
               setDate={setDataFinal}
             />

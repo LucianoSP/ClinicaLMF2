@@ -46,9 +46,9 @@ export function PlanoDialog({ plano, open, onOpenChange, onSuccess }: PlanoDialo
   const form = useForm<PlanoFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      nome: "",
-      codigo: "",
-      ativo: true,
+      nome: plano?.nome || "",
+      codigo: plano?.codigo || "",
+      ativo: plano?.ativo ?? true,
     },
   });
 
@@ -66,21 +66,37 @@ export function PlanoDialog({ plano, open, onOpenChange, onSuccess }: PlanoDialo
         ativo: true,
       });
     }
-  }, [plano, form]);
+  }, [form, plano]);
 
   async function onSubmit(values: PlanoFormValues) {
     try {
       if (plano?.id) {
-        await atualizarPlano(plano.id, values);
+        await atualizarPlano(plano.id, {
+          nome: values.nome,
+          codigo: values.codigo,
+          ativo: values.ativo,
+        });
       } else {
-        await criarPlano(values);
+        await criarPlano({
+          nome: values.nome,
+          codigo: values.codigo,
+          ativo: values.ativo,
+        });
       }
-      onSuccess?.();
-    } catch (error) {
       toast({
-        title: "Erro",
-        description: "Erro ao salvar plano",
+        title: plano ? "Plano atualizado" : "Plano criado",
+        description: plano
+          ? "O plano foi atualizado com sucesso."
+          : "O plano foi criado com sucesso.",
+      });
+      onSuccess?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Erro ao salvar plano:", error);
+      toast({
         variant: "destructive",
+        title: "Erro",
+        description: "Ocorreu um erro ao salvar o plano.",
       });
     }
   }

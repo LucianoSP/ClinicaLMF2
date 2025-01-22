@@ -5,6 +5,8 @@ import { PacienteDashboard } from './PacienteDashboard'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Button } from '@/components/ui/button'
+import { X } from 'lucide-react'
 
 interface PacienteDetalhesProps {
   paciente: {
@@ -33,14 +35,24 @@ interface PacienteDetalhesProps {
         concluida: number;
         cancelada: number;
       };
-    }
-  }
+    };
+  };
+  onClose: () => void;
 }
 
-export function PacienteDetalhes({ paciente }: PacienteDetalhesProps) {
+export function PacienteDetalhes({ paciente, onClose }: PacienteDetalhesProps) {
   return (
     <div className="space-y-6">
-      <Card className="p-6">
+      <Card className="p-6 relative">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          className="absolute right-2 top-2"
+          onClick={onClose}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+
         <div className="flex gap-4">
           <Avatar className="h-16 w-16">
             <AvatarFallback>{paciente.nome.substring(0, 2).toUpperCase()}</AvatarFallback>

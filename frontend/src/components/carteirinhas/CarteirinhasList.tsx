@@ -25,7 +25,6 @@ import {
 import { CarteirinhaModal } from './CarteirinhaModal';
 import { 
   Carteirinha,
-  CarteirinhaFormData,
   listarCarteirinhas,
   criarCarteirinha,
   atualizarCarteirinha,
@@ -77,17 +76,17 @@ export function CarteirinhasList() {
     setCurrentPage(page);
   };
 
-  const handleSave = async (carteirinha: CarteirinhaFormData) => {
+  const handleSaveCarteirinha = async (carteirinhaData: Partial<Carteirinha>) => {
     try {
-      if (selectedCarteirinha?.id) {
-        const updated = await atualizarCarteirinha(selectedCarteirinha.id, carteirinha);
+      if (selectedCarteirinha) {
+        const updated = await atualizarCarteirinha(selectedCarteirinha.id, carteirinhaData);
         setData(prev => ({
           ...prev,
           items: prev.items.map(c => c.id === updated.id ? updated : c)
         }));
         toast.success("Carteirinha atualizada com sucesso!");
       } else {
-        const created = await criarCarteirinha(carteirinha);
+        const created = await criarCarteirinha(carteirinhaData);
         await fetchCarteirinhas(currentPage);
         toast.success("Carteirinha criada com sucesso!");
       }
@@ -121,11 +120,16 @@ export function CarteirinhasList() {
       <Pagination>
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious 
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+              className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              Anterior
+            </Button>
           </PaginationItem>
+
           {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
             <PaginationItem key={page}>
               <PaginationLink
@@ -136,11 +140,16 @@ export function CarteirinhasList() {
               </PaginationLink>
             </PaginationItem>
           ))}
+
           <PaginationItem>
-            <PaginationNext
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === data.pages}
-            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => currentPage < data.pages && handlePageChange(currentPage + 1)}
+              className={`${currentPage >= data.pages ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              Próximo
+            </Button>
           </PaginationItem>
         </PaginationContent>
       </Pagination>
@@ -204,12 +213,12 @@ export function CarteirinhasList() {
           <TableBody>
             {data.items.map((carteirinha) => (
               <TableRow key={carteirinha.id}>
-                <TableCell>{carteirinha.numero}</TableCell>
+                <TableCell>{carteirinha.numero_carteirinha}</TableCell>
                 <TableCell>{carteirinha.paciente?.nome}</TableCell>
                 <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
                 <TableCell>
-                  {carteirinha.dataValidade ? 
-                    format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
+                  {carteirinha.data_validade ? 
+                    format(parseISO(carteirinha.data_validade), 'dd/MM/yyyy', { locale: ptBR }) 
                     : '-'}
                 </TableCell>
                 <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>
@@ -247,7 +256,7 @@ export function CarteirinhasList() {
       <CarteirinhaModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
+        onSave={handleSaveCarteirinha}
         carteirinha={selectedCarteirinha}
       />
     </div>
