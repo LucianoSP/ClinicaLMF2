@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Tipos enumerados
 CREATE TYPE tipo_guia AS ENUM ('sp_sadt', 'consulta', 'internacao');
 CREATE TYPE status_guia AS ENUM ('pendente', 'em_andamento', 'concluida', 'cancelada');
+CREATE TYPE status_carteirinha AS ENUM ('ativa', 'vencida', 'cancelada', 'suspensa', 'em_analise');
 
 -- Usuários
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -50,7 +51,8 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
     data_validade date,
     titular boolean DEFAULT false,
     nome_titular character varying(255),
-    ativo boolean DEFAULT true,
+    status status_carteirinha DEFAULT 'ativa',
+    motivo_inativacao text,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
     UNIQUE(plano_saude_id, numero_carteirinha),

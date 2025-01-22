@@ -24,6 +24,8 @@ import { listarPacientes } from "@/services/pacienteService";
 import { listarPlanos } from "@/services/planoService";
 import { Plano } from "@/types/plano";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
 interface CarteirinhaModalProps {
   isOpen: boolean;
@@ -50,7 +52,8 @@ export function CarteirinhaModal({
     nome_titular: "",
     paciente_id: "",
     plano_saude_id: "",
-    status: "ativo"
+    status: "ativa",
+    motivo_inativacao: ""
   });
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
@@ -93,7 +96,8 @@ export function CarteirinhaModal({
         titular: carteirinha.titular ?? true,
         paciente_id: carteirinha.paciente_id || carteirinha.paciente?.id || "",
         plano_saude_id: carteirinha.plano_saude_id || carteirinha.plano_saude?.id || "",
-        status: carteirinha.status || "ativo"
+        status: carteirinha.status || "ativa",
+        motivo_inativacao: carteirinha.motivo_inativacao || ""
       });
       console.log("FormData após atualização:", formData);
     } else {
@@ -104,7 +108,8 @@ export function CarteirinhaModal({
         titular: true,
         paciente_id: "",
         plano_saude_id: "",
-        status: "ativo"
+        status: "ativa",
+        motivo_inativacao: ""
       });
     }
   }, [carteirinha, isOpen]);
@@ -120,6 +125,9 @@ export function CarteirinhaModal({
         ...formData,
         data_validade: formData.dataValidade
       };
+
+      // Remove o campo status antes de enviar
+      delete carteirinhaData.status;
 
       console.log("Dados da carteirinha antes da conversão:", carteirinhaData);
       
@@ -141,7 +149,7 @@ export function CarteirinhaModal({
     }
   };
 
-  const handleChange = (
+  const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
@@ -183,18 +191,16 @@ export function CarteirinhaModal({
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="numero_carteirinha" className="text-right">
-                Número*
+                Número
               </Label>
               <Input
                 id="numero_carteirinha"
                 name="numero_carteirinha"
                 value={formData.numero_carteirinha}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="col-span-3"
-                required
               />
             </div>
-
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="paciente_id" className="text-right">
                 Paciente
@@ -230,7 +236,6 @@ export function CarteirinhaModal({
                 </Select>
               )}
             </div>
-
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="plano_saude_id" className="text-right">
                 Plano de Saúde
@@ -253,24 +258,54 @@ export function CarteirinhaModal({
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="dataValidade" className="text-sm font-medium">
-                    Data de Validade
-                  </label>
-                  <Input
-                    id="dataValidade"
-                    name="dataValidade"
-                    type="date"
-                    value={formData.dataValidade || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="dataValidade" className="text-right">
+                Data de Validade
+              </Label>
+              <Input
+                id="dataValidade"
+                name="dataValidade"
+                type="date"
+                value={formData.dataValidade}
+                onChange={handleInputChange}
+                className="col-span-3"
+              />
             </div>
-
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">
+                Status
+              </Label>
+              <Select
+                name="status"
+                value={formData.status}
+                onValueChange={(value) => handleInputChange({ target: { name: "status", value }})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativa">Ativa</SelectItem>
+                  <SelectItem value="vencida">Vencida</SelectItem>
+                  <SelectItem value="cancelada">Cancelada</SelectItem>
+                  <SelectItem value="suspensa">Suspensa</SelectItem>
+                  <SelectItem value="em_analise">Em Análise</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(formData.status === "cancelada" || formData.status === "suspensa") && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="motivo_inativacao" className="text-right">
+                  Motivo
+                </Label>
+                <Textarea
+                  id="motivo_inativacao"
+                  name="motivo_inativacao"
+                  value={formData.motivo_inativacao}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="nome_titular" className="text-right">
                 Nome do Titular
@@ -279,9 +314,24 @@ export function CarteirinhaModal({
                 id="nome_titular"
                 name="nome_titular"
                 value={formData.nome_titular}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 className="col-span-3"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="titular" className="text-right">
+                Titular
+              </Label>
+              <div className="col-span-3">
+                <Switch
+                  id="titular"
+                  name="titular"
+                  checked={formData.titular}
+                  onCheckedChange={(checked) =>
+                    handleInputChange({ target: { name: "titular", value: checked } })
+                  }
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

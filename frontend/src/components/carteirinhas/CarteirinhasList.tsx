@@ -31,6 +31,7 @@ import {
   excluirCarteirinha as deleteCarteirinha 
 } from '@/services/carteirinhaService';
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -190,25 +191,65 @@ export function CarteirinhasList() {
               <TableHead>Número</TableHead>
               <TableHead>Paciente</TableHead>
               <TableHead>Plano de Saúde</TableHead>
-              <TableHead>Data de Validade</TableHead>
               <TableHead>Titular</TableHead>
+              <TableHead>Data de Validade</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.items.map((carteirinha) => (
+            {data?.items.map((carteirinha) => (
               <TableRow key={carteirinha.id}>
-                <TableCell>
-                  {carteirinha.numero || carteirinha.numero_carteirinha || '-'}
-                </TableCell>
+                <TableCell>{carteirinha.numero_carteirinha || carteirinha.numero}</TableCell>
                 <TableCell>{carteirinha.paciente?.nome || '-'}</TableCell>
                 <TableCell>{carteirinha.plano_saude?.nome || '-'}</TableCell>
                 <TableCell>
-                  {carteirinha.dataValidade && carteirinha.dataValidade !== 'null' && carteirinha.dataValidade !== '' ? 
-                    format(new Date(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
-                    : '-'}
+                  <Badge variant={carteirinha.titular ? "default" : "secondary"}>
+                    {carteirinha.titular ? "Sim" : "Não"}
+                  </Badge>
                 </TableCell>
-                <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>
+                <TableCell>{format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const status = (carteirinha.status || '').toLowerCase();
+                    console.log("Status da carteirinha:", status, typeof status);
+                    let variant: "default" | "destructive" | "outline" | "secondary" = "default";
+                    let label = "";
+                    
+                    switch (status) {
+                      case "ativa":
+                        variant = "default";
+                        label = "Ativa";
+                        break;
+                      case "vencida":
+                        variant = "destructive";
+                        label = "Vencida";
+                        break;
+                      case "cancelada":
+                        variant = "destructive";
+                        label = "Cancelada";
+                        break;
+                      case "suspensa":
+                        variant = "outline";
+                        label = "Suspensa";
+                        break;
+                      case "em_analise":
+                        variant = "secondary";
+                        label = "Em Análise";
+                        break;
+                      default:
+                        console.log("Status não reconhecido:", status);
+                        variant = "outline";
+                        label = status || "Desconhecido";
+                    }
+                    
+                    return (
+                      <Badge variant={variant}>
+                        {label}
+                      </Badge>
+                    );
+                  })()}
+                </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button

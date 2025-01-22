@@ -9,7 +9,7 @@ export interface Carteirinha {
   data_validade: string | null;
   titular: boolean;
   nome_titular: string | null;
-  status: 'ativo' | 'inativo';
+  status: 'ativa' | 'vencida' | 'cancelada' | 'suspensa' | 'em_analise';
   motivo_inativacao: string | null;
   created_at: string;
   updated_at: string;
@@ -33,12 +33,6 @@ export interface Carteirinha {
   };
 }
 
-interface CarteirinhaResponse {
-  items: Carteirinha[];
-  total: number;
-  pages: number;
-}
-
 // Função auxiliar para converter do formato do frontend para o backend
 export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
   console.log("Dados recebidos para conversão:", carteirinha);
@@ -51,7 +45,8 @@ export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
     nome_titular: carteirinha.nome_titular || "",
     paciente_id: carteirinha.paciente_id,
     plano_saude_id: carteirinha.plano_saude_id,
-    status: carteirinha.status || 'ativo'
+    status: carteirinha.status || 'ativa',
+    motivo_inativacao: carteirinha.motivo_inativacao || null
   };
   
   // Remove campos undefined ou null
@@ -67,17 +62,19 @@ export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
 
 // Função auxiliar para converter do formato do backend para o frontend
 export function toFrontendFormat(data: any): Carteirinha {
+  console.log("Dados brutos do backend:", data);
   const formatted = {
     id: data.id || "",
     paciente_id: data.paciente_id || "",
     plano_saude_id: data.plano_saude_id || "",
     numero_carteirinha: data.numero_carteirinha || "",
+    numero: data.numero_carteirinha || "", // Campo auxiliar para compatibilidade
     data_emissao: data.data_emissao,
     data_validade: data.data_validade,
     dataValidade: data.data_validade, // Campo auxiliar para o frontend
     titular: data.titular ?? false,
     nome_titular: data.nome_titular || "",
-    status: data.status || 'ativo',
+    status: data.status || 'ativa',
     motivo_inativacao: data.motivo_inativacao,
     created_at: data.created_at || "",
     updated_at: data.updated_at || "",
@@ -128,4 +125,10 @@ export async function atualizarCarteirinha(
 
 export async function excluirCarteirinha(id: string): Promise<void> {
   await api.delete(`/carteirinhas/${id}/`);
+}
+
+interface CarteirinhaResponse {
+  items: Carteirinha[];
+  total: number;
+  pages: number;
 }

@@ -1569,6 +1569,60 @@ def atualizar_guia(guia_id: str, dados_guia: dict) -> bool:
     except Exception as e:
         print(f"Erro ao atualizar guia: {e}")
         return False
+
+
+def listar_carteirinhas(
+    limit: int = 100,
+    offset: int = 0,
+    search: Optional[str] = None,
+    plano_id: Optional[str] = None,
+    status: Optional[str] = None
+) -> Dict:
+    """Lista todas as carteirinhas com suporte a paginação, busca e filtros."""
+    try:
+        query = supabase.table('carteirinhas').select(
+            '*,'
+            'pacientes(id,nome,cpf,email,telefone,data_nascimento,nome_responsavel),'
+            'planos_saude(id,nome,ativo,codigo)'
+        )
+
+        # Aplica filtros
+        if search:
+            query = query.or_(
+                f'numero_carteirinha.ilike.%{search}%,'
+                f'nome_titular.ilike.%{search}%'
+            )
+        
+        if plano_id:
+            query = query.eq('plano_saude_id', plano_id)
+            
+        if status:
+            query = query.eq('status', status)
+
+        # Ordenação
+        query = query.order('created_at', desc=True)
+
+        # Contagem total antes da paginação
+        total = len(query.execute().data)
+
+        # Aplica paginação
+        if limit > 0:
+            query = query.range(offset, offset + limit - 1)
+
+        response = query.execute()
+        logging.info(f'Dados retornados do Supabase: {response.data}')
+
+        return {
+            'items': response.data,
+            'total': total,
+            'pages': ceil(total / limit) if limit > 0 else 1
+        }
+
+    except Exception as e:
+        logging.error(f'Erro ao listar carteirinhas: {e}')
+        raise e
+
+
 # Funções para Pacientes
 def criar_paciente(dados: Dict) -> Dict:
     """Cria um novo paciente."""
@@ -1591,9 +1645,9 @@ def criar_carteirinha(dados: Dict) -> Dict:
         if 'id' not in dados:
             dados['id'] = str(uuid.uuid4())
 
-        # Define valor padrão para ativo se não fornecido
-        if 'ativo' not in dados:
-            dados['ativo'] = True
+        # Define valor padrão para status se não fornecido
+        if 'status' not in dados:
+            dados['status'] = 'ativa'
 
         response = supabase.table('carteirinhas').insert(dados).execute()
         return response.data[0] if response.data else None
@@ -1602,63 +1656,21 @@ def criar_carteirinha(dados: Dict) -> Dict:
         logging.error(f'Erro ao criar carteirinha: {e}')
         raise e
 
-def listar_carteirinhas(
-    limit: int = 100,
-    offset: int = 0,
-    search: Optional[str] = None,
-    plano_id: Optional[str] = None,
-    ativo: Optional[bool] = None
-) -> Dict:
-    """Lista todas as carteirinhas com suporte a paginação, busca e filtros."""
-    try:
-        query = supabase.table('carteirinhas').select(
-            '*,'
-            'pacientes(nome),'
-            'planos_saude(nome)'
-        )
-
-        # Aplica filtros
-        if search:
-            query = query.or_(
-                f'numero_carteirinha.ilike.%{search}%,'
-                f'nome_titular.ilike.%{search}%'
-            )
-        
-        if plano_id:
-            query = query.eq('plano_saude_id', plano_id)
-            
-        if ativo is not None:
-            query = query.eq('ativo', ativo)
-
-        # Ordenação
-        query = query.order('created_at', desc=True)
-
-        # Contagem total antes da paginação
-        total = len(query.execute().data)
-
-        # Aplica paginação
-        if limit > 0:
-            query = query.range(offset, offset + limit - 1)
-
-        response = query.execute()
-
-        return {
-            'data': response.data,
-            'total': total,
-            'pages': ceil(total / limit) if limit > 0 else 1
-        }
-
-    except Exception as e:
-        logging.error(f'Erro ao listar carteirinhas: {e}')
-        raise e
-
 def atualizar_carteirinha(carteirinha_id: str, dados: Dict) -> Dict:
     """Atualiza uma carteirinha existente."""
     try:
         # Remove campos que não devem ser atualizados manualmente
         dados_atualizacao = dados.copy()
-        dados_atualizacao.pop('created_at', None)
+        campos_remover = ['created_at', 'id']
+        for campo in campos_remover:
+            dados_atualizacao.pop(campo, None)
+            
         dados_atualizacao['updated_at'] = datetime.now(timezone.utc).isoformat()
+
+        # Se o status for cancelada ou suspensa, garante que tenha motivo
+        if dados_atualizacao.get('status') in ['cancelada', 'suspensa']:
+            if not dados_atualizacao.get('motivo_inativacao'):
+                raise ValueError('Motivo é obrigatório para carteirinhas canceladas ou suspensas')
 
         # Handle data_validade field
         if 'data_validade' in dados_atualizacao:
