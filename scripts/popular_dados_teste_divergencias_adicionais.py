@@ -35,8 +35,7 @@ def criar_carteirinha_adicional():
             "id": str(uuid.uuid4()),
             "paciente_id": PACIENTE_ID,
             "plano_saude_id": plano_id,
-            "numero_carteirinha": "CART_ZICO_002",
-            "titular": False
+            "numero_carteirinha": "CART_ZICO_002"
         }
         carteirinha_result = supabase.table("carteirinhas").insert(
             carteirinha).execute()

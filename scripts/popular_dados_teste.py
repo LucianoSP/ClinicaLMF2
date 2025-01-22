@@ -94,8 +94,7 @@ def criar_dados_teste():
             "paciente_id": paciente_id,
             "plano_saude_id": plano_id,
             "numero_carteirinha": "12345678",
-            "data_validade": (hoje + timedelta(days=365)).date().isoformat(),
-            "titular": True
+            "data_validade": (hoje + timedelta(days=365)).date().isoformat()
         }
         carteirinha_result = supabase.table("carteirinhas").insert(carteirinha).execute()
         print("Carteirinha criada")

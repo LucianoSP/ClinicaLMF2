@@ -123,7 +123,6 @@ def salvar_dados_excel(registros: List[Dict]) -> bool:
                     {
                         "numero_carteirinha": numero_carteirinha,
                         "paciente_id": id_para_uuid[id_excel],
-                        "nome_titular": str(registro["paciente_nome"]).upper(),
                         "data_validade": None,
                         "plano_saude_id": planos[codigo_plano],
                     }
@@ -1586,7 +1585,6 @@ def listar_carteirinhas(
             'plano_saude_id,'
             'numero_carteirinha,'
             'data_validade,'
-            'nome_titular,'
             'status,'
             'motivo_inativacao,'
             'created_at,'
@@ -1598,8 +1596,7 @@ def listar_carteirinhas(
         # Aplica filtros
         if search:
             query = query.or_(
-                f'numero_carteirinha.ilike.%{search}%,'
-                f'nome_titular.ilike.%{search}%'
+                f'numero_carteirinha.ilike.%{search}%'
             )
         
         if plano_id:

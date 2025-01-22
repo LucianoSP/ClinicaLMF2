@@ -50,8 +50,7 @@ export function CarteirinhaModal({
     paciente_id: "",
     plano_saude_id: "",
     status: "ativa",
-    motivo_inativacao: "",
-    nome_titular: ""
+    motivo_inativacao: ""
   });
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
@@ -93,8 +92,7 @@ export function CarteirinhaModal({
         paciente_id: carteirinha.paciente_id || carteirinha.paciente?.id || "",
         plano_saude_id: carteirinha.plano_saude_id || carteirinha.plano_saude?.id || "",
         status: carteirinha.status || "ativa",
-        motivo_inativacao: carteirinha.motivo_inativacao || "",
-        nome_titular: carteirinha.nome_titular || ""
+        motivo_inativacao: carteirinha.motivo_inativacao || ""
       });
       console.log("FormData após atualização:", formData);
     } else {
@@ -104,8 +102,7 @@ export function CarteirinhaModal({
         paciente_id: "",
         plano_saude_id: "",
         status: "ativa",
-        motivo_inativacao: "",
-        nome_titular: ""
+        motivo_inativacao: ""
       });
     }
   }, [carteirinha, isOpen]);
@@ -302,18 +299,6 @@ export function CarteirinhaModal({
                 />
               </div>
             )}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nome_titular" className="text-right">
-                Nome do Titular
-              </Label>
-              <Input
-                id="nome_titular"
-                name="nome_titular"
-                value={formData.nome_titular}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

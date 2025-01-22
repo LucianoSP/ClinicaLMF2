@@ -54,7 +54,6 @@ def criar_dados_base():
             "paciente_id": paciente_id,
             "plano_saude_id": plano_id,
             "numero_carteirinha": "CART001",
-            "titular": True
         }
         carteirinha_result = supabase.table("carteirinhas").insert(
             carteirinha).execute()

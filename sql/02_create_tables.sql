@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
     plano_saude_id uuid REFERENCES planos_saude(id) ON DELETE RESTRICT,
     numero_carteirinha character varying(50) NOT NULL,
     data_validade date,
-    nome_titular character varying(255),
     status status_carteirinha NOT NULL DEFAULT 'ativa',
     motivo_inativacao text,
     created_at timestamptz DEFAULT now(),
@@ -257,13 +256,13 @@ ALTER TABLE auditoria_execucoes DISABLE ROW LEVEL SECURITY;
 -- Migration script for carteirinhas table updates
 DO $$ 
 BEGIN
-    -- Remove titular column if it exists
+    -- Remove nome_titular column if it exists
     IF EXISTS (
         SELECT 1 
         FROM information_schema.columns 
-        WHERE table_name = 'carteirinhas' AND column_name = 'titular'
+        WHERE table_name = 'carteirinhas' AND column_name = 'nome_titular'
     ) THEN
-        ALTER TABLE carteirinhas DROP COLUMN titular;
+        ALTER TABLE carteirinhas DROP COLUMN nome_titular;
     END IF;
 
     -- Update foreign key constraints if they don't exist

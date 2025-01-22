@@ -109,8 +109,6 @@ class Carteirinha(BaseModel):
     plano_saude_id: str
     nome_titular: str
     data_validade: Optional[str] = None
-    titular: bool = True
-    ativo: bool = True
     paciente: Optional[Dict] = None
     plano_saude: Optional[Dict] = None
     created_at: Optional[datetime] = None
@@ -1727,8 +1725,8 @@ def listar_carteirinhas_route(
     paciente_id: str = Query(None, description="Filtrar por paciente")
 ):
     try:
-        response = supabase.table("carteirinhas").select(
-            "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
+        response = supabase.table('carteirinhas').select(
+            '*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)'
         )
         
         if search:
@@ -1750,9 +1748,6 @@ def listar_carteirinhas_route(
             'id': item['id'],
             'numero': item['numero_carteirinha'],
             'dataValidade': item['data_validade'],
-            'titular': item['titular'],
-            'nomeTitular': item['nome_titular'],
-            'planoId': item['plano_saude_id'],
             'pacienteId': item['paciente_id'],
             'paciente': item['pacientes'],
             'plano_saude': item['planos_saude']
@@ -1778,11 +1773,8 @@ def criar_carteirinha_route(carteirinha: Carteirinha):
             'id': new_id,
             'numero_carteirinha': carteirinha.numero_carteirinha,
             'data_validade': carteirinha.data_validade,
-            'titular': carteirinha.titular,
-            'nome_titular': carteirinha.nome_titular if not carteirinha.titular else None,
             'plano_saude_id': carteirinha.plano_saude_id,
             'paciente_id': carteirinha.paciente_id,
-            'ativo': True
         }
 
         # Validate if paciente exists
@@ -1805,9 +1797,6 @@ def criar_carteirinha_route(carteirinha: Carteirinha):
             'id': created_data['id'],
             'numero': created_data['numero_carteirinha'],
             'dataValidade': created_data['data_validade'],
-            'titular': created_data['titular'],
-            'nomeTitular': created_data['nome_titular'],
-            'planoId': created_data['plano_saude_id'],
             'pacienteId': created_data['paciente_id']
         }
     except Exception as e:
@@ -1842,11 +1831,8 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
         data = {
             'numero_carteirinha': carteirinha.numero_carteirinha,
             'data_validade': carteirinha.data_validade,
-            'titular': carteirinha.titular,
-            'nome_titular': carteirinha.nome_titular if not carteirinha.titular else None,
             'plano_saude_id': carteirinha.plano_saude_id,
             'paciente_id': carteirinha.paciente_id,
-            'ativo': carteirinha.ativo,
             'updated_at': datetime.now(timezone.utc).isoformat()  # Convertendo para string ISO
         }
         
@@ -1881,11 +1867,7 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
             'id': updated_data['id'],
             'numero': updated_data['numero_carteirinha'],
             'dataValidade': updated_data['data_validade'],
-            'titular': updated_data['titular'],
-            'nomeTitular': updated_data['nome_titular'],
-            'planoId': updated_data['plano_saude_id'],
-            'pacienteId': updated_data['paciente_id'],
-            'ativo': updated_data['ativo']
+            'pacienteId': updated_data['paciente_id']
         }
 
     except HTTPException as http_ex:
