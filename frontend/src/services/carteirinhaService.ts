@@ -4,16 +4,18 @@ export interface Carteirinha {
   id: string;
   paciente_id: string;
   plano_saude_id: string;
-  numero?: string;
-  numero_carteirinha?: string;
-  dataEmissao?: string | null;
-  dataValidade?: string | null;
+  numero_carteirinha: string;
+  data_emissao: string | null;
+  data_validade: string | null;
   titular: boolean;
-  nome_titular?: string;
-  status?: string;
-  motivo_inativacao?: string;
-  created_at?: string;
-  updated_at?: string;
+  nome_titular: string | null;
+  status: 'ativo' | 'inativo';
+  motivo_inativacao: string | null;
+  created_at: string;
+  updated_at: string;
+  // Campos auxiliares para o frontend
+  numero?: string;
+  dataValidade?: string;
   paciente?: {
     id: string;
     nome: string;
@@ -39,40 +41,51 @@ interface CarteirinhaResponse {
 
 // Função auxiliar para converter do formato do frontend para o backend
 export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
+  console.log("Dados recebidos para conversão:", carteirinha);
   const backendData = {
-    numero_carteirinha: carteirinha.numero_carteirinha,
-    dataValidade: carteirinha.dataValidade
-      ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
+    numero_carteirinha: carteirinha.numero_carteirinha || carteirinha.numero,
+    data_validade: carteirinha.data_validade || carteirinha.dataValidade
+      ? new Date(carteirinha.data_validade || carteirinha.dataValidade).toISOString().split('T')[0]
       : null,
     titular: carteirinha.titular ?? true,
     nome_titular: carteirinha.nome_titular || "",
-    plano_saude_id: carteirinha.plano_saude_id,
     paciente_id: carteirinha.paciente_id,
-    ativo: true
+    plano_saude_id: carteirinha.plano_saude_id,
+    status: carteirinha.status || 'ativo'
   };
   
+  // Remove campos undefined ou null
+  Object.keys(backendData).forEach(key => {
+    if (backendData[key] === undefined || backendData[key] === null) {
+      delete backendData[key];
+    }
+  });
+  
+  console.log("Dados convertidos para o backend:", backendData);
   return backendData;
 }
 
 // Função auxiliar para converter do formato do backend para o frontend
-function toFrontendFormat(data: any): Carteirinha {
-  return {
+export function toFrontendFormat(data: any): Carteirinha {
+  const formatted = {
     id: data.id || "",
     paciente_id: data.paciente_id || "",
     plano_saude_id: data.plano_saude_id || "",
-    numero: data.numero,
-    numero_carteirinha: data.numero_carteirinha,
-    dataEmissao: data.dataEmissao === 'null' ? null : data.dataEmissao,
-    dataValidade: data.dataValidade === 'null' ? null : data.dataValidade,
-    titular: data.titular || false,
+    numero_carteirinha: data.numero_carteirinha || "",
+    data_emissao: data.data_emissao,
+    data_validade: data.data_validade,
+    dataValidade: data.data_validade, // Campo auxiliar para o frontend
+    titular: data.titular ?? false,
     nome_titular: data.nome_titular || "",
-    status: data.status || "",
-    motivo_inativacao: data.motivo_inativacao || "",
+    status: data.status || 'ativo',
+    motivo_inativacao: data.motivo_inativacao,
     created_at: data.created_at || "",
     updated_at: data.updated_at || "",
     paciente: data.paciente,
     plano_saude: data.plano_saude
   };
+  console.log("Dados formatados para o frontend:", formatted);
+  return formatted;
 }
 
 export async function listarCarteirinhas(
@@ -84,7 +97,7 @@ export async function listarCarteirinhas(
   const response = await api.get("/carteirinhas/", {
     params: { limit, offset, search },
   });
-  
+
   return {
     items: response.data.items || [],
     total: response.data.total || 0,
@@ -92,8 +105,13 @@ export async function listarCarteirinhas(
   };
 }
 
-export async function criarCarteirinha(carteirinha: Partial<Carteirinha>): Promise<Carteirinha> {
-  const response = await api.post("/carteirinhas/", toBackendFormat(carteirinha));
+export async function criarCarteirinha(
+  carteirinha: Partial<Carteirinha>
+): Promise<Carteirinha> {
+  const response = await api.post(
+    "/carteirinhas/",
+    toBackendFormat(carteirinha)
+  );
   return toFrontendFormat(response.data);
 }
 
@@ -101,7 +119,10 @@ export async function atualizarCarteirinha(
   id: string,
   carteirinha: Partial<Carteirinha>
 ): Promise<Carteirinha> {
-  const response = await api.put(`/carteirinhas/${id}/`, toBackendFormat(carteirinha));
+  const response = await api.put(
+    `/carteirinhas/${id}/`,
+    toBackendFormat(carteirinha)
+  );
   return toFrontendFormat(response.data);
 }
 

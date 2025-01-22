@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Carteirinha, toBackendFormat } from "@/services/carteirinhaService";
+import { Carteirinha, criarCarteirinha, atualizarCarteirinha } from "@/services/carteirinhaService";
 import { format } from "date-fns";
 import {
   Select,
@@ -23,12 +23,13 @@ import {
 import { listarPacientes } from "@/services/pacienteService";
 import { listarPlanos } from "@/services/planoService";
 import { Plano } from "@/types/plano";
+import { toast } from "sonner";
 
 interface CarteirinhaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (carteirinha: Partial<Carteirinha>) => void;
   carteirinha?: Carteirinha;
+  onSuccess?: () => void;
 }
 
 interface Paciente {
@@ -39,8 +40,8 @@ interface Paciente {
 export function CarteirinhaModal({
   isOpen,
   onClose,
-  onSave,
   carteirinha,
+  onSuccess,
 }: CarteirinhaModalProps) {
   const [formData, setFormData] = useState<Partial<Carteirinha>>({
     numero_carteirinha: "",
@@ -79,17 +80,22 @@ export function CarteirinhaModal({
   }, [isOpen]);
 
   useEffect(() => {
+    console.log("Modal aberto:", isOpen);
+    console.log("Carteirinha recebida:", carteirinha);
     if (carteirinha) {
       console.log("Carteirinha para edição:", carteirinha);
+      console.log("Número:", carteirinha.numero_carteirinha);
+      console.log("Data Validade:", carteirinha.dataValidade);
       setFormData({
-        numero_carteirinha: carteirinha.numero_carteirinha || "",
-        dataValidade: carteirinha.dataValidade || "",
+        numero_carteirinha: carteirinha.numero_carteirinha || carteirinha.numero || "",
+        dataValidade: carteirinha.dataValidade || carteirinha.data_validade || "",
         nome_titular: carteirinha.nome_titular || "",
         titular: carteirinha.titular ?? true,
         paciente_id: carteirinha.paciente_id || carteirinha.paciente?.id || "",
-        plano_saude_id: carteirinha.plano_saude_id || "",
-        status: carteirinha.status ?? "ativo",
+        plano_saude_id: carteirinha.plano_saude_id || carteirinha.plano_saude?.id || "",
+        status: carteirinha.status || "ativo"
       });
+      console.log("FormData após atualização:", formData);
     } else {
       setFormData({
         numero_carteirinha: "",
@@ -98,30 +104,41 @@ export function CarteirinhaModal({
         titular: true,
         paciente_id: "",
         plano_saude_id: "",
-        status: "ativo",
+        status: "ativo"
       });
     }
-  }, [carteirinha]);
+  }, [carteirinha, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      setLoading(true);
+      console.log("Dados do formulário:", formData);
+      
+      // Converte os campos para o formato do backend
+      const carteirinhaData = {
+        ...formData,
+        data_validade: formData.dataValidade
+      };
 
-    // Validação dos campos obrigatórios
-    if (!formData.numero_carteirinha || !formData.paciente_id || !formData.plano_saude_id) {
-      console.error("Campos obrigatórios faltando:", {
-        numero_carteirinha: formData.numero_carteirinha,
-        paciente_id: formData.paciente_id,
-        plano_saude_id: formData.plano_saude_id,
-      });
-      return;
+      console.log("Dados da carteirinha antes da conversão:", carteirinhaData);
+      
+      if (carteirinha) {
+        await atualizarCarteirinha(carteirinha.id, carteirinhaData);
+        toast.success("Carteirinha atualizada com sucesso!");
+      } else {
+        await criarCarteirinha(carteirinhaData);
+        toast.success("Carteirinha criada com sucesso!");
+      }
+      
+      onClose();
+      onSuccess?.();
+    } catch (error) {
+      console.error("Erro ao salvar carteirinha:", error);
+      toast.error("Erro ao salvar carteirinha");
+    } finally {
+      setLoading(false);
     }
-
-    const dadosParaSalvar = {
-      ...formData,
-    };
-
-    console.log("Dados para salvar:", dadosParaSalvar);
-    onSave(dadosParaSalvar);
   };
 
   const handleChange = (

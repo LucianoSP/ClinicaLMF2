@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pencil, Trash2, Loader2 } from 'lucide-react';
@@ -28,7 +28,7 @@ import {
   listarCarteirinhas,
   criarCarteirinha,
   atualizarCarteirinha,
-  excluirCarteirinha 
+  excluirCarteirinha as deleteCarteirinha 
 } from '@/services/carteirinhaService';
 import { toast } from "sonner";
 
@@ -43,8 +43,8 @@ interface PaginatedData {
 
 export function CarteirinhasList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCarteirinha, setSelectedCarteirinha] = useState<Carteirinha>();
-  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCarteirinha, setSelectedCarteirinha] = useState<Carteirinha | undefined>();
+  const [loading, setLoading] = useState(false);
   const [data, setData] = useState<PaginatedData>({
     items: [],
     total: 0,
@@ -52,10 +52,10 @@ export function CarteirinhasList() {
     isLoading: true
   });
 
-  const fetchCarteirinhas = async (page: number) => {
+  const fetchCarteirinhas = useCallback(async () => {
     try {
-      setData(prev => ({ ...prev, isLoading: true }));
-      const response = await listarCarteirinhas(page, ITEMS_PER_PAGE);
+      setLoading(true);
+      const response = await listarCarteirinhas(1, ITEMS_PER_PAGE);
       setData({
         items: response.items,
         total: response.total,
@@ -63,54 +63,45 @@ export function CarteirinhasList() {
         isLoading: false
       });
     } catch (error) {
-      console.error('Erro ao carregar carteirinhas:', error);
-      setData(prev => ({ ...prev, isLoading: false }));
+      console.error("Erro ao buscar carteirinhas:", error);
+      toast.error("Erro ao carregar carteirinhas");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchCarteirinhas(currentPage);
-  }, [currentPage]);
+    fetchCarteirinhas();
+  }, [fetchCarteirinhas]);
+
+  const handleEdit = (carteirinha: Carteirinha) => {
+    setSelectedCarteirinha(carteirinha);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCarteirinha(id);
+      toast.success("Carteirinha excluída com sucesso!");
+      fetchCarteirinhas();
+    } catch (error) {
+      console.error("Erro ao excluir carteirinha:", error);
+      toast.error("Erro ao excluir carteirinha");
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedCarteirinha(undefined);
+  };
+
+  const handleAddNew = () => {
+    setSelectedCarteirinha(undefined);
+    setIsModalOpen(true);
+  };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleSaveCarteirinha = async (carteirinhaData: Partial<Carteirinha>) => {
-    try {
-      if (selectedCarteirinha) {
-        const updated = await atualizarCarteirinha(selectedCarteirinha.id, carteirinhaData);
-        setData(prev => ({
-          ...prev,
-          items: prev.items.map(c => c.id === updated.id ? updated : c)
-        }));
-        toast.success("Carteirinha atualizada com sucesso!");
-      } else {
-        const created = await criarCarteirinha(carteirinhaData);
-        await fetchCarteirinhas(currentPage);
-        toast.success("Carteirinha criada com sucesso!");
-      }
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('Erro ao salvar carteirinha:', error);
-      toast.error("Erro ao salvar carteirinha");
-    }
-  };
-
-  const handleDelete = async (carteirinha: Carteirinha) => {
-    if (window.confirm('Tem certeza que deseja excluir esta carteirinha?')) {
-      try {
-        await excluirCarteirinha(carteirinha.id);
-        setData(prev => ({
-          ...prev,
-          items: prev.items.filter(c => c.id !== carteirinha.id)
-        }));
-        toast.success("Carteirinha excluída com sucesso!");
-      } catch (error) {
-        console.error('Erro ao excluir carteirinha:', error);
-        toast.error("Erro ao excluir carteirinha");
-      }
-    }
+    fetchCarteirinhas(page, ITEMS_PER_PAGE);
   };
 
   const renderPagination = () => {
@@ -123,8 +114,8 @@ export function CarteirinhasList() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-              className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''}`}
+              onClick={() => data.currentPage > 1 && handlePageChange(data.currentPage - 1)}
+              className={`${data.currentPage === 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
               Anterior
             </Button>
@@ -134,7 +125,7 @@ export function CarteirinhasList() {
             <PaginationItem key={page}>
               <PaginationLink
                 onClick={() => handlePageChange(page)}
-                isActive={currentPage === page}
+                isActive={data.currentPage === page}
               >
                 {page}
               </PaginationLink>
@@ -145,8 +136,8 @@ export function CarteirinhasList() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => currentPage < data.pages && handlePageChange(currentPage + 1)}
-              className={`${currentPage >= data.pages ? 'pointer-events-none opacity-50' : ''}`}
+              onClick={() => data.currentPage < data.pages && handlePageChange(data.currentPage + 1)}
+              className={`${data.currentPage >= data.pages ? 'pointer-events-none opacity-50' : ''}`}
             >
               Próximo
             </Button>
@@ -156,7 +147,7 @@ export function CarteirinhasList() {
     );
   };
 
-  if (data.isLoading) {
+  if (loading) {
     return (
       <div className="flex h-[150px] w-full items-center justify-center rounded-md border border-dashed">
         <p className="text-sm text-muted-foreground">
@@ -171,10 +162,7 @@ export function CarteirinhasList() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold tracking-tight">Lista de Carteirinhas</h2>
-          <Button onClick={() => {
-            setSelectedCarteirinha(undefined);
-            setIsModalOpen(true);
-          }}>
+          <Button onClick={handleAddNew}>
             + Nova Carteirinha
           </Button>
         </div>
@@ -191,10 +179,7 @@ export function CarteirinhasList() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Lista de Carteirinhas</h2>
-        <Button onClick={() => {
-          setSelectedCarteirinha(undefined);
-          setIsModalOpen(true);
-        }}>
+        <Button onClick={handleAddNew}>
           + Nova Carteirinha
         </Button>
       </div>
@@ -229,17 +214,14 @@ export function CarteirinhasList() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        setSelectedCarteirinha(carteirinha);
-                        setIsModalOpen(true);
-                      }}
+                      onClick={() => handleEdit(carteirinha)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDelete(carteirinha)}
+                      onClick={() => handleDelete(carteirinha.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -257,9 +239,9 @@ export function CarteirinhasList() {
 
       <CarteirinhaModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveCarteirinha}
+        onClose={handleCloseModal}
         carteirinha={selectedCarteirinha}
+        onSuccess={fetchCarteirinhas}
       />
     </div>
   );
