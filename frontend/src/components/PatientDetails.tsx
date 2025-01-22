@@ -151,7 +151,7 @@ const ProgressBar = ({ value, max }: { value: number; max: number }) => {
 }
 
 export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetailsProps) {
-  console.log('PatientDetails - stats recebidos:', stats);
+  console.log('PatientDetails - dados recebidos:', { patient, stats });
   const [isGuiaFormOpen, setIsGuiaFormOpen] = useState(false)
   const [selectedGuide, setSelectedGuide] = useState<Guia | undefined>()
   const carteirinha = patient.carteirinhas?.[0]
@@ -172,15 +172,17 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
 
   // Calcular totalizadores
   const totais = {
-    sessoesAutorizadas: patient.guias.reduce((sum, guia) => sum + guia.quantidade_autorizada, 0),
-    sessoesExecutadas: patient.guias.reduce((sum, guia) => sum + guia.quantidade_executada, 0),
-    guiasAtivas: patient.guias.filter(guia => guia.status.toLowerCase() === 'em_andamento').length
+    sessoesAutorizadas: (patient.guias || []).reduce((sum, guia) => sum + guia.quantidade_autorizada, 0),
+    sessoesExecutadas: (patient.guias || []).reduce((sum, guia) => sum + guia.quantidade_executada, 0),
+    guiasAtivas: (patient.guias || []).filter(guia => guia.status.toLowerCase() === 'em_andamento').length
   }
 
   // Adicionar verificação de dados
   if (!patient) {
     return <div>Nenhum paciente selecionado</div>
   }
+
+  console.log('PatientDetails - carteirinhas:', patient.carteirinhas);
 
   const handleNewGuide = () => {
     setSelectedGuide(undefined)
@@ -409,7 +411,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
         )}
 
         {/* Carteirinhas */}
-        {patient.carteirinhas && patient.carteirinhas.length > 0 && (
+        {Array.isArray(patient.carteirinhas) && patient.carteirinhas.length > 0 && (
           <div className="mt-8">
             <h3 className="section-title">Carteirinhas</h3>
             <SortableTable

@@ -861,7 +861,6 @@ def listar_execucoes(
         traceback.print_exc()
         return [] if limit == 0 else {"execucoes": [], "total": 0, "total_pages": 1}
 
-
 def listar_guias_paciente(paciente_id: str) -> Dict:
     """Lista todas as guias de um paciente específico e suas informações de plano."""
     try:
@@ -881,18 +880,39 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
 
         if not paciente_response.data:
             print("Paciente não encontrado")
-            return {"items": [], "total": 0, "plano": None}
+            return {
+                "items": [], 
+                "total": 0, 
+                "plano": None,
+                "carteirinhas": [],
+                "fichas": []
+            }
 
         paciente = paciente_response.data[0]
-        carteirinha = (
-            paciente["carteirinhas"][0] if paciente.get("carteirinhas") else None
-        )
+        
+        # Processa todas as carteirinhas
+        carteirinhas = paciente.get("carteirinhas", [])
+        carteirinhas_processadas = []
+        
+        for carteirinha in carteirinhas:
+            carteirinhas_processadas.append({
+                "id": carteirinha.get("id"),
+                "paciente_carteirinha": carteirinha.get("numero_carteirinha"),
+                "paciente_nome": carteirinha.get("nome_titular"),
+                "data_validade": formatar_data(carteirinha.get("data_validade")),
+                "plano_saude": carteirinha.get("planos_saude"),
+                "status": carteirinha.get("status", "ativo")
+            })
+
+        # Pega a primeira carteirinha para buscar guias e fichas (mantendo comportamento atual)
+        carteirinha = carteirinhas[0] if carteirinhas else None
         plano = None
 
         if carteirinha and carteirinha.get("planos_saude"):
             plano = carteirinha["planos_saude"]
 
         numero_carteirinha = carteirinha["numero_carteirinha"] if carteirinha else None
+        
         if numero_carteirinha:
             # Busca as guias - quantidade_executada já vem do banco
             guias_response = (
@@ -938,15 +958,27 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 "total": len(guias),
                 "plano": plano,
                 "fichas": fichas,
+                "carteirinhas": carteirinhas_processadas  # Incluindo carteirinhas na resposta
             }
 
-        return {"items": [], "total": 0, "plano": None}
+        return {
+            "items": [], 
+            "total": 0, 
+            "plano": None,
+            "carteirinhas": carteirinhas_processadas,
+            "fichas": []
+        }
 
     except Exception as e:
         print(f"Erro ao listar guias do paciente: {e}")
         traceback.print_exc()
-        return {"items": [], "total": 0, "plano": None}
-
+        return {
+            "items": [], 
+            "total": 0, 
+            "plano": None,
+            "carteirinhas": [],
+            "fichas": []
+        }
 
 def get_plano_by_carteirinha(carteirinha: str) -> Dict:
     """Busca informações do plano de saúde usando o número da carteirinha"""

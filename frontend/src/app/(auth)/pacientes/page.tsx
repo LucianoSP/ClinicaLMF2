@@ -74,53 +74,25 @@ export default function PatientsPage() {
     }
   })
 
-  const carregarPacientes = async (term = '') => {
-    try {
-      setIsLoading(true)
-      const response = await listarPacientes(1, term.trim())
-      console.log('Dados dos pacientes:', response.items);
-      const patientsData: Paciente[] = (response.items || []).map((paciente: Paciente) => ({
-        ...paciente,
-        nome_responsavel: paciente.nome_responsavel || '',
-        data_nascimento: paciente.data_nascimento || new Date().toISOString(),
-        created_at: paciente.created_at || new Date().toISOString(),
-        telefone: paciente.telefone || '',
-        carteirinhas: paciente.carteirinhas || [],
-        guias: paciente.guias || [],
-        fichas: paciente.fichas || []
-      }))
-      setPatients(patientsData)
-    } catch (error) {
-      console.error('Erro ao carregar pacientes:', error)
-      setPatients([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
       const data = await buscarGuiasPaciente(patientId)
       console.log('Dados recebidos das guias:', data)
 
-      // Atualiza as guias
-      setPatientGuides(data.items || [])
-
-      // Depois atualiza o paciente com o plano e guias
+      // Atualiza o paciente incluindo todos os dados
       setSelectedPatient(prev => {
         if (!prev) return prev;
         return {
           ...prev,
           guias: data.items || [],
-          fichas: data.fichas || [],
-          plano_saude: data.plano ? {
-            id: data.plano.id,
-            nome: data.plano.nome,
-            codigo: data.plano.codigo,
-            ativo: data.plano.ativo
-          } : undefined
+          // Usar as carteirinhas da resposta ou manter as existentes
+          carteirinhas: data.carteirinhas || prev.carteirinhas || [],
+          fichas: data.fichas || []
         };
-      })
+      });
+
+      // Atualiza as guias separadamente
+      setPatientGuides(data.items || []);
     } catch (error) {
       console.error('Erro ao carregar guias:', error)
       setPatientGuides([])
@@ -129,15 +101,69 @@ export default function PatientsPage() {
 
   const loadPatientStats = useCallback(async (patientId: string) => {
     try {
-      console.log('Carregando estatísticas para paciente:', patientId)
       const stats = await buscarEstatisticasPaciente(patientId)
-      console.log('Estatísticas recebidas da API:', stats)
       setPatientStats(stats)
-      console.log('PatientStats após atualização:', stats)
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error)
     }
   }, [])
+
+  const handlePatientSelect = useCallback(async (patient: Paciente) => {
+    console.log('Paciente selecionado:', {
+      id: patient.id,
+      carteirinhas: patient.carteirinhas
+    });
+
+    // Primeiro seta o paciente com todos os dados
+    setSelectedPatient(patient);
+
+    // Depois carrega as guias e estatísticas
+    if (patient?.id) {
+      await loadPatientGuides(patient.id);
+      await loadPatientStats(patient.id);
+    }
+  }, [loadPatientGuides, loadPatientStats]);
+
+  const carregarPacientes = async (term = '') => {
+    try {
+      setIsLoading(true)
+      const response = await listarPacientes(1, term.trim())
+      console.log('Dados dos pacientes:', response.items);
+      const patientsData: Paciente[] = (response.items || []).map((paciente: Paciente) => {
+        // Preserve existing data if patient already exists
+        const existingPatient = patients.find(p => p.id === paciente.id);
+        console.log(`Processando paciente ${paciente.nome}:`, {
+          existingData: existingPatient?.carteirinhas,
+          newData: paciente.carteirinhas
+        });
+        return {
+          ...paciente,
+          nome_responsavel: paciente.nome_responsavel || '',
+          data_nascimento: paciente.data_nascimento || new Date().toISOString(),
+          created_at: paciente.created_at || new Date().toISOString(),
+          telefone: paciente.telefone || '',
+          carteirinhas: existingPatient?.carteirinhas || paciente.carteirinhas || [],
+          guias: existingPatient?.guias || paciente.guias || [],
+          fichas: existingPatient?.fichas || paciente.fichas || []
+        }
+      })
+      setPatients(patientsData)
+
+      // Se houver um paciente selecionado, atualize seus dados
+      if (selectedPatient) {
+        const updatedSelectedPatient = patientsData.find(p => p.id === selectedPatient.id);
+        if (updatedSelectedPatient) {
+          console.log('Atualizando paciente selecionado:', updatedSelectedPatient);
+          setSelectedPatient(updatedSelectedPatient);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar pacientes:', error)
+      setPatients([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -150,22 +176,14 @@ export default function PatientsPage() {
   useEffect(() => {
     if (selectedPatient) {
       console.log('Carregando guias para paciente:', selectedPatient.id)
-      loadPatientGuides(selectedPatient.id)
-      loadPatientStats(selectedPatient.id)
+      loadPatientGuides(selectedPatient.id);
+      loadPatientStats(selectedPatient.id);
     }
   }, [selectedPatient?.id, loadPatientGuides, loadPatientStats])
 
   const handleEditPatient = (patient: Paciente) => {
     setSelectedPatient(patient)
     setIsFormOpen(true)
-  }
-
-  const handleSelectPatient = (patient: Paciente) => {
-    setSelectedPatient(patient)
-    setPatientGuides([]) // Limpa as guias antes de carregar novas
-    setOpen(false)
-    setSearchTerm('')
-    setPatients([])
   }
 
   const refreshPatientData = useCallback(() => {
@@ -223,7 +241,7 @@ export default function PatientsPage() {
                         {patients.map((patient) => (
                           <button
                             key={patient.id}
-                            onClick={() => handleSelectPatient(patient)}
+                            onClick={() => handlePatientSelect(patient)}
                             className="w-full flex items-start gap-2 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm relative select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 outline-none"
                           >
                             <Check

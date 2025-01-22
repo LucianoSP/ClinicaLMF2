@@ -2,13 +2,14 @@ export interface PlanoSaude {
   id: string;
   nome: string;
   codigo: string;
+  ativo: boolean;
 }
 
 export interface Carteirinha {
   id: string;
   paciente_carteirinha: string;
   paciente_nome: string;
-  data_validade: string | null;
+  data_validade: string;
   plano_saude?: PlanoSaude;
 }
 

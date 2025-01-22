@@ -35,12 +35,18 @@ export async function listarPacientes(
     params.search = search;
   }
   const response = await api.get("/pacientes", { params });
-  console.log('Resposta da API listarPacientes:', response.data);
-  
+  console.log("Resposta da API listarPacientes:", response.data);
+
+  // Garantir que os dados do paciente incluam carteirinhas
+  const items = response.data.data.map((paciente: any) => ({
+    ...paciente,
+    carteirinhas: paciente.carteirinhas || [],
+  }));
+
   return {
-    items: response.data.data || [],
+    items,
     total: response.data.total || 0,
-    pages: response.data.pages || 1
+    pages: response.data.pages || 1,
   };
 }
 
@@ -49,12 +55,14 @@ export async function criarPaciente(paciente: Paciente): Promise<Paciente> {
     nome: paciente.nome,
     nome_responsavel: paciente.nome_responsavel,
     tipo_responsavel: paciente.tipo_responsavel,
-    data_nascimento: paciente.data_nascimento ? paciente.data_nascimento.split('T')[0] : null,
+    data_nascimento: paciente.data_nascimento
+      ? paciente.data_nascimento.split("T")[0]
+      : null,
     cpf: paciente.cpf,
     telefone: paciente.telefone,
     email: paciente.email,
     status: paciente.status,
-    observacoes_clinicas: paciente.observacoes_clinicas
+    observacoes_clinicas: paciente.observacoes_clinicas,
   });
   return response.data;
 }
@@ -67,12 +75,14 @@ export async function atualizarPaciente(
     nome: paciente.nome,
     nome_responsavel: paciente.nome_responsavel,
     tipo_responsavel: paciente.tipo_responsavel,
-    data_nascimento: paciente.data_nascimento ? paciente.data_nascimento.split('T')[0] : null,
+    data_nascimento: paciente.data_nascimento
+      ? paciente.data_nascimento.split("T")[0]
+      : null,
     cpf: paciente.cpf,
     telefone: paciente.telefone,
     email: paciente.email,
     status: paciente.status,
-    observacoes_clinicas: paciente.observacoes_clinicas
+    observacoes_clinicas: paciente.observacoes_clinicas,
   });
   return response.data;
 }
@@ -81,12 +91,14 @@ export async function excluirPaciente(id: string): Promise<void> {
   await api.delete(`/pacientes/${id}`);
 }
 
-export async function buscarEstatisticasPaciente(id: string): Promise<PacienteEstatisticas> {
+export async function buscarEstatisticasPaciente(
+  id: string
+): Promise<PacienteEstatisticas> {
   try {
     const response = await api.get(`/pacientes/${id}/estatisticas`);
     const data = response.data;
-    console.log('Dados brutos da API:', data);
-    
+    console.log("Dados brutos da API:", data);
+
     return {
       total_carteirinhas: Number(data.total_carteirinhas) || 0,
       carteirinhas_ativas: Number(data.carteirinhas_ativas) || 0,
@@ -104,7 +116,7 @@ export async function buscarEstatisticasPaciente(id: string): Promise<PacienteEs
       },
     };
   } catch (error) {
-    console.error('Erro ao buscar estatísticas:', error);
+    console.error("Erro ao buscar estatísticas:", error);
     return {
       total_carteirinhas: 0,
       carteirinhas_ativas: 0,
@@ -131,5 +143,11 @@ export async function buscarGuiasPaciente(id: string): Promise<{
   fichas: any[];
 }> {
   const response = await api.get(`/pacientes/${id}/guias`);
-  return response.data;
+  console.log("Resposta da API buscarGuiasPaciente:", response.data);
+
+  // Garantir que carteirinhas seja sempre um array
+  return {
+    ...response.data,
+    carteirinhas: response.data.carteirinhas || [],
+  };
 }
