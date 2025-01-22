@@ -91,6 +91,8 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR)
 if not os.path.exists(GUIAS_RENOMEADAS_DIR):
     os.makedirs(GUIAS_RENOMEADAS_DIR)
+
+
 # Modelo para Paciente
 class Paciente(BaseModel):
     id: Optional[str] = None
@@ -102,6 +104,8 @@ class Paciente(BaseModel):
     email: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
 class Carteirinha(BaseModel):
     id: Optional[str] = None
     numero_carteirinha: str
@@ -119,29 +123,29 @@ class Carteirinha(BaseModel):
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None,
-            date: lambda v: v.isoformat() if v else None
+            date: lambda v: v.isoformat() if v else None,
         }
 
-    @validator('data_validade')
+    @validator("data_validade")
     def parse_data_validade(cls, v):
         if not v:
             return None
         try:
             # Se já é uma string no formato YYYY-MM-DD, retorna como está
-            if isinstance(v, str) and re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+            if isinstance(v, str) and re.match(r"^\d{4}-\d{2}-\d{2}$", v):
                 return v
             # Se é um objeto date, converte para string
             if isinstance(v, date):
                 return v.isoformat()
             # Tenta converter para date e depois para string
-            return datetime.strptime(v, '%Y-%m-%d').date().isoformat()
+            return datetime.strptime(v, "%Y-%m-%d").date().isoformat()
         except (ValueError, TypeError):
-            raise ValueError('Data inválida. Use o formato YYYY-MM-DD')
+            raise ValueError("Data inválida. Use o formato YYYY-MM-DD")
 
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat(),
-            date: lambda v: v.isoformat()
+            date: lambda v: v.isoformat(),
         }
 
 
@@ -1723,19 +1727,23 @@ async def conferir_sessao(sessao_id: str):
 def listar_carteirinhas_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(None, description="Buscar por número da carteirinha ou nome do titular"),
-    paciente_id: str = Query(None, description="Filtrar por paciente")
+    search: str = Query(
+        None, description="Buscar por número da carteirinha ou nome do titular"
+    ),
+    paciente_id: str = Query(None, description="Filtrar por paciente"),
 ):
     try:
-        response = supabase.table('carteirinhas').select(
-            '*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)'
+        response = supabase.table("carteirinhas").select(
+            "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
         )
 
         if search:
-            response = response.or_(f'numero_carteirinha.ilike.%{search}%,nome_titular.ilike.%{search}%')
+            response = response.or_(
+                f"numero_carteirinha.ilike.%{search}%,nome_titular.ilike.%{search}%"
+            )
 
         if paciente_id:
-            response = response.eq('paciente_id', paciente_id)
+            response = response.eq("paciente_id", paciente_id)
 
         # Get total count before pagination
         total = len(response.execute().data)
@@ -1746,25 +1754,25 @@ def listar_carteirinhas_route(
         result = response.execute()
 
         # Format data for frontend
-        formatted_data = [{
-            'id': item['id'],
-            'numero': item['numero_carteirinha'],
-            'dataValidade': item['data_validade'],
-            'status': item['status'],
-            'motivo_inativacao': item['motivo_inativacao'],
-            'pacienteId': item['paciente_id'],
-            'paciente': item['pacientes'],
-            'plano_saude': item['planos_saude']
-        } for item in result.data]
+        formatted_data = [
+            {
+                "id": item["id"],
+                "numero": item["numero_carteirinha"],
+                "dataValidade": item["data_validade"],
+                "status": item["status"],
+                "motivo_inativacao": item["motivo_inativacao"],
+                "pacienteId": item["paciente_id"],
+                "paciente": item["pacientes"],
+                "plano_saude": item["planos_saude"],
+            }
+            for item in result.data
+        ]
 
-        return {
-            "items": formatted_data,
-            "total": total,
-            "pages": ceil(total / limit)
-        }
+        return {"items": formatted_data, "total": total, "pages": ceil(total / limit)}
     except Exception as e:
         logging.error(f"Erro ao listar carteirinhas: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/carteirinhas/")
 def criar_carteirinha_route(carteirinha: Carteirinha):
@@ -1774,20 +1782,30 @@ def criar_carteirinha_route(carteirinha: Carteirinha):
 
         # Format data for database
         data = {
-            'id': new_id,
-            'numero_carteirinha': carteirinha.numero_carteirinha,
-            'data_validade': carteirinha.data_validade,
-            'plano_saude_id': carteirinha.plano_saude_id,
-            'paciente_id': carteirinha.paciente_id,
+            "id": new_id,
+            "numero_carteirinha": carteirinha.numero_carteirinha,
+            "data_validade": carteirinha.data_validade,
+            "plano_saude_id": carteirinha.plano_saude_id,
+            "paciente_id": carteirinha.paciente_id,
         }
 
         # Validate if paciente exists
-        paciente = supabase.table("pacientes").select("*").eq("id", data['paciente_id']).execute()
+        paciente = (
+            supabase.table("pacientes")
+            .select("*")
+            .eq("id", data["paciente_id"])
+            .execute()
+        )
         if not paciente.data:
             raise HTTPException(status_code=404, detail="Paciente não encontrado")
 
         # Validate if plano exists
-        plano = supabase.table("planos_saude").select("*").eq("id", data['plano_saude_id']).execute()
+        plano = (
+            supabase.table("planos_saude")
+            .select("*")
+            .eq("id", data["plano_saude_id"])
+            .execute()
+        )
         if not plano.data:
             raise HTTPException(status_code=404, detail="Plano de saúde não encontrado")
 
@@ -1798,23 +1816,29 @@ def criar_carteirinha_route(carteirinha: Carteirinha):
 
         # Format response
         return {
-            'id': created_data['id'],
-            'numero': created_data['numero_carteirinha'],
-            'dataValidade': created_data['data_validade'],
-            'status': created_data['status'],
-            'motivo_inativacao': created_data['motivo_inativacao'],
-            'pacienteId': created_data['paciente_id']
+            "id": created_data["id"],
+            "numero": created_data["numero_carteirinha"],
+            "dataValidade": created_data["data_validade"],
+            "status": created_data["status"],
+            "motivo_inativacao": created_data["motivo_inativacao"],
+            "pacienteId": created_data["paciente_id"],
         }
     except Exception as e:
         logging.error(f"Erro ao criar carteirinha: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/carteirinhas/{carteirinha_id}")
 def buscar_carteirinha_route(carteirinha_id: str):
     try:
-        response = supabase.table("carteirinhas").select(
-            "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
-        ).eq("id", carteirinha_id).execute()
+        response = (
+            supabase.table("carteirinhas")
+            .select(
+                "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
+            )
+            .eq("id", carteirinha_id)
+            .execute()
+        )
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
@@ -1835,49 +1859,60 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
 
         # Format data for database
         data = {
-            'numero_carteirinha': carteirinha.numero_carteirinha,
-            'data_validade': carteirinha.data_validade,
-            'plano_saude_id': carteirinha.plano_saude_id,
-            'paciente_id': carteirinha.paciente_id,
-            'status': carteirinha.status,
-            'motivo_inativacao': carteirinha.motivo_inativacao,
-            'updated_at': datetime.now(timezone.utc).isoformat()  # Convertendo para string ISO
+            "numero_carteirinha": carteirinha.numero_carteirinha,
+            "data_validade": carteirinha.data_validade,
+            "plano_saude_id": carteirinha.plano_saude_id,
+            "paciente_id": carteirinha.paciente_id,
+            "status": carteirinha.status,
+            "motivo_inativacao": carteirinha.motivo_inativacao,
+            "updated_at": datetime.now(
+                timezone.utc
+            ).isoformat(),  # Convertendo para string ISO
         }
 
         # Handle data_validade conversion properly
         if carteirinha.data_validade:
             if isinstance(carteirinha.data_validade, date):
-                data['data_validade'] = carteirinha.data_validade.isoformat()
+                data["data_validade"] = carteirinha.data_validade.isoformat()
 
         logging.info(f"Dados formatados para atualização: {data}")
 
         # Check if carteirinha exists
-        existing = supabase.table("carteirinhas").select("*").eq(
-            "id", carteirinha_id).execute()
+        existing = (
+            supabase.table("carteirinhas")
+            .select("*")
+            .eq("id", carteirinha_id)
+            .execute()
+        )
 
         if not existing.data:
-            raise HTTPException(status_code=404,
-                              detail="Carteirinha não encontrada")
+            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
 
         # Update carteirinha
-        response = supabase.table("carteirinhas").update(data).eq(
-            "id", carteirinha_id).execute()
+        response = (
+            supabase.table("carteirinhas")
+            .update(data)
+            .eq("id", carteirinha_id)
+            .execute()
+        )
 
         if not response.data:
-            raise HTTPException(status_code=500,
-                              detail="Erro ao atualizar carteirinha no banco de dados")
+            raise HTTPException(
+                status_code=500,
+                detail="Erro ao atualizar carteirinha no banco de dados",
+            )
 
         updated_data = response.data[0]
         logging.info(f"Dados atualizados com sucesso: {updated_data}")
 
         # Format response
         return {
-            'id': updated_data['id'],
-            'numero': updated_data['numero_carteirinha'],
-            'dataValidade': updated_data['data_validade'],
-            'status': updated_data['status'],
-            'motivo_inativacao': updated_data['motivo_inativacao'],
-            'pacienteId': updated_data['paciente_id']
+            "id": updated_data["id"],
+            "numero": updated_data["numero_carteirinha"],
+            "dataValidade": updated_data["data_validade"],
+            "status": updated_data["status"],
+            "motivo_inativacao": updated_data["motivo_inativacao"],
+            "pacienteId": updated_data["paciente_id"],
         }
 
     except HTTPException as http_ex:
@@ -1887,11 +1922,17 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
         logging.error(f"Erro ao atualizar carteirinha: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.delete("/carteirinhas/{carteirinha_id}")
 def deletar_carteirinha_route(carteirinha_id: str):
     try:
         # Check if carteirinha exists
-        existing = supabase.table("carteirinhas").select("*").eq("id", carteirinha_id).execute()
+        existing = (
+            supabase.table("carteirinhas")
+            .select("*")
+            .eq("id", carteirinha_id)
+            .execute()
+        )
         if not existing.data:
             raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
 
@@ -1904,6 +1945,8 @@ def deletar_carteirinha_route(carteirinha_id: str):
     except Exception as e:
         logging.error(f"Erro ao deletar carteirinha: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
 async def deletar_sessao(sessao_id: str):
     """Deleta uma sessão específica e suas execuções relacionadas"""
     try:
@@ -1920,8 +1963,7 @@ async def deletar_sessao(sessao_id: str):
 
     except Exception as e:
         logger.error(f"Erro ao deletar sessão: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao deletar sessão: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar sessão: {str(e)}")
 
 
 @app.get("/pacientes/{paciente_id}/estatisticas")
@@ -1966,13 +2008,16 @@ async def atualizar_guia_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 class Guia(BaseModel):
     id: Optional[str] = None
     numero_guia: str
     data_emissao: Optional[str] = None
     data_validade: Optional[str] = None
     tipo: str  # tipo_guia ENUM: 'sp_sadt', 'consulta', 'internacao'
-    status: str = 'pendente'  # status_guia ENUM: 'pendente', 'em_andamento', 'concluida', 'cancelada'
+    status: str = (
+        "pendente"  # status_guia ENUM: 'pendente', 'em_andamento', 'concluida', 'cancelada'
+    )
     paciente_carteirinha: str
     paciente_nome: str
     quantidade_autorizada: int
@@ -1985,70 +2030,84 @@ class Guia(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    @validator('tipo')
+    @validator("tipo")
     def validate_tipo(cls, v):
-        valid_tipos = ['sp_sadt', 'consulta', 'internacao']
+        valid_tipos = ["sp_sadt", "consulta", "internacao"]
         if v not in valid_tipos:
-            raise ValueError(f'Tipo deve ser um dos seguintes: {", ".join(valid_tipos)}')
+            raise ValueError(
+                f'Tipo deve ser um dos seguintes: {", ".join(valid_tipos)}'
+            )
         return v
 
-    @validator('status')
+    @validator("status")
     def validate_status(cls, v):
-        valid_status = ['pendente', 'em_andamento', 'concluida', 'cancelada']
+        valid_status = ["pendente", "em_andamento", "concluida", "cancelada"]
         if v not in valid_status:
-            raise ValueError(f'Status deve ser um dos seguintes: {", ".join(valid_status)}')
+            raise ValueError(
+                f'Status deve ser um dos seguintes: {", ".join(valid_status)}'
+            )
         return v
 
-    @validator('data_emissao', 'data_validade', pre=True)
+    @validator("data_emissao", "data_validade", pre=True)
     def validate_date(cls, v):
         if isinstance(v, str):
             try:
-                if '/' in v:
-                    day, month, year = v.split('/')
+                if "/" in v:
+                    day, month, year = v.split("/")
                     return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
                 return v
             except:
-                raise ValueError('Data inválida')
+                raise ValueError("Data inválida")
         return v
 
     class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None
-        }
+        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+
 
 # Rotas para Guias
 @app.get("/guias/", response_model=dict)
 def listar_guias_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(None, description="Buscar por número da guia ou nome do paciente")
+    search: str = Query(
+        None, description="Buscar por número da guia ou nome do paciente"
+    ),
 ):
     """Lista todas as guias com suporte a paginação e busca."""
     try:
-        response = database_supabase.listar_guias(limit=limit, offset=offset, search=search)
+        response = database_supabase.listar_guias(
+            limit=limit, offset=offset, search=search
+        )
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/guias/", response_model=Guia)
 def criar_guia_route(guia: Guia):
     """Cria uma nova guia."""
     try:
-        dados_guia = guia.dict(exclude={'id', 'created_at', 'updated_at', 'quantidade_executada'})
+        dados_guia = guia.dict(
+            exclude={"id", "created_at", "updated_at", "quantidade_executada"}
+        )
         response = database_supabase.criar_guia(dados_guia)
         return response
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.put("/guias/{guia_id}", response_model=Guia)
 def atualizar_guia_route(guia_id: str, guia: Guia):
     """Atualiza uma guia existente."""
     try:
-        dados_guia = guia.dict(exclude={'id', 'created_at', 'updated_at', 'quantidade_executada'})
+        dados_guia = guia.dict(
+            exclude={"id", "created_at", "updated_at", "quantidade_executada"}
+        )
         response = database_supabase.atualizar_guia(guia_id, dados_guia)
         return response
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @app.delete("/guias/{guia_id}")
 def deletar_guia_route(guia_id: str):
