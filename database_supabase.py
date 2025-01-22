@@ -861,6 +861,7 @@ def listar_execucoes(
         traceback.print_exc()
         return [] if limit == 0 else {"execucoes": [], "total": 0, "total_pages": 1}
 
+
 def listar_guias_paciente(paciente_id: str) -> Dict:
     """Lista todas as guias de um paciente específico e suas informações de plano."""
     try:
@@ -890,21 +891,24 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
 
         paciente = paciente_response.data[0]
         
-        # Processa todas as carteirinhas
+        # Processa somente os campos necessários das carteirinhas
         carteirinhas = paciente.get("carteirinhas", [])
         carteirinhas_processadas = []
         
         for carteirinha in carteirinhas:
+            plano_saude = carteirinha.get("planos_saude", {})
             carteirinhas_processadas.append({
-                "id": carteirinha.get("id"),
-                "paciente_carteirinha": carteirinha.get("numero_carteirinha"),
-                "paciente_nome": carteirinha.get("nome_titular"),
+                "numero": carteirinha.get("numero_carteirinha"),
+                "data_emissao": formatar_data(carteirinha.get("data_emissao")),
                 "data_validade": formatar_data(carteirinha.get("data_validade")),
-                "plano_saude": carteirinha.get("planos_saude"),
-                "status": carteirinha.get("status", "ativo")
+                "status": carteirinha.get("status", "ativo"),
+                "plano_saude": {
+                    "id": plano_saude.get("id"),
+                    "nome": plano_saude.get("nome")
+                } if plano_saude else None
             })
 
-        # Pega a primeira carteirinha para buscar guias e fichas (mantendo comportamento atual)
+        # Resto do código permanece igual...
         carteirinha = carteirinhas[0] if carteirinhas else None
         plano = None
 
@@ -914,7 +918,7 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
         numero_carteirinha = carteirinha["numero_carteirinha"] if carteirinha else None
         
         if numero_carteirinha:
-            # Busca as guias - quantidade_executada já vem do banco
+            # Busca as guias
             guias_response = (
                 supabase.table("guias")
                 .select("*")
@@ -958,7 +962,7 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 "total": len(guias),
                 "plano": plano,
                 "fichas": fichas,
-                "carteirinhas": carteirinhas_processadas  # Incluindo carteirinhas na resposta
+                "carteirinhas": carteirinhas_processadas
             }
 
         return {
@@ -979,6 +983,7 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
             "carteirinhas": [],
             "fichas": []
         }
+
 
 def get_plano_by_carteirinha(carteirinha: str) -> Dict:
     """Busca informações do plano de saúde usando o número da carteirinha"""

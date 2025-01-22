@@ -275,24 +275,25 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
   ]
 
   // Define columns for Carteirinhas table
+  // Dentro do PatientDetails.tsx, substitua o carteirinhaColumns por:
   const carteirinhaColumns: Column<Carteirinha>[] = [
     {
-      key: 'paciente_carteirinha',
-      label: 'Número da Carteirinha'
+      key: 'numero',
+      label: 'Número da Carteirinha',
+      render: (value) => <span>{value as string}</span>
     },
     {
       key: 'plano_saude',
       label: 'Plano de Saúde',
       render: (value) => {
-        if (value && typeof value === 'object' && 'nome' in value) {
-          return <span>{value.nome}</span>
-        }
-        return <span>-</span>
+        const plano = value as { nome: string } | undefined;
+        return <span>{plano?.nome || '-'}</span>;
       }
     },
     {
-      key: 'paciente_nome',
-      label: 'Nome do Titular'
+      key: 'data_emissao',
+      label: 'Data de Emissão',
+      render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
       key: 'data_validade',
@@ -300,26 +301,25 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
       render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
-      key: 'data_validade',
+      key: 'status',
       label: 'Status',
-      render: (_, item) => {
-        const dataValidade = item.data_validade ? new Date(item.data_validade) : null
-        const hoje = new Date()
-        const ativo = dataValidade ? dataValidade > hoje : false
+      render: (value) => {
+        const status = value as string;
+        const isActive = status?.toLowerCase() === 'ativo';
 
         return (
           <span className={cn(
             'px-2 py-1 rounded-full text-xs font-medium',
-            ativo
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
+            isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-800'
           )}>
-            {ativo ? 'Ativa' : 'Inativa'}
+            {isActive ? 'Ativa' : 'Inativa'}
           </span>
-        )
+        );
       }
     }
-  ]
+  ];
 
   return (
     <>

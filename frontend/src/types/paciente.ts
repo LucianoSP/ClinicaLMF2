@@ -7,10 +7,14 @@ export interface PlanoSaude {
 
 export interface Carteirinha {
   id: string;
-  paciente_carteirinha: string;
-  paciente_nome: string;
+  numero: string;
+  data_emissao: string;
   data_validade: string;
-  plano_saude?: PlanoSaude;
+  status: string;
+  plano_saude?: {
+    id: string;
+    nome: string;
+  };
 }
 
 export interface Guide {
