@@ -112,7 +112,7 @@ export function CarteirinhaModal({
     try {
       setLoading(true);
       console.log("Dados do formulário:", formData);
-      
+
       // Converte os campos para o formato do backend
       const carteirinhaData = {
         ...formData,
@@ -123,7 +123,7 @@ export function CarteirinhaModal({
       delete carteirinhaData.status;
 
       console.log("Dados da carteirinha antes da conversão:", carteirinhaData);
-      
+
       if (carteirinha) {
         await atualizarCarteirinha(carteirinha.id, carteirinhaData);
         toast.success("Carteirinha atualizada com sucesso!");
@@ -131,7 +131,7 @@ export function CarteirinhaModal({
         await criarCarteirinha(carteirinhaData);
         toast.success("Carteirinha criada com sucesso!");
       }
-      
+
       onClose();
       onSuccess?.();
     } catch (error) {
@@ -165,6 +165,13 @@ export function CarteirinhaModal({
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleStatusChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      status: value,
     }));
   };
 
@@ -271,7 +278,7 @@ export function CarteirinhaModal({
               <Select
                 name="status"
                 value={formData.status}
-                onValueChange={(value) => handleInputChange({ target: { name: "status", value }})}
+                onValueChange={handleStatusChange}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione o status" />
