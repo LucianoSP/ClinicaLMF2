@@ -371,45 +371,6 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
         {/* Stats Cards */}
         <PacienteDashboard estatisticas={stats} />
 
-        {/* Plano de Saúde */}
-        {carteirinha?.plano_saude && (
-          <>
-            <h2 className="section-title">Plano de Saúde</h2>
-            <div className="border border-gray-200 rounded-lg shadow-sm bg-white p-6">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-base font-medium">{carteirinha.plano_saude.nome}</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Número da Carteirinha</p>
-                      <p className="text-base mt-1">{carteirinha.paciente_carteirinha || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Nome do Titular</p>
-                      <p className="text-base mt-1">{carteirinha.paciente_nome || '-'}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Data de Validade</p>
-                      <p className="text-base mt-1">{formatDate(carteirinha.data_validade) || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      <p className="text-base mt-1">Ativo</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
         {/* Carteirinhas */}
         {Array.isArray(patient.carteirinhas) && patient.carteirinhas.length > 0 && (
           <div className="mt-8">
