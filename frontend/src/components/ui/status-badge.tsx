@@ -1,4 +1,4 @@
-import { Badge } from "./badge";
+import { cn } from "@/lib/utils";
 
 interface StatusBadgeProps {
   status: string;
@@ -8,26 +8,37 @@ export const StatusBadge = ({ status }: StatusBadgeProps) => {
   const statusConfig = {
     'pendente': { 
       label: 'Pendente', 
-      className: 'bg-white border border-yellow-200 text-yellow-700' 
+      className: 'bg-yellow-100 text-yellow-800' 
     },
     'em_analise': { 
       label: 'Em Análise', 
-      className: 'bg-white border border-blue-200 text-blue-700' 
+      className: 'bg-blue-100 text-blue-800' 
     },
     'resolvida': { 
       label: 'Resolvida', 
-      className: 'bg-white border border-green-200 text-green-700' 
+      className: 'bg-green-100 text-green-800' 
     },
+    'ativo': {
+      label: 'Ativo',
+      className: 'bg-green-100 text-green-800'
+    },
+    'inativo': {
+      label: 'Inativo',
+      className: 'bg-red-100 text-red-800'
+    }
   };
 
   const config = statusConfig[status.toLowerCase()] || { 
     label: status, 
-    className: 'bg-white border border-gray-200 text-gray-700' 
+    className: 'bg-gray-100 text-gray-800' 
   };
 
   return (
-    <Badge variant="outline" className={config.className}>
+    <span className={cn(
+      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+      config.className
+    )}>
       {config.label}
-    </Badge>
+    </span>
   );
 };

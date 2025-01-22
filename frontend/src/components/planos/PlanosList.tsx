@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Plano } from '@/types/plano';
 import { PlanoDialog } from './PlanoDialog';
 import { listarPlanos } from '@/services/planoService';
@@ -54,6 +54,24 @@ export function PlanosList() {
     });
   };
 
+  const handleDelete = async (plano: Plano) => {
+    try {
+      // TODO: Implementar chamada de API para deletar plano
+      // await deletarPlano(plano.id);
+      await carregarPlanos();
+      toast({
+        title: "Sucesso",
+        description: "Plano excluído com sucesso",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir plano",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -74,7 +92,7 @@ export function PlanosList() {
               <TableHead>Nome</TableHead>
               <TableHead>Código</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-right pr-8">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -83,13 +101,22 @@ export function PlanosList() {
                 <TableCell>{plano.nome}</TableCell>
                 <TableCell>{plano.codigo}</TableCell>
                 <TableCell>
-                  <Badge variant={plano.ativo ? "success" : "destructive"}>
-                    {plano.ativo ? "Ativo" : "Inativo"}
-                  </Badge>
+                  <StatusBadge status={plano.ativo ? "ativo" : "inativo"} />
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" onClick={() => handleEdit(plano)}>
-                    Editar
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(plano)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(plano)}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </TableCell>
               </TableRow>

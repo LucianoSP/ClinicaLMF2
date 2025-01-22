@@ -13,25 +13,25 @@ export default function CadastrosPage() {
   const modules = [
     {
       title: 'Planos de Saúde',
-      description: 'Gerencia os planos de saúde cadastrados',
+      description: 'Gestão de planos de saúde',
       icon: FileText,
       href: '/cadastros/planos'
     },
     {
       title: 'Pacientes',
-      description: 'Cadastro e gestão de pacientes',
+      description: 'Gestão de pacientes',
       icon: Users,
       href: '/cadastros/pacientes'
     },
     {
       title: 'Carteirinhas',
-      description: 'Controle de carteirinhas emitidas',
+      description: 'Gestão de carteirinhas',
       icon: CreditCard,
       href: '/cadastros/carteirinhas'
     },
     {
       title: 'Guias',
-      description: 'Gerenciamento de guias médicas',
+      description: 'Gestão de guias médicas',
       icon: FileCheck,
       href: '/cadastros/guias'
     }
