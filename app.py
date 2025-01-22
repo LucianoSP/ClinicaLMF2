@@ -111,7 +111,6 @@ class Carteirinha(BaseModel):
     numero_carteirinha: str
     paciente_id: str
     plano_saude_id: str
-    nome_titular: str
     data_validade: Optional[str] = None
     paciente: Optional[Dict] = None
     plano_saude: Optional[Dict] = None
@@ -1728,7 +1727,7 @@ def listar_carteirinhas_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
     search: str = Query(
-        None, description="Buscar por número da carteirinha ou nome do titular"
+        None, description="Buscar por número da carteirinha"
     ),
     paciente_id: str = Query(None, description="Filtrar por paciente"),
 ):
@@ -1739,7 +1738,7 @@ def listar_carteirinhas_route(
 
         if search:
             response = response.or_(
-                f"numero_carteirinha.ilike.%{search}%,nome_titular.ilike.%{search}%"
+                f"numero_carteirinha.ilike.%{search}%"
             )
 
         if paciente_id:
