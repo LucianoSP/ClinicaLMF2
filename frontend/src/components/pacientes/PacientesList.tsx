@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/table";
 import { Paciente } from '@/types/paciente';
 import { PacienteDialog } from './PacienteDialog';
-import { listarPacientes, excluirPaciente } from '@/services/pacienteService';
+import { PacienteDetalhes } from './PacienteDetalhes';
+import { listarPacientes, excluirPaciente, buscarEstatisticasPaciente } from '@/services/pacienteService';
 import { useToast } from "@/components/ui/use-toast";
 import {
   AlertDialog,
@@ -27,20 +28,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 export function PacientesList() {
   const [open, setOpen] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [pacienteParaExcluir, setPacienteParaExcluir] = useState<string | null>(null);
   const [pacienteParaEditar, setPacienteParaEditar] = useState<Paciente | null>(null);
+  const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const carregarPacientes = async () => {
+  const carregarPacientes = async (search?: string) => {
     try {
-      const response = await listarPacientes(currentPage);
+      setIsLoading(true);
+      const response = await listarPacientes(currentPage, search);
       setPacientes(response.items);
       setTotalPages(response.pages);
     } catch (error) {
@@ -51,12 +58,14 @@ export function PacientesList() {
         description: "Erro ao carregar pacientes",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    carregarPacientes();
-  }, []);
+    carregarPacientes(searchTerm);
+  }, [currentPage, searchTerm]);
 
   const handleEdit = (paciente: Paciente) => {
     setPacienteParaEditar(paciente);
@@ -76,7 +85,7 @@ export function PacientesList() {
           title: "Sucesso",
           description: "Paciente excluído com sucesso",
         });
-        carregarPacientes();
+        carregarPacientes(searchTerm);
       } catch (error) {
         toast({
           title: "Erro",
@@ -90,74 +99,142 @@ export function PacientesList() {
   };
 
   const handleSuccess = () => {
-    carregarPacientes();
+    carregarPacientes(searchTerm);
     setOpen(false);
     setPacienteParaEditar(null);
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Pacientes</h3>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Paciente
-        </Button>
-      </div>
+  const handleRowClick = async (paciente: Paciente) => {
+    try {
+      const estatisticas = await buscarEstatisticasPaciente(paciente.id);
+      setPacienteSelecionado({ ...paciente, estatisticas });
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar estatísticas do paciente",
+        variant: "destructive",
+      });
+    }
+  };
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Data de Nascimento</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pacientes && pacientes.length > 0 ? (
-              pacientes.map((paciente) => (
-                <TableRow key={paciente.id}>
-                  <TableCell>{paciente.nome}</TableCell>
-                  <TableCell>{paciente.nome_responsavel}</TableCell>
-                  <TableCell>
-                    {paciente.data_nascimento ? 
-                      format(parseISO(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR }) 
-                      : '-'}
-                  </TableCell>
-                  <TableCell>{paciente.telefone}</TableCell>
-                  <TableCell>{paciente.email}</TableCell>
-                  <TableCell className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(paciente)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(paciente.id!)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  return (
+    <div className="space-y-6">
+      {pacienteSelecionado ? (
+        <div className="space-y-6">
+          <Button 
+            variant="outline" 
+            onClick={() => setPacienteSelecionado(null)}
+            className="mb-4"
+          >
+            Voltar para lista
+          </Button>
+          <PacienteDetalhes
+            paciente={{
+              ...pacienteSelecionado,
+              estatisticas: pacienteSelecionado.estatisticas
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-between items-center">
+            <div className="flex-1 max-w-sm">
+              <Input
+                placeholder="Buscar paciente..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <Button onClick={() => {
+              setPacienteParaEditar(null);
+              setOpen(true);
+            }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Paciente
+            </Button>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Convênio</TableHead>
+                  <TableHead>Data de Nascimento</TableHead>
+                  <TableHead>Data de Cadastro</TableHead>
+                  <TableHead className="text-right pr-8">Ações</TableHead>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  Nenhum paciente cadastrado
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      <div className="flex justify-center items-center">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span className="ml-2">Carregando...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : pacientes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      Nenhum paciente encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pacientes.map((paciente) => (
+                    <TableRow 
+                      key={paciente.id}
+                      className="cursor-pointer hover:bg-accent/5"
+                      onClick={() => handleRowClick(paciente)}
+                    >
+                      <TableCell>{paciente.nome}</TableCell>
+                      <TableCell>{paciente.nome_responsavel}</TableCell>
+                      <TableCell>{paciente.tipo_responsavel || '-'}</TableCell>
+                      <TableCell>
+                        {paciente.data_nascimento ? format(new Date(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {paciente.created_at ? format(new Date(paciente.created_at), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(paciente);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(paciente.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       <PacienteDialog
         open={open}
@@ -169,14 +246,16 @@ export function PacientesList() {
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Paciente</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este paciente? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Confirmar</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete}>
+              Confirmar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
