@@ -35,10 +35,12 @@ export async function listarPacientes(
     params.search = search;
   }
   const response = await api.get("/pacientes", { params });
+  console.log('Resposta da API listarPacientes:', response.data);
+  
   return {
-    items: response.data.data,
-    total: response.data.total,
-    pages: response.data.pages
+    items: response.data.data || [],
+    total: response.data.total || 0,
+    pages: response.data.pages || 1
   };
 }
 

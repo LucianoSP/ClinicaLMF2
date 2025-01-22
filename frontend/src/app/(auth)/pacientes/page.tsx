@@ -78,6 +78,7 @@ export default function PatientsPage() {
     try {
       setIsLoading(true)
       const response = await listarPacientes(1, term.trim())
+      console.log('Dados dos pacientes:', response.items);
       const patientsData: Paciente[] = (response.items || []).map((paciente: Paciente) => ({
         ...paciente,
         nome_responsavel: paciente.nome_responsavel || '',
@@ -85,8 +86,8 @@ export default function PatientsPage() {
         created_at: paciente.created_at || new Date().toISOString(),
         telefone: paciente.telefone || '',
         carteirinhas: paciente.carteirinhas || [],
-        guias: [],
-        fichas: []
+        guias: paciente.guias || [],
+        fichas: paciente.fichas || []
       }))
       setPatients(patientsData)
     } catch (error) {
@@ -100,29 +101,26 @@ export default function PatientsPage() {
   const loadPatientGuides = useCallback(async (patientId: string) => {
     try {
       const data = await buscarGuiasPaciente(patientId)
-      console.log('Dados recebidos:', data)
-
-      const planoSaude = data.plano ? {
-        id: data.plano.id,
-        nome: data.plano.nome,
-        codigo: data.plano.codigo
-      } : undefined;
+      console.log('Dados recebidos das guias:', data)
 
       // Atualiza as guias
       setPatientGuides(data.items || [])
 
-      // Depois atualiza o paciente com o plano e carteirinhas
-      setSelectedPatient(prev => prev ? {
-        ...prev,
-        carteirinhas: data.items.map((item: any) => ({
-          id: item.carteirinha_id,
-          paciente_carteirinha: item.paciente_carteirinha,
-          paciente_nome: item.paciente_nome,
-          data_validade: item.data_validade,
-          plano_saude: planoSaude
-        })) || [],
-        fichas: data.fichas || []
-      } : prev)
+      // Depois atualiza o paciente com o plano e guias
+      setSelectedPatient(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          guias: data.items || [],
+          fichas: data.fichas || [],
+          plano_saude: data.plano ? {
+            id: data.plano.id,
+            nome: data.plano.nome,
+            codigo: data.plano.codigo,
+            ativo: data.plano.ativo
+          } : undefined
+        };
+      })
     } catch (error) {
       console.error('Erro ao carregar guias:', error)
       setPatientGuides([])
