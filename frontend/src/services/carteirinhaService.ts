@@ -4,9 +4,10 @@ export interface Carteirinha {
   id: string;
   paciente_id: string;
   plano_saude_id: string;
-  numero_carteirinha: string;
-  data_emissao?: string;
-  data_validade?: string;
+  numero?: string;
+  numero_carteirinha?: string;
+  dataEmissao?: string | null;
+  dataValidade?: string | null;
   titular: boolean;
   nome_titular?: string;
   status?: string;
@@ -40,8 +41,8 @@ interface CarteirinhaResponse {
 export function toBackendFormat(carteirinha: Partial<Carteirinha>) {
   const backendData = {
     numero_carteirinha: carteirinha.numero_carteirinha,
-    data_validade: carteirinha.data_validade
-      ? new Date(carteirinha.data_validade).toISOString().split('T')[0]
+    dataValidade: carteirinha.dataValidade
+      ? new Date(carteirinha.dataValidade).toISOString().split('T')[0]
       : null,
     titular: carteirinha.titular ?? true,
     nome_titular: carteirinha.nome_titular || "",
@@ -59,9 +60,10 @@ function toFrontendFormat(data: any): Carteirinha {
     id: data.id || "",
     paciente_id: data.paciente_id || "",
     plano_saude_id: data.plano_saude_id || "",
-    numero_carteirinha: data.numero_carteirinha || "",
-    data_emissao: data.data_emissao || "",
-    data_validade: data.data_validade || "",
+    numero: data.numero,
+    numero_carteirinha: data.numero_carteirinha,
+    dataEmissao: data.dataEmissao === 'null' ? null : data.dataEmissao,
+    dataValidade: data.dataValidade === 'null' ? null : data.dataValidade,
     titular: data.titular || false,
     nome_titular: data.nome_titular || "",
     status: data.status || "",

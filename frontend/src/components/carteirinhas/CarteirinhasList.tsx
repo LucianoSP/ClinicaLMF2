@@ -213,12 +213,14 @@ export function CarteirinhasList() {
           <TableBody>
             {data.items.map((carteirinha) => (
               <TableRow key={carteirinha.id}>
-                <TableCell>{carteirinha.numero_carteirinha}</TableCell>
-                <TableCell>{carteirinha.paciente?.nome}</TableCell>
-                <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
                 <TableCell>
-                  {carteirinha.data_validade ? 
-                    format(parseISO(carteirinha.data_validade), 'dd/MM/yyyy', { locale: ptBR }) 
+                  {carteirinha.numero || carteirinha.numero_carteirinha || '-'}
+                </TableCell>
+                <TableCell>{carteirinha.paciente?.nome || '-'}</TableCell>
+                <TableCell>{carteirinha.plano_saude?.nome || '-'}</TableCell>
+                <TableCell>
+                  {carteirinha.dataValidade && carteirinha.dataValidade !== 'null' && carteirinha.dataValidade !== '' ? 
+                    format(new Date(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR }) 
                     : '-'}
                 </TableCell>
                 <TableCell>{carteirinha.titular ? 'Sim' : 'Não'}</TableCell>

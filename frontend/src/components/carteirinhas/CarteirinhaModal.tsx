@@ -44,7 +44,7 @@ export function CarteirinhaModal({
 }: CarteirinhaModalProps) {
   const [formData, setFormData] = useState<Partial<Carteirinha>>({
     numero_carteirinha: "",
-    data_validade: "",
+    dataValidade: "",
     titular: true,
     nome_titular: "",
     paciente_id: "",
@@ -83,7 +83,7 @@ export function CarteirinhaModal({
       console.log("Carteirinha para edição:", carteirinha);
       setFormData({
         numero_carteirinha: carteirinha.numero_carteirinha || "",
-        data_validade: carteirinha.data_validade || "",
+        dataValidade: carteirinha.dataValidade || "",
         nome_titular: carteirinha.nome_titular || "",
         titular: carteirinha.titular ?? true,
         paciente_id: carteirinha.paciente_id || carteirinha.paciente?.id || "",
@@ -93,7 +93,7 @@ export function CarteirinhaModal({
     } else {
       setFormData({
         numero_carteirinha: "",
-        data_validade: "",
+        dataValidade: "",
         nome_titular: "",
         titular: true,
         paciente_id: "",
@@ -130,7 +130,7 @@ export function CarteirinhaModal({
     const { name, value, type } = e.target;
 
     // Para campos de data, garantir que não tenha informação de timezone
-    if (name === "data_validade") {
+    if (name === "dataValidade") {
       setFormData((prev) => ({
         ...prev,
         [name]: value || "",
@@ -240,14 +240,14 @@ export function CarteirinhaModal({
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="data_validade" className="text-sm font-medium">
+                  <label htmlFor="dataValidade" className="text-sm font-medium">
                     Data de Validade
                   </label>
                   <Input
-                    id="data_validade"
-                    name="data_validade"
+                    id="dataValidade"
+                    name="dataValidade"
                     type="date"
-                    value={formData.data_validade || ""}
+                    value={formData.dataValidade || ""}
                     onChange={handleChange}
                   />
                 </div>
