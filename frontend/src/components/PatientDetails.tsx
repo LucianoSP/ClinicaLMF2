@@ -3,11 +3,29 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { FiCheck, FiX, FiEdit } from 'react-icons/fi'
-import { CreditCard, Activity, AlertTriangle, FileText, PlusIcon } from 'lucide-react'
+import {
+  CreditCard,
+  Activity,
+  AlertTriangle,
+  FileText,
+  PlusIcon,
+  Timer,
+  CalendarDays,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  FileCheck2,
+  Download,
+  MoreHorizontal,
+  AlertCircle
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { GuideForm } from './GuideForm'
+import { PacienteDashboard } from './pacientes/PacienteDashboard'
 import SortableTable, { Column } from './SortableTable'
 import { PencilIcon } from 'lucide-react'
 import {
@@ -71,6 +89,12 @@ interface PatientStats {
   sessoes_executadas: number;
   divergencias_pendentes: number;
   taxa_execucao: number;
+  guias_por_status: {
+    pendente: number;
+    em_andamento: number;
+    concluida: number;
+    cancelada: number;
+  };
 }
 
 interface PatientDetailsProps {
@@ -96,7 +120,7 @@ const formatDate = (dateStr: string | null) => {
   if (!dateStr) return '-'
   try {
     const date = new Date(dateStr)
-    return format(date, 'dd/MM/yyyy')
+    return format(date, 'dd/MM/yyyy', { locale: ptBR })
   } catch (error) {
     return dateStr
   }
@@ -165,7 +189,8 @@ const ProgressBar = ({ value, max }: { value: number; max: number }) => {
   )
 }
 
-export default function PatientDetails({ patient, stats, onGuideCreated }: PatientDetailsProps) {
+export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetailsProps) {
+  console.log('PatientDetails - stats recebidos:', stats);
   const [isGuideFormOpen, setIsGuideFormOpen] = useState(false)
   const [selectedGuide, setSelectedGuide] = useState<Guide | undefined>()
   const carteirinha = patient.carteirinhas?.[0]
@@ -384,75 +409,22 @@ export default function PatientDetails({ patient, stats, onGuideCreated }: Patie
         </div>
 
         {/* Stats Cards */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-  {/* Carteirinhas */}
-  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-sm font-medium text-gray-700">Carteirinhas</h3>
-          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.carteirinhas_ativas}</p>
-          <p className="text-xs text-blue-600/80 mt-0.5">
-            De {stats.total_carteirinhas} total
-          </p>
-        </div>
-        <CreditCard className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-      </div>
-    </CardContent>
-  </Card>
-
-  {/* Guias */}
-  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-sm font-medium text-gray-700">Guias</h3>
-          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.guias_ativas}</p>
-          <p className="text-xs text-blue-600/80 mt-0.5">
-            De {stats.total_guias} total
-          </p>
-        </div>
-        <FileText className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-      </div>
-    </CardContent>
-  </Card>
-
-  {/* Sessões */}
-  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-sm font-medium text-gray-700">Sessões</h3>
-          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.sessoes_executadas}</p>
-          <p className="text-xs text-blue-600/80 mt-0.5">
-            {stats.sessoes_autorizadas} autorizadas ({stats.taxa_execucao}%)
-          </p>
-        </div>
-        <Activity className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-      </div>
-    </CardContent>
-  </Card>
-
-  {/* Divergências */}
-  <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-sm font-medium text-gray-700">Divergências</h3>
-          <p className="text-2xl font-bold mt-1 text-blue-700">{stats.divergencias_pendentes || 0}</p>
-          <p className="text-xs text-blue-600/80 mt-0.5">
-            {stats.divergencias_pendentes === 1 ? 'Divergência pendente' : 'Divergências pendentes'}
-          </p>
-        </div>
-        <AlertTriangle 
-          className={`h-5 w-5 group-hover:scale-110 transition-transform duration-300 ${
-            stats.divergencias_pendentes > 0 ? 'text-red-500' : 'text-blue-500'
-          }`} 
-        />
-      </div>
-    </CardContent>
-  </Card>
-</div>
+        <PacienteDashboard estatisticas={{
+          total_carteirinhas: stats.total_carteirinhas,
+          carteirinhas_ativas: stats.carteirinhas_ativas,
+          total_guias: stats.total_guias,
+          guias_ativas: stats.guias_ativas,
+          sessoes_autorizadas: stats.sessoes_autorizadas,
+          sessoes_executadas: stats.sessoes_executadas,
+          divergencias_pendentes: stats.divergencias_pendentes,
+          taxa_execucao: stats.taxa_execucao,
+          guias_por_status: stats.guias_por_status || {
+            pendente: 0,
+            em_andamento: 0,
+            concluida: 0,
+            cancelada: 0
+          }
+        }} />
 
         {/* Plano de Saúde */}
         {carteirinha?.plano_saude && (

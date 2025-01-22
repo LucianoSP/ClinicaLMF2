@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { PatientForm } from './components/patient-form'
-import PatientDetails from '@/components/PatientDetails'
+import { PatientDetails } from '@/components/PatientDetails'
 import { formatarData } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -162,9 +162,10 @@ export default function PatientsPage() {
   const loadPatientStats = useCallback(async (patientId: string) => {
     try {
       console.log('Carregando estatísticas para paciente:', patientId)
-      const data = await buscarEstatisticasPaciente(patientId)
-      console.log('Estatísticas recebidas:', data)
-      setPatientStats(data)
+      const stats = await buscarEstatisticasPaciente(patientId)
+      console.log('Estatísticas recebidas da API:', stats)
+      setPatientStats(stats)
+      console.log('PatientStats após atualização:', stats)
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error)
     }

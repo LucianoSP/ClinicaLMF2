@@ -8,10 +8,20 @@ interface PacienteResponse {
 }
 
 interface PacienteEstatisticas {
-  carteirinhas: number;
-  guias: number;
-  sessoes: number;
-  divergencias: number;
+  total_carteirinhas: number;
+  carteirinhas_ativas: number;
+  total_guias: number;
+  guias_ativas: number;
+  sessoes_autorizadas: number;
+  sessoes_executadas: number;
+  divergencias_pendentes: number | null;
+  taxa_execucao: number;
+  guias_por_status: {
+    pendente: number;
+    em_andamento: number;
+    concluida: number;
+    cancelada: number;
+  };
 }
 
 export async function listarPacientes(
@@ -72,19 +82,41 @@ export async function excluirPaciente(id: string): Promise<void> {
 export async function buscarEstatisticasPaciente(id: string): Promise<PacienteEstatisticas> {
   try {
     const response = await api.get(`/pacientes/${id}/estatisticas`);
+    const data = response.data.data;
+    
     return {
-      carteirinhas: response.data.carteirinhas || 0,
-      guias: response.data.guias || 0,
-      sessoes: response.data.sessoes || 0,
-      divergencias: response.data.divergencias || 0
+      total_carteirinhas: data.total_carteirinhas || 0,
+      carteirinhas_ativas: data.carteirinhas_ativas || 0,
+      total_guias: data.total_guias || 0,
+      guias_ativas: data.guias_ativas || 0,
+      sessoes_autorizadas: data.sessoes_autorizadas || 0,
+      sessoes_executadas: data.sessoes_executadas || 0,
+      divergencias_pendentes: data.divergencias_pendentes || null,
+      taxa_execucao: data.taxa_execucao || 0,
+      guias_por_status: {
+        pendente: data.guias_por_status?.pendente || 0,
+        em_andamento: data.guias_por_status?.em_andamento || 0,
+        concluida: data.guias_por_status?.concluida || 0,
+        cancelada: data.guias_por_status?.cancelada || 0,
+      },
     };
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error);
     return {
-      carteirinhas: 0,
-      guias: 0,
-      sessoes: 0,
-      divergencias: 0
+      total_carteirinhas: 0,
+      carteirinhas_ativas: 0,
+      total_guias: 0,
+      guias_ativas: 0,
+      sessoes_autorizadas: 0,
+      sessoes_executadas: 0,
+      divergencias_pendentes: null,
+      taxa_execucao: 0,
+      guias_por_status: {
+        pendente: 0,
+        em_andamento: 0,
+        concluida: 0,
+        cancelada: 0,
+      },
     };
   }
 }

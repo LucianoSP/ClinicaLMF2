@@ -19,10 +19,20 @@ interface PacienteDetalhesProps {
     observacoes_clinicas?: string;
     created_at?: string;
     estatisticas?: {
-      carteirinhas: number;
-      guias: number;
-      sessoes: number;
-      divergencias: number;
+      total_carteirinhas: number;
+      carteirinhas_ativas: number;
+      total_guias: number;
+      guias_ativas: number;
+      sessoes_autorizadas: number;
+      sessoes_executadas: number;
+      divergencias_pendentes: number | null;
+      taxa_execucao: number;
+      guias_por_status: {
+        pendente: number;
+        em_andamento: number;
+        concluida: number;
+        cancelada: number;
+      };
     }
   }
 }
@@ -63,12 +73,11 @@ export function PacienteDetalhes({ paciente }: PacienteDetalhesProps) {
         )}
       </Card>
 
-      <PacienteDashboard
-        carteirinhas={paciente.estatisticas?.carteirinhas || 0}
-        guias={paciente.estatisticas?.guias || 0}
-        sessoes={paciente.estatisticas?.sessoes || 0}
-        divergencias={paciente.estatisticas?.divergencias || 0}
-      />
+      {paciente.estatisticas && (
+        <Card className="p-6">
+          <PacienteDashboard estatisticas={paciente.estatisticas} />
+        </Card>
+      )}
     </div>
   )
 }
