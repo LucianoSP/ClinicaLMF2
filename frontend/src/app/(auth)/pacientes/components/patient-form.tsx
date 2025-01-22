@@ -23,7 +23,7 @@ interface PatientFormProps {
 export function PatientForm({ isOpen, onClose, patient }: PatientFormProps) {
   const [formData, setFormData] = useState({
     nome: patient?.nome || '',
-    carteirinha: patient?.carteirinhas?.[0]?.paciente_carteirinha || '',
+    carteirinha: patient?.carteirinhas?.[0]?.numero || '', // Alterado aqui
   })
 
   const handleSubmit = async (e: React.FormEvent) => {

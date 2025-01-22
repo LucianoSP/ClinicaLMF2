@@ -428,7 +428,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
           onClose={handleCloseGuiaForm}
           onSuccess={handleGuiaCreated}
           pacienteId={patient.id}
-          carteirinha={patient.carteirinhas?.[0]?.paciente_carteirinha}
+          carteirinha={patient.carteirinhas?.[0]?.numero}  // Atualizado de paciente_carteirinha para numero
           guia={selectedGuide}
         />
       </div>
