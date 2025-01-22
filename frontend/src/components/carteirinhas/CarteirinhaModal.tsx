@@ -26,6 +26,8 @@ import { Plano } from "@/types/plano";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
+type CarteirinhaStatus = "ativa" | "vencida" | "cancelada" | "suspensa" | "em_analise";
+
 interface CarteirinhaModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -38,18 +40,22 @@ interface Paciente {
   nome: string;
 }
 
+interface FormData extends Partial<Carteirinha> {
+  status: CarteirinhaStatus;
+}
+
 export function CarteirinhaModal({
   isOpen,
   onClose,
   carteirinha,
   onSuccess,
 }: CarteirinhaModalProps) {
-  const [formData, setFormData] = useState<Partial<Carteirinha>>({
+  const [formData, setFormData] = useState<FormData>({
     numero_carteirinha: "",
     dataValidade: "",
     paciente_id: "",
     plano_saude_id: "",
-    status: "ativa",
+    status: "ativa" as CarteirinhaStatus,
     motivo_inativacao: ""
   });
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -143,7 +149,7 @@ export function CarteirinhaModal({
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
 
@@ -168,7 +174,7 @@ export function CarteirinhaModal({
     }));
   };
 
-  const handleStatusChange = (value: string) => {
+  const handleStatusChange = (value: CarteirinhaStatus) => {
     setFormData((prev) => ({
       ...prev,
       status: value,
