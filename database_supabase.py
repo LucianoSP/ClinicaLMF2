@@ -1447,7 +1447,7 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
 
         resultado = {
             "total_carteirinhas": len(carteirinhas),
-            "carteirinhas_ativas": len([c for c in carteirinhas if c["ativo"]]),
+            "carteirinhas_ativas": len([c for c in carteirinhas if c["status"] == "ativa"]),
             "total_guias": len(guias),
             "guias_ativas": guias_por_status["pendente"]
             + guias_por_status["em_andamento"],
