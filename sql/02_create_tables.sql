@@ -60,7 +60,6 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
 -- Index for faster carteirinha lookups
 CREATE INDEX IF NOT EXISTS idx_carteirinhas_numero ON carteirinhas(numero_carteirinha);
 CREATE INDEX IF NOT EXISTS idx_carteirinhas_paciente ON carteirinhas(paciente_id);
-
 -- Guias
 CREATE TABLE IF NOT EXISTS guias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -71,6 +70,7 @@ CREATE TABLE IF NOT EXISTS guias (
     status status_guia DEFAULT 'pendente',
     paciente_carteirinha text,
     paciente_nome text,
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
     quantidade_autorizada integer NOT NULL,
     quantidade_executada integer DEFAULT 0,
     procedimento_codigo text,
@@ -82,6 +82,32 @@ CREATE TABLE IF NOT EXISTS guias (
     updated_at timestamptz DEFAULT now()
 );
 
+-- Guias Unimed
+CREATE TABLE IF NOT EXISTS guias_unimed (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    guia_id uuid REFERENCES guias(id) ON DELETE CASCADE,
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
+    numero_guia_operadora text,
+    senha_autorizacao text,
+    data_autorizacao date,
+    data_validade_senha date,
+    codigo_procedimento text,
+    nome_procedimento text,
+    quantidade_autorizada integer,
+    quantidade_executada integer DEFAULT 0,
+    valor_autorizado numeric(10,2),
+    status text DEFAULT 'pendente',
+    observacoes text,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    CONSTRAINT guias_unimed_numero_guia_operadora_key UNIQUE (numero_guia_operadora)
+);
+
+-- Index for guias_unimed
+CREATE INDEX IF NOT EXISTS idx_guias_unimed_paciente_id ON guias_unimed(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_guias_unimed_guia_id ON guias_unimed(guia_id);
+CREATE INDEX IF NOT EXISTS idx_guias_unimed_numero_guia ON guias_unimed(numero_guia_operadora);
+
 -- Fichas de Presença
 CREATE TABLE IF NOT EXISTS fichas_presenca (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -89,6 +115,7 @@ CREATE TABLE IF NOT EXISTS fichas_presenca (
     numero_guia text,
     paciente_nome text,
     paciente_carteirinha text,
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
     arquivo_digitalizado text,
     observacoes text,
     status text DEFAULT 'pendente',
@@ -111,6 +138,7 @@ CREATE TABLE IF NOT EXISTS sessoes (
     executado boolean DEFAULT false,
     data_execucao date,
     executado_por uuid REFERENCES usuarios(id),
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
@@ -149,6 +177,7 @@ CREATE TABLE IF NOT EXISTS divergencias (
     ficha_id uuid REFERENCES fichas_presenca(id),
     execucao_id uuid REFERENCES execucoes(id),
     sessao_id uuid REFERENCES sessoes(id),
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
@@ -177,6 +206,10 @@ CREATE INDEX IF NOT EXISTS idx_execucoes_paciente_carteirinha ON execucoes(pacie
 CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia ON execucoes(numero_guia);
 CREATE INDEX IF NOT EXISTS idx_execucoes_codigo_ficha ON execucoes(codigo_ficha);
 CREATE INDEX IF NOT EXISTS idx_execucoes_data_execucao ON execucoes(data_execucao);
+CREATE INDEX IF NOT EXISTS idx_guias_paciente_id ON guias(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_fichas_presenca_paciente_id ON fichas_presenca(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_sessoes_paciente_id ON sessoes(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_divergencias_paciente_id ON divergencias(paciente_id);
 
 -- Atualizar função trigger para contar todas as execuções, sem distinção por data
 CREATE OR REPLACE FUNCTION update_guia_quantidade_executada()

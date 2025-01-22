@@ -53,9 +53,9 @@ export function PacienteDashboard({
       {modules.map((module, index) => (
         <Card
           key={index}
-          className="!bg-white border shadow-sm hover:bg-gray-50/50 transition-colors duration-200"
+          className="bg-white border shadow-sm hover:bg-gray-50/50 transition-colors duration-200"
         >
-          <div className="p-4 !bg-transparent">
+          <div className="p-4">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-sm font-medium text-gray-700">
