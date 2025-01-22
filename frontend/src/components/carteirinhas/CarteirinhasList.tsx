@@ -40,6 +40,7 @@ interface PaginatedData {
   items: Carteirinha[];
   total: number;
   pages: number;
+  currentPage: number;
   isLoading: boolean;
 }
 
@@ -51,17 +52,19 @@ export function CarteirinhasList() {
     items: [],
     total: 0,
     pages: 0,
+    currentPage: 1,
     isLoading: true
   });
 
-  const fetchCarteirinhas = useCallback(async () => {
+  const fetchCarteirinhas = useCallback(async (page: number = 1, limit: number = ITEMS_PER_PAGE) => {
     try {
       setLoading(true);
-      const response = await listarCarteirinhas(1, ITEMS_PER_PAGE);
+      const response = await listarCarteirinhas(page, limit);
       setData({
         items: response.items,
         total: response.total,
-        pages: Math.ceil(response.total / ITEMS_PER_PAGE),
+        pages: Math.ceil(response.total / limit),
+        currentPage: page,
         isLoading: false
       });
     } catch (error) {
