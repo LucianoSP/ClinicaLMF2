@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SortableTable, { Column } from '@/components/SortableTable';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,12 +26,113 @@ interface GuiaUnimed {
   status: string;
 }
 
+interface ScrapingStatus {
+  status: string;
+  message?: string;
+  total_guides?: number;
+  processed_guides?: number;
+  error?: string;
+}
+
 export default function UnimedPage() {
   const [guias] = useState<GuiaUnimed[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dataInicial, setDataInicial] = useState<Date>();
   const [dataFinal, setDataFinal] = useState<Date>();
   const [isLoading, setIsLoading] = useState(false);
+  const [taskId, setTaskId] = useState<string>();
+  const [scrapingStatus, setScrapingStatus] = useState<ScrapingStatus>();
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (taskId) {
+      interval = setInterval(async () => {
+        try {
+          const response = await fetch(`${API_URLS.SCRAPING_API}/status/${taskId}`);
+          if (!response.ok) {
+            throw new Error('Erro ao verificar status');
+          }
+          const data = await response.json();
+          setScrapingStatus(data);
+
+          if (data.status === 'completed' || data.status === 'failed') {
+            clearInterval(interval);
+            setIsLoading(false);
+            setTaskId(undefined);
+
+            if (data.status === 'completed') {
+              alert(`Scraping concluído! Total de guias: ${data.result?.total_guides}`);
+            } else {
+              alert(`Erro no scraping: ${data.error}`);
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao verificar status:', error);
+        }
+      }, 10000); // Verifica a cada 2 segundos
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [taskId]);
+
+  const iniciarScraping = async () => {
+    if (!dataInicial || !dataFinal) {
+      alert('Por favor, selecione o intervalo de datas');
+      return;
+    }
+
+    setIsLoading(true);
+    setScrapingStatus(undefined);
+    try {
+      const response = await fetch(`${API_URLS.SCRAPING_API}/scrape`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          start_date: format(dataInicial, 'dd/MM/yyyy'),
+          end_date: format(dataFinal, 'dd/MM/yyyy'),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao iniciar o scraping');
+      }
+
+      const data = await response.json();
+      setTaskId(data.task_id);
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao iniciar o scraping');
+      setIsLoading(false);
+    }
+  };
+
+  const getStatusMessage = () => {
+    if (!scrapingStatus) return null;
+
+    switch (scrapingStatus.status) {
+      case 'iniciando':
+        return 'Iniciando o processo...';
+      case 'login':
+        return 'Realizando login na Unimed...';
+      case 'extraindo':
+        return 'Extraindo guias do sistema...';
+      case 'enviando':
+        return `Enviando guias: ${scrapingStatus.processed_guides} de ${scrapingStatus.total_guides}`;
+      case 'completed':
+        return `Concluído! Total de guias: ${scrapingStatus.result?.total_guides}`;
+      case 'failed':
+        return `Erro: ${scrapingStatus.error}`;
+      default:
+        return 'Processando...';
+    }
+  };
 
   const columns: Column[] = [
     {
@@ -70,39 +171,6 @@ export default function UnimedPage() {
       guia.nome_profissional.toLowerCase().includes(searchTermLower)
     );
   });
-
-  const iniciarScraping = async () => {
-    if (!dataInicial || !dataFinal) {
-      alert('Por favor, selecione o intervalo de datas');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URLS.SCRAPING_API}/scrape`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          start_date: format(dataInicial, 'dd/MM/yyyy'),
-          end_date: format(dataFinal, 'dd/MM/yyyy'),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao iniciar o scraping');
-      }
-
-      const data = await response.json();
-      alert('Scraping iniciado com sucesso! ID da tarefa: ' + data.task_id);
-    } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao iniciar o scraping');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="container mx-auto py-10">
@@ -166,14 +234,30 @@ export default function UnimedPage() {
             </Popover>
           </div>
 
-          <Button 
-            onClick={iniciarScraping} 
+          <Button
+            onClick={iniciarScraping}
             disabled={!dataInicial || !dataFinal || isLoading}
             className="mt-auto"
           >
-            {isLoading ? "Iniciando..." : "Iniciar Scraping"}
+            {isLoading ? "Processando..." : "Iniciar Scraping"}
           </Button>
         </div>
+
+        {isLoading && (
+          <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
+            <p className="font-medium">{getStatusMessage()}</p>
+            {scrapingStatus?.status === 'enviando' && (
+              <div className="w-full bg-blue-200 rounded-full h-2.5 mt-2">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(scrapingStatus.processed_guides! / scrapingStatus.total_guides!) * 100}%`
+                  }}
+                ></div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="relative">
           <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
