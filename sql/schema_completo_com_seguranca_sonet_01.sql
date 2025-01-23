@@ -91,8 +91,8 @@ CREATE TABLE IF NOT EXISTS procedimentos (
     ativo boolean DEFAULT true,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES auth.users(id),
-    updated_by uuid REFERENCES auth.users(id)
+    created_by uuid REFERENCES usuarios(id),
+    updated_by uuid REFERENCES usuarios(id)
 );
 
 -- Dados iniciais de procedimentos
@@ -119,18 +119,21 @@ CREATE TABLE IF NOT EXISTS guias (
     data_validade date,
     tipo tipo_guia,
     status status_guia DEFAULT 'pendente',
-    carteirinha_id uuid REFERENCES carteirinhas(id) ON DELETE RESTRICT,
-    paciente_id uuid REFERENCES pacientes(id) ON DELETE RESTRICT,
+    carteirinha_id uuid,
+    paciente_id uuid,
     quantidade_autorizada integer NOT NULL,
     quantidade_executada integer DEFAULT 0,
-    procedimento_id uuid REFERENCES procedimentos(id) ON DELETE RESTRICT,
+    procedimento_id uuid,
     profissional_solicitante text,
     profissional_executante text,
     observacoes text,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES auth.users(id),
-    updated_by uuid REFERENCES auth.users(id)
+    created_by uuid REFERENCES usuarios(id),
+    updated_by uuid REFERENCES usuarios(id),
+    CONSTRAINT guias_carteirinha_id_fkey FOREIGN KEY (carteirinha_id) REFERENCES carteirinhas(id) ON DELETE RESTRICT,
+    CONSTRAINT guias_paciente_id_fkey FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE RESTRICT,
+    CONSTRAINT guias_procedimento_id_fkey FOREIGN KEY (procedimento_id) REFERENCES procedimentos(id) ON DELETE RESTRICT
 );
 
 -- Índices para melhorar performance
