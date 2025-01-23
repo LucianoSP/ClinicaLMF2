@@ -176,6 +176,15 @@ export function CarteirinhasList() {
             Nenhuma carteirinha encontrada
           </p>
         </div>
+        <CarteirinhaModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          carteirinha={selectedCarteirinha}
+          onSuccess={() => {
+            handleCloseModal();
+            fetchCarteirinhas();
+          }}
+        />
       </div>
     );
   }
@@ -201,48 +210,50 @@ export function CarteirinhasList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.items.map((carteirinha) => (
+            {data.items.map((carteirinha) => (
               <TableRow key={carteirinha.id}>
-                <TableCell>{carteirinha.numero_carteirinha || carteirinha.numero}</TableCell>
-                <TableCell>{carteirinha.paciente?.nome || '-'}</TableCell>
-                <TableCell>{carteirinha.plano_saude?.nome || '-'}</TableCell>
-                <TableCell>{format(parseISO(carteirinha.dataValidade), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                <TableCell>{carteirinha.numero_carteirinha}</TableCell>
+                <TableCell>{carteirinha.paciente?.nome}</TableCell>
+                <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
                 <TableCell>
-                  <StatusBadge status={carteirinha.status || ''} />
+                  {carteirinha.data_validade
+                    ? format(parseISO(carteirinha.data_validade), 'dd/MM/yyyy', { locale: ptBR })
+                    : 'N/A'}
                 </TableCell>
                 <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(carteirinha)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(carteirinha.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <StatusBadge status={carteirinha.status} />
+                </TableCell>
+                <TableCell className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleEdit(carteirinha)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleDelete(carteirinha.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-        
-        <div className="flex justify-center mt-4">
-          {renderPagination()}
-        </div>
       </div>
+      {renderPagination()}
 
       <CarteirinhaModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         carteirinha={selectedCarteirinha}
-        onSuccess={fetchCarteirinhas}
+        onSuccess={() => {
+          handleCloseModal();
+          fetchCarteirinhas();
+        }}
       />
     </div>
   );

@@ -116,17 +116,42 @@ export function CarteirinhaModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Validações
+      if (!formData.numero_carteirinha?.trim()) {
+        toast.error("O número da carteirinha é obrigatório");
+        return;
+      }
+
+      if (!formData.paciente_id) {
+        toast.error("Selecione um paciente");
+        return;
+      }
+
+      if (!formData.plano_saude_id) {
+        toast.error("Selecione um plano de saúde");
+        return;
+      }
+
+      if (!formData.dataValidade) {
+        toast.error("A data de validade é obrigatória");
+        return;
+      }
+
+      if ((formData.status === "cancelada" || formData.status === "suspensa") && !formData.motivo_inativacao?.trim()) {
+        toast.error("O motivo é obrigatório para carteirinhas canceladas ou suspensas");
+        return;
+      }
+
       setLoading(true);
       console.log("Dados do formulário:", formData);
 
       // Converte os campos para o formato do backend
       const carteirinhaData = {
         ...formData,
-        data_validade: formData.dataValidade
+        data_validade: formData.dataValidade,
+        status: formData.status || "ativa",
+        motivo_inativacao: formData.motivo_inativacao || null
       };
-
-      // Remove o campo status antes de enviar
-      delete carteirinhaData.status;
 
       console.log("Dados da carteirinha antes da conversão:", carteirinhaData);
 
@@ -142,7 +167,11 @@ export function CarteirinhaModal({
       onSuccess?.();
     } catch (error) {
       console.error("Erro ao salvar carteirinha:", error);
-      toast.error("Erro ao salvar carteirinha");
+      if (error instanceof Error) {
+        toast.error(`Erro ao salvar carteirinha: ${error.message}`);
+      } else {
+        toast.error("Erro ao salvar carteirinha");
+      }
     } finally {
       setLoading(false);
     }
@@ -197,7 +226,7 @@ export function CarteirinhaModal({
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="paciente_id" className="text-right">
-                Paciente
+                Paciente <span className="text-red-500">*</span>
               </Label>
               {carteirinha ? (
                 <Input
@@ -232,7 +261,7 @@ export function CarteirinhaModal({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="plano_saude_id" className="text-right">
-                Plano de Saúde
+                Plano de Saúde <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.plano_saude_id || ""}
@@ -254,7 +283,7 @@ export function CarteirinhaModal({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="numero_carteirinha" className="text-right">
-                Número
+                Número <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="numero_carteirinha"
@@ -266,7 +295,7 @@ export function CarteirinhaModal({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="dataValidade" className="text-right">
-                Data de Validade
+                Data de Validade <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="dataValidade"
@@ -279,7 +308,7 @@ export function CarteirinhaModal({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
-                Status
+                Status <span className="text-red-500">*</span>
               </Label>
               <Select
                 name="status"
@@ -301,7 +330,7 @@ export function CarteirinhaModal({
             {(formData.status === "cancelada" || formData.status === "suspensa") && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="motivo_inativacao" className="text-right">
-                  Motivo
+                  Motivo <span className="text-red-500">*</span>
                 </Label>
                 <Textarea
                   id="motivo_inativacao"

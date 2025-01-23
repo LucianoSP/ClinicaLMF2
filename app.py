@@ -117,6 +117,7 @@ class Carteirinha(BaseModel):
     updated_at: Optional[datetime] = None
     status: str = None
     motivo_inativacao: str = None
+    created_by: Optional[str] = None
 
     class Config:
         json_encoders = {
@@ -1751,13 +1752,17 @@ def listar_carteirinhas_route(
         formatted_data = [
             {
                 "id": item["id"],
-                "numero": item["numero_carteirinha"],
-                "dataValidade": item["data_validade"],
+                "numero_carteirinha": item["numero_carteirinha"],
+                "data_validade": item["data_validade"],
                 "status": item["status"],
                 "motivo_inativacao": item["motivo_inativacao"],
-                "pacienteId": item["paciente_id"],
+                "paciente_id": item["paciente_id"],
+                "plano_saude_id": item["plano_saude_id"],
                 "paciente": item["pacientes"],
                 "plano_saude": item["planos_saude"],
+                "created_by": item.get("created_by"),
+                "created_at": item.get("created_at"),
+                "updated_at": item.get("updated_at")
             }
             for item in result.data
         ]
@@ -1769,54 +1774,26 @@ def listar_carteirinhas_route(
 
 
 @app.post("/carteirinhas/")
-def criar_carteirinha_route(carteirinha: Carteirinha):
+def criar_carteirinha_route(carteirinha: Carteirinha, request: Request):
     try:
-        # Generate UUID for the new carteirinha
-        new_id = str(uuid.uuid4())
+        # Pega o usuário da requisição
+        user_id = request.headers.get("user-id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID não fornecido")
 
-        # Format data for database
-        data = {
-            "id": new_id,
-            "numero_carteirinha": carteirinha.numero_carteirinha,
-            "data_validade": carteirinha.data_validade,
-            "plano_saude_id": carteirinha.plano_saude_id,
-            "paciente_id": carteirinha.paciente_id,
-        }
+        # Prepara os dados para inserção
+        carteirinha_data = carteirinha.model_dump(exclude_unset=True)
+        carteirinha_data["created_by"] = user_id
+        carteirinha_data["created_at"] = datetime.now()
+        carteirinha_data["updated_at"] = datetime.now()
 
-        # Validate if paciente exists
-        paciente = (
-            supabase.table("pacientes")
-            .select("*")
-            .eq("id", data["paciente_id"])
-            .execute()
-        )
-        if not paciente.data:
-            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+        # Insere no banco de dados
+        response = supabase.table("carteirinhas").insert(carteirinha_data).execute()
 
-        # Validate if plano exists
-        plano = (
-            supabase.table("planos_saude")
-            .select("*")
-            .eq("id", data["plano_saude_id"])
-            .execute()
-        )
-        if not plano.data:
-            raise HTTPException(status_code=404, detail="Plano de saúde não encontrado")
+        if not response.data:
+            raise HTTPException(status_code=500, detail="Erro ao criar carteirinha")
 
-        # Create carteirinha
-        response = supabase.table("carteirinhas").insert(data).execute()
-
-        created_data = response.data[0]
-
-        # Format response
-        return {
-            "id": created_data["id"],
-            "numero": created_data["numero_carteirinha"],
-            "dataValidade": created_data["data_validade"],
-            "status": created_data["status"],
-            "motivo_inativacao": created_data["motivo_inativacao"],
-            "pacienteId": created_data["paciente_id"],
-        }
+        return response.data[0]
     except Exception as e:
         logging.error(f"Erro ao criar carteirinha: {e}")
         raise HTTPException(status_code=500, detail=str(e))
