@@ -253,10 +253,10 @@ export default function FichasPresencaPage() {
     try {
       // Prepare session data
       const sessaoData = editedFicha.sessoes?.[0] || {};
-      
+
       // Format date for session
-      const formattedDate = editedFicha.data_atendimento ? 
-        new Date(editedFicha.data_atendimento).toISOString() : 
+      const formattedDate = editedFicha.data_atendimento ?
+        new Date(editedFicha.data_atendimento).toISOString() :
         selectedFicha.created_at;
 
       const payload = {
@@ -466,9 +466,9 @@ export default function FichasPresencaPage() {
         const updatedSessoes = selectedFicha.sessoes?.map(s =>
           s.id === selectedSessao.id
             ? {
-                ...updatedSessaoData,
-                procedimento_nome: updatedSessaoData.procedimento?.nome || '-'
-              }
+              ...updatedSessaoData,
+              procedimento_nome: updatedSessaoData.procedimento?.nome || '-'
+            }
             : s
         );
 
@@ -481,9 +481,9 @@ export default function FichasPresencaPage() {
         setFichas(fichas.map(ficha =>
           ficha.id === selectedFicha.id
             ? {
-                ...ficha,
-                sessoes: updatedSessoes
-              }
+              ...ficha,
+              sessoes: updatedSessoes
+            }
             : ficha
         ));
       }
@@ -495,7 +495,7 @@ export default function FichasPresencaPage() {
 
       // Fecha o modal
       setShowEditSessaoDialog(false);
-      
+
       // Recarrega os dados para garantir
       fetchFichas();
 
@@ -539,7 +539,7 @@ export default function FichasPresencaPage() {
       label: 'Arquivo',
       className: 'w-[100px] text-center',
       render: (value) => value ? (
-        <a 
+        <a
           href={value}
           target="_blank"
           rel="noopener noreferrer"
@@ -558,7 +558,7 @@ export default function FichasPresencaPage() {
     },
     {
       key: 'sessoes_status',
-      label: 'Sessões',
+      label: 'Sessões Conferidas',
       className: 'w-[120px] text-center',
       type: 'text',
       render: (_, item) => {
@@ -802,96 +802,96 @@ export default function FichasPresencaPage() {
             <DialogTitle>Editar Ficha</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-             <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-4">
-                 <div className="grid gap-2">
-                   <Label>Código da Ficha</Label>
-                   <Input
-                     value={editedFicha.codigo_ficha || ''}
-                     onChange={(e) => setEditedFicha({
-                       ...editedFicha,
-                       codigo_ficha: e.target.value
-                     })}
-                   />
-                 </div>
-                 <div className="grid gap-2">
-                   <Label>Número da Guia</Label>
-                   <Input
-                     value={editedFicha.numero_guia || ''}
-                     onChange={(e) => setEditedFicha({
-                       ...editedFicha,
-                       numero_guia: e.target.value
-                     })}
-                   />
-                 </div>
-                 <div className="grid gap-2">
-                   <Label>Nome do Paciente</Label>
-                   <Input
-                     value={editedFicha.paciente_nome || ''}
-                     onChange={(e) => setEditedFicha({
-                       ...editedFicha,
-                       paciente_nome: e.target.value
-                     })}
-                   />
-                 </div>
-                 <div className="grid gap-2">
-                   <Label>Carteirinha</Label>
-                   <Input
-                     value={editedFicha.paciente_carteirinha || ''}
-                     onChange={(e) => setEditedFicha({
-                       ...editedFicha,
-                       paciente_carteirinha: e.target.value
-                     })}
-                   />
-                 </div>
-               </div>
-               <div className="space-y-4">
-                 <div className="grid gap-2">
-                   <Label>Data da Sessão</Label>
-                   <Input
-                     type="date"
-                     value={editedFicha.data_atendimento?.split('T')[0] || ''}
-                     onChange={(e) => setEditedFicha({
-                       ...editedFicha,
-                       data_atendimento: e.target.value
-                     })}
-                   />
-                 </div>
-                 <div className="grid gap-2">
-                   <Label>Tipo de Terapia</Label>
-                   <Input
-                     value={editedFicha.sessoes?.[0]?.procedimento_id || ''}
-                     onChange={(e) => {
-                       const updatedSessoes = editedFicha.sessoes ? [...editedFicha.sessoes] : [{}];
-                       updatedSessoes[0] = { ...updatedSessoes[0], procedimento_id: e.target.value };
-                       setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
-                     }}
-                   />
-                 </div>
-                 <div className="grid gap-2">
-                   <Label>Profissional Executante</Label>
-                   <Input
-                     value={editedFicha.sessoes?.[0]?.profissional_executante || ''}
-                     onChange={(e) => {
-                       const updatedSessoes = editedFicha.sessoes ? [...editedFicha.sessoes] : [{}];
-                       updatedSessoes[0] = { ...updatedSessoes[0], profissional_executante: e.target.value };
-                       setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
-                     }}
-                   />
-                 </div>
-                 <div className="grid gap-2">
-                   <Label>Link do Arquivo Digitalizado</Label>
-                   <Input
-                     value={editedFicha.arquivo_digitalizado || ''}
-                     onChange={(e) => setEditedFicha({
-                       ...editedFicha,
-                       arquivo_digitalizado: e.target.value
-                     })}
-                     placeholder="URL do arquivo digitalizado"
-                   />
-                 </div>
-               </div>
-             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label>Código da Ficha</Label>
+                  <Input
+                    value={editedFicha.codigo_ficha || ''}
+                    onChange={(e) => setEditedFicha({
+                      ...editedFicha,
+                      codigo_ficha: e.target.value
+                    })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Número da Guia</Label>
+                  <Input
+                    value={editedFicha.numero_guia || ''}
+                    onChange={(e) => setEditedFicha({
+                      ...editedFicha,
+                      numero_guia: e.target.value
+                    })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Nome do Paciente</Label>
+                  <Input
+                    value={editedFicha.paciente_nome || ''}
+                    onChange={(e) => setEditedFicha({
+                      ...editedFicha,
+                      paciente_nome: e.target.value
+                    })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Carteirinha</Label>
+                  <Input
+                    value={editedFicha.paciente_carteirinha || ''}
+                    onChange={(e) => setEditedFicha({
+                      ...editedFicha,
+                      paciente_carteirinha: e.target.value
+                    })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label>Data da Sessão</Label>
+                  <Input
+                    type="date"
+                    value={editedFicha.data_atendimento?.split('T')[0] || ''}
+                    onChange={(e) => setEditedFicha({
+                      ...editedFicha,
+                      data_atendimento: e.target.value
+                    })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Tipo de Terapia</Label>
+                  <Input
+                    value={editedFicha.sessoes?.[0]?.procedimento_id || ''}
+                    onChange={(e) => {
+                      const updatedSessoes = editedFicha.sessoes ? [...editedFicha.sessoes] : [{}];
+                      updatedSessoes[0] = { ...updatedSessoes[0], procedimento_id: e.target.value };
+                      setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
+                    }}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Profissional Executante</Label>
+                  <Input
+                    value={editedFicha.sessoes?.[0]?.profissional_executante || ''}
+                    onChange={(e) => {
+                      const updatedSessoes = editedFicha.sessoes ? [...editedFicha.sessoes] : [{}];
+                      updatedSessoes[0] = { ...updatedSessoes[0], profissional_executante: e.target.value };
+                      setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
+                    }}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Link do Arquivo Digitalizado</Label>
+                  <Input
+                    value={editedFicha.arquivo_digitalizado || ''}
+                    onChange={(e) => setEditedFicha({
+                      ...editedFicha,
+                      arquivo_digitalizado: e.target.value
+                    })}
+                    placeholder="URL do arquivo digitalizado"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>

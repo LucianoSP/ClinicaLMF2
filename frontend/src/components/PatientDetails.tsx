@@ -255,7 +255,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
     },
     {
       key: 'data_atendimento',
-      label: 'Data',
+      label: 'Data Atendimento',
       render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
@@ -268,7 +268,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
     },
     {
       key: 'sessoes',
-      label: 'Sessões',
+      label: 'Sessões Executadas',
       render: (_, item) => {
         const guia = patient.guias?.find(g => g.numero_guia === item.numero_guia);
         if (!guia) return null;
@@ -284,7 +284,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
       key: 'arquivo_digitalizado',
       label: 'Arquivo',
       render: (value) => value ? (
-        <a 
+        <a
           href={value as string}
           target="_blank"
           rel="noopener noreferrer"

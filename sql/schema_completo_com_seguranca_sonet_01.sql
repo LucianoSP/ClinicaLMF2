@@ -3,10 +3,19 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Tipos enumerados
-
+CREATE TYPE status_ficha AS ENUM ('pendente', 'conferido', 'cancelado');
 CREATE TYPE status_sessao AS ENUM ('pendente', 'conferida');
 CREATE TYPE tipo_guia AS ENUM ('sp_sadt', 'consulta', 'internacao');
-CREATE TYPE status_guia AS ENUM ('pendente', 'em_andamento', 'concluida', 'cancelada');
+CREATE TYPE status_guia AS ENUM (
+    'rascunho',
+    'pendente_autorizacao',
+    'autorizada',
+    'em_andamento',
+    'suspensa',
+    'concluida',
+    'cancelada',
+    'expirada'
+);
 CREATE TYPE status_carteirinha AS ENUM ('ativa', 'vencida', 'cancelada', 'suspensa', 'em_analise');
 CREATE TYPE status_divergencia AS ENUM ('pendente', 'em_analise', 'resolvida', 'cancelada');
 CREATE TYPE tipo_divergencia AS ENUM (
@@ -195,7 +204,7 @@ CREATE TABLE IF NOT EXISTS fichas_presenca (
     arquivo_digitalizado text,
     arquivo_hash text,
     observacoes text,
-    status text DEFAULT 'pendente',
+    status status_ficha DEFAULT 'pendente',
     data_atendimento date NOT NULL,
     sessoes_conferidas integer DEFAULT 0,
     lote_faturamento_id uuid REFERENCES lotes_faturamento(id),
