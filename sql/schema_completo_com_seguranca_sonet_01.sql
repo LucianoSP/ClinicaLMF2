@@ -91,8 +91,8 @@ CREATE TABLE IF NOT EXISTS procedimentos (
     ativo boolean DEFAULT true,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES usuarios(id),
-    updated_by uuid REFERENCES usuarios(id)
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
 );
 
 -- Dados iniciais de procedimentos
@@ -208,24 +208,24 @@ CREATE TABLE IF NOT EXISTS sessoes (
     ficha_presenca_id uuid REFERENCES fichas_presenca(id) ON DELETE CASCADE,
     data_sessao date NOT NULL,
     possui_assinatura boolean DEFAULT false,
-    tipo_terapia text,
+    procedimento_id uuid REFERENCES procedimentos(id),
     profissional_executante text,
     valor_sessao numeric(10,2),
     status text DEFAULT 'pendente',
     status_faturamento text DEFAULT 'pendente',
     data_faturamento timestamptz,
-    faturado_por uuid REFERENCES usuarios(id),
+    faturado_por uuid REFERENCES auth.users(id),
     numero_lote text,
     valor_faturado numeric(10,2),
     observacoes_sessao text,
     executado boolean DEFAULT false,
     data_execucao date,
-    executado_por uuid REFERENCES usuarios(id),
-    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
+    executado_por uuid REFERENCES auth.users(id),
+    paciente_id uuid REFERENCES pacientes(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES usuarios(id),
-    updated_by uuid REFERENCES usuarios(id)
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
 );
 
 -- Execuções
@@ -498,6 +498,28 @@ CREATE POLICY usuarios_policy ON usuarios
 CREATE POLICY guias_policy ON guias
     USING (created_by IN (SELECT id FROM usuarios WHERE auth_user_id = auth.uid()) OR 
            EXISTS (SELECT 1 FROM usuarios u WHERE u.auth_user_id = auth.uid() AND u.tipo_usuario = 'admin'));
+
+-- Políticas para Procedimentos
+CREATE POLICY procedimentos_policy ON procedimentos
+    USING (created_by = auth.uid() OR 
+           EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.role = 'admin'));
+
+ALTER TABLE procedimentos ENABLE ROW LEVEL SECURITY;
+
+-- Função para atualizar o updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Criar trigger para atualizar o updated_at em procedimentos
+CREATE TRIGGER update_procedimentos_updated_at
+    BEFORE UPDATE ON procedimentos
+    FOR EACH ROW
+    EXECUTE PROCEDURE update_updated_at_column();
 
 -- Refresh da View Materializada
 CREATE OR REPLACE FUNCTION refresh_vw_resumo_faturamento()

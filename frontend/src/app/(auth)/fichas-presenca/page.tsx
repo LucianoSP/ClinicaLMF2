@@ -17,14 +17,23 @@ import * as XLSX from 'xlsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 // Interfaces e Tipos
+interface Procedimento {
+  id: string;
+  codigo: string;
+  nome: string;
+  descricao?: string;
+}
+
 interface Sessao {
   id: string;
   ficha_presenca_id: string;
   data_sessao: string;
   possui_assinatura: boolean;
-  tipo_terapia: string;
+  procedimento_id: string;
+  procedimento?: Procedimento;
   profissional_executante: string;
   valor_sessao?: number;
   status: 'pendente' | 'conferida' | string;
@@ -89,6 +98,7 @@ const formatDate = (dateStr: string | null | undefined) => {
 export default function FichasPresencaPage() {
   // Estados
   const [fichas, setFichas] = useState<FichaPresenca[]>([]);
+  const [procedimentos, setProcedimentos] = useState<Procedimento[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -120,49 +130,83 @@ export default function FichasPresencaPage() {
 
   const { toast } = useToast();
 
+  const supabase = createClientComponentClient();
+
   // Função principal para buscar dados
   const fetchFichas = async () => {
     setLoading(true);
     try {
-      const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca`;
-      const params = new URLSearchParams();
+      let query = supabase
+        .from('fichas_presenca')
+        .select(`
+          *,
+          sessoes (
+            *,
+            procedimentos (
+              id,
+              nome
+            )
+          )
+        `)
+        .eq('status', statusFilter)
+        .ilike('paciente_nome', `%${debouncedSearchTerm}%`)
+        .order('created_at', { ascending: false })
+        .range((page - 1) * perPage, page * perPage - 1);
 
-      params.append('limit', perPage.toString());
-      params.append('offset', ((page - 1) * perPage).toString());
+      const { data, error, count } = await query;
 
-      if (statusFilter !== 'todas') {
-        params.append('status', statusFilter);
-      }
+      if (error) throw error;
 
-      if (debouncedSearchTerm.trim().length >= 2) {
-        params.append('search', debouncedSearchTerm.trim());
-      }
-
-      const response = await fetch(`${baseUrl}?${params.toString()}`);
-      if (!response.ok) throw new Error('Falha ao buscar fichas');
-
-      const result = await response.json();
-      const fichasFormatadas = result.fichas.map((ficha: FichaPresenca) => ({
+      const fichasFormatadas = data?.map((ficha: any) => ({
         ...ficha,
-        created_at: formatDate(ficha.created_at)
-      }));
+        created_at: formatDate(ficha.created_at),
+        sessoes: ficha.sessoes?.map((sessao: any) => ({
+          ...sessao,
+          procedimento_nome: sessao.procedimentos?.nome || '-'
+        }))
+      })) || [];
 
       setFichas(fichasFormatadas);
-      setTotalPages(Math.ceil(result.total / perPage));
-      setTotalRecords(result.total);
+      setTotalPages(Math.ceil((count || 0) / perPage));
+      setTotalRecords(count || 0);
 
     } catch (error) {
+      console.error('Erro ao buscar fichas:', error);
       toast({
         title: "Erro",
-        description: "Falha ao carregar as fichas de presença",
+        description: "Falha ao carregar fichas",
         variant: "destructive",
       });
-      setFichas([]);
-      setTotalPages(1);
-      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Função para buscar procedimentos
+  const fetchProcedimentos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('procedimentos')
+        .select('id, codigo, nome, descricao')
+        .eq('ativo', true)
+        .order('nome');
+
+      if (error) throw error;
+      setProcedimentos(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar procedimentos:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar procedimentos",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Função para buscar nome do procedimento
+  const getProcedimentoNome = (tipo_terapia: string) => {
+    const procedimento = procedimentos.find(p => p.id === tipo_terapia);
+    return procedimento?.nome || tipo_terapia || '-';
   };
 
   // Effect para buscar dados quando filtros mudam
@@ -170,24 +214,27 @@ export default function FichasPresencaPage() {
     fetchFichas();
   }, [page, perPage, debouncedSearchTerm, statusFilter]);
 
+  useEffect(() => {
+    fetchProcedimentos();
+  }, []);
+
   // Handlers
   const handleDelete = async () => {
     if (!selectedFicha) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${selectedFicha.id}`, {
-        method: 'DELETE',
-      });
+      const { error } = await supabase
+        .from('fichas_presenca')
+        .delete()
+        .eq('id', selectedFicha.id);
 
-      if (response.ok) {
-        toast({
-          title: "Sucesso",
-          description: "Ficha excluída com sucesso",
-        });
-        fetchFichas();
-      } else {
-        throw new Error('Falha ao excluir ficha');
-      }
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Ficha excluída com sucesso",
+      });
+      fetchFichas();
     } catch (error) {
       toast({
         title: "Erro",
@@ -222,16 +269,12 @@ export default function FichasPresencaPage() {
         }]
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${selectedFicha.id}`, {
-        method: 'PUT',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const { error } = await supabase
+        .from('fichas_presenca')
+        .update(payload)
+        .eq('id', selectedFicha.id);
 
-      if (!response.ok) throw new Error('Falha ao atualizar ficha');
+      if (error) throw error;
 
       toast({
         title: "Sucesso",
@@ -263,15 +306,12 @@ export default function FichasPresencaPage() {
     if (!sessaoParaConferir) return;
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/sessoes/${sessaoParaConferir.id}/conferir`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      const { error } = await supabase
+        .from('sessoes')
+        .update({ status: 'conferida' })
+        .eq('id', sessaoParaConferir.id);
 
-      if (!response.ok) throw new Error('Falha ao conferir sessão');
+      if (error) throw error;
 
       toast({
         title: "Sucesso",
@@ -318,27 +358,17 @@ export default function FichasPresencaPage() {
         formData.append('files', file);
       });
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload-pdf`, {
-        method: 'POST',
-        body: formData,
-      });
+      const { data, error } = await supabase.storage
+        .from('pdfs')
+        .upload('uploads/', formData, {
+          upsert: true,
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Falha ao fazer upload dos arquivos');
-      }
-
-      const results = await response.json();
-      
-      // Verifica se algum arquivo teve erro
-      const errors = results.filter(result => result.status === 'error');
-      if (errors.length > 0) {
-        throw new Error(errors[0].message || 'Falha ao processar alguns arquivos');
-      }
+      if (error) throw error;
 
       toast({
         title: "Sucesso",
-        description: `${results.length} arquivo(s) enviado(s) e processado(s) com sucesso`,
+        description: `${data.length} arquivo(s) enviado(s) e processado(s) com sucesso`,
       });
 
       fetchFichas();
@@ -392,22 +422,41 @@ export default function FichasPresencaPage() {
     if (!selectedSessao || !editedSessao) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessoes/${selectedSessao.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editedSessao),
-      });
+      const { error } = await supabase
+        .from('sessoes')
+        .update({
+          data_sessao: editedSessao.data_sessao,
+          procedimento_id: editedSessao.procedimento_id,
+          profissional_executante: editedSessao.profissional_executante,
+          valor_sessao: editedSessao.valor_sessao,
+          observacoes_sessao: editedSessao.observacoes_sessao,
+          possui_assinatura: editedSessao.possui_assinatura
+        })
+        .eq('id', selectedSessao.id);
 
-      if (!response.ok) throw new Error('Falha ao atualizar sessão');
+      if (error) throw error;
 
-      const updatedSessao = await response.json();
+      // Buscar a sessão atualizada com o nome do procedimento
+      const { data: updatedSessaoData, error: fetchError } = await supabase
+        .from('sessoes')
+        .select(`
+          *,
+          procedimento:procedimentos(id, nome)
+        `)
+        .eq('id', selectedSessao.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const updatedSessao = {
+        ...updatedSessaoData,
+        procedimento_nome: updatedSessaoData.procedimento?.nome
+      };
 
       // Atualiza o estado local
       if (selectedFicha) {
         const updatedSessoes = selectedFicha.sessoes?.map(s =>
-          s.id === selectedSessao.id ? { ...s, ...updatedSessao.data } : s
+          s.id === selectedSessao.id ? updatedSessao : s
         );
         setSelectedFicha({
           ...selectedFicha,
@@ -421,6 +470,7 @@ export default function FichasPresencaPage() {
       });
       setShowEditSessaoDialog(false);
     } catch (error) {
+      console.error('Erro ao atualizar sessão:', error);
       toast({
         title: "Erro",
         description: "Falha ao atualizar sessão",
@@ -780,10 +830,10 @@ export default function FichasPresencaPage() {
                  <div className="grid gap-2">
                    <Label>Tipo de Terapia</Label>
                    <Input
-                     value={editedFicha.sessoes?.[0]?.tipo_terapia || ''}
+                     value={editedFicha.sessoes?.[0]?.procedimento_id || ''}
                      onChange={(e) => {
                        const updatedSessoes = editedFicha.sessoes ? [...editedFicha.sessoes] : [{}];
-                       updatedSessoes[0] = { ...updatedSessoes[0], tipo_terapia: e.target.value };
+                       updatedSessoes[0] = { ...updatedSessoes[0], procedimento_id: e.target.value };
                        setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
                      }}
                    />
@@ -861,7 +911,7 @@ export default function FichasPresencaPage() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="p-2 text-left">Data</th>
-                    <th className="p-2 text-left">Tipo Terapia</th>
+                    <th className="p-2 text-left">Procedimento</th>
                     <th className="p-2 text-left">Profissional</th>
                     <th className="p-2 text-center">Assinatura</th>
                     <th className="p-2 text-center">Status</th>
@@ -872,7 +922,7 @@ export default function FichasPresencaPage() {
                   {selectedFicha?.sessoes?.map((sessao) => (
                     <tr key={sessao.id} className="border-b">
                       <td className="p-2">{formatDate(sessao.data_sessao)}</td>
-                      <td className="p-2">{sessao.tipo_terapia || '-'}</td>
+                      <td className="p-2">{sessao.procedimento?.nome || '-'}</td>
                       <td className="p-2">{sessao.profissional_executante || '-'}</td>
                       <td className="p-2 text-center">
                         {sessao.possui_assinatura ? (
@@ -896,7 +946,6 @@ export default function FichasPresencaPage() {
                             size="sm"
                             onClick={() => handleConferirSessao(sessao)}
                             disabled={sessao.status === 'conferida'}
-                            title="Conferir Sessão"
                           >
                             <FiCheck className="w-4 h-4" />
                           </Button>
@@ -908,7 +957,6 @@ export default function FichasPresencaPage() {
                               setEditedSessao({ ...sessao });
                               setShowEditSessaoDialog(true);
                             }}
-                            title="Editar Sessão"
                           >
                             <FiEdit className="w-4 h-4 text-[#b49d6b]" />
                           </Button>
@@ -919,7 +967,6 @@ export default function FichasPresencaPage() {
                               setSessaoParaExcluir(sessao);
                               setShowDeleteSessaoDialog(true);
                             }}
-                            title="Excluir Sessão"
                           >
                             <FiTrash2 className="w-4 h-4 text-red-500" />
                           </Button>
@@ -952,14 +999,22 @@ export default function FichasPresencaPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label>Tipo de Terapia</Label>
-              <Input
-                value={editedSessao.tipo_terapia || ''}
+              <Label>Procedimento</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1"
+                value={editedSessao.procedimento_id || ''}
                 onChange={(e) => setEditedSessao({
                   ...editedSessao,
-                  tipo_terapia: e.target.value
+                  procedimento_id: e.target.value
                 })}
-              />
+              >
+                <option value="">Selecione um procedimento</option>
+                {procedimentos.map((proc) => (
+                  <option key={proc.id} value={proc.id}>
+                    {proc.nome}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="grid gap-2">
               <Label>Profissional Executante</Label>
@@ -1041,10 +1096,13 @@ export default function FichasPresencaPage() {
               onClick={async () => {
                 if (!sessaoParaExcluir) return;
                 try {
-                  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessoes/${sessaoParaExcluir.id}`, {
-                    method: 'DELETE',
-                  });
-                  if (!response.ok) throw new Error('Falha ao excluir sessão');
+                  const { error } = await supabase
+                    .from('sessoes')
+                    .delete()
+                    .eq('id', sessaoParaExcluir.id);
+
+                  if (error) throw error;
+
                   if (selectedFicha && selectedFicha.sessoes) {
                     const updatedSessoes = selectedFicha.sessoes.filter(s => s.id !== sessaoParaExcluir.id);
                     setSelectedFicha({ ...selectedFicha, sessoes: updatedSessoes });
