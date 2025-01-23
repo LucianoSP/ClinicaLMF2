@@ -33,7 +33,7 @@ import { Paciente } from '@/types/paciente';
 import { Procedimento } from '@/types/procedimento';
 import { Carteirinha } from '@/types/carteirinha';
 import { listarPacientes } from '@/services/pacienteService';
-import { listarCarteirinhas } from '@/services/carteirinhaService';
+import { listarCarteirinhasPorPaciente } from '@/services/carteirinhaService';
 import { listarProcedimentos } from '@/services/procedimentoService';
 import { toast } from '@/components/ui/use-toast';
 
@@ -108,7 +108,7 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
     if (pacienteId) {
       const fetchCarteirinhas = async () => {
         try {
-          const data = await listarCarteirinhas(pacienteId);
+          const data = await listarCarteirinhasPorPaciente(pacienteId);
           setCarteirinhas(data || []);
         } catch (error) {
           console.error('Erro ao carregar carteirinhas:', error);

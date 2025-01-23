@@ -91,11 +91,14 @@ export async function listarGuias(page = 1, limit = 10, search?: string) {
 }
 
 export async function criarGuia(data: GuiaFormData) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || '';
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'user-id': supabase.auth.getUser()?.data?.user?.id || '',
+            'user-id': userId,
         },
         body: JSON.stringify(data),
     });
@@ -108,11 +111,14 @@ export async function criarGuia(data: GuiaFormData) {
 }
 
 export async function atualizarGuia(id: string, data: GuiaFormData) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || '';
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'user-id': supabase.auth.getUser()?.data?.user?.id || '',
+            'user-id': userId,
         },
         body: JSON.stringify(data),
     });

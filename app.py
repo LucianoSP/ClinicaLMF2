@@ -119,33 +119,30 @@ class Carteirinha(BaseModel):
     motivo_inativacao: str = None
     created_by: Optional[str] = None
 
-    class Config:
-        json_encoders = {
+    model_config = {
+        "json_encoders": {
             datetime: lambda v: v.isoformat() if v else None,
             date: lambda v: v.isoformat() if v else None,
         }
+    }
 
-    @validator("data_validade")
+    @validator('data_validade')
     def parse_data_validade(cls, v):
         if not v:
             return None
         try:
-            # Se já é uma string no formato YYYY-MM-DD, retorna como está
-            if isinstance(v, str) and re.match(r"^\d{4}-\d{2}-\d{2}$", v):
-                return v
-            # Se é um objeto date, converte para string
-            if isinstance(v, date):
-                return v.isoformat()
-            # Tenta converter para date e depois para string
-            return datetime.strptime(v, "%Y-%m-%d").date().isoformat()
-        except (ValueError, TypeError):
-            raise ValueError("Data inválida. Use o formato YYYY-MM-DD")
-
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            date: lambda v: v.isoformat(),
-        }
+            # Tenta converter a data para o formato correto
+            if isinstance(v, str):
+                # Se já é uma string ISO, retorna como está
+                if 'T' in v or '-' in v:
+                    return v
+                # Caso contrário, tenta converter de DD/MM/YYYY para YYYY-MM-DD
+                dia, mes, ano = v.split('/')
+                return f"{ano}-{mes.zfill(2)}-{dia.zfill(2)}"
+            return v
+        except Exception as e:
+            logging.error(f"Erro ao converter data: {e}")
+            return v
 
 
 # Rotas para Pacientes
@@ -1869,8 +1866,7 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
 
         if not response.data:
             raise HTTPException(
-                status_code=500,
-                detail="Erro ao atualizar carteirinha no banco de dados",
+                status_code=500, detail="Erro ao atualizar carteirinha no banco de dados"
             )
 
         updated_data = response.data[0]
@@ -2015,11 +2011,12 @@ class Guia(BaseModel):
     paciente: Optional[dict] = None
     procedimento: Optional[dict] = None
 
-    class Config:
-        json_encoders = {
+    model_config = {
+        "json_encoders": {
             datetime: lambda v: v.isoformat() if v else None,
             date: lambda v: v.isoformat() if v else None,
         }
+    }
 
 
 @app.get("/procedimentos/")
@@ -2102,8 +2099,11 @@ def criar_guia_route(guia: Guia, request: Request):
         guia_data = guia.model_dump(exclude_unset=True)
         guia_data["created_by"] = user_id
         guia_data["updated_by"] = user_id
-        guia_data["created_at"] = datetime.now()
-        guia_data["updated_at"] = datetime.now()
+        
+        # Converte as datas para string ISO
+        current_time = datetime.now().isoformat()
+        guia_data["created_at"] = current_time
+        guia_data["updated_at"] = current_time
 
         # Valida se a carteirinha existe
         carteirinha = supabase.table("carteirinhas").select("*").eq("id", guia_data["carteirinha_id"]).execute()
