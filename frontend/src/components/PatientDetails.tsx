@@ -267,6 +267,20 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
       label: 'Guia'
     },
     {
+      key: 'sessoes',
+      label: 'Sessões',
+      render: (_, item) => {
+        const guia = patient.guias?.find(g => g.numero_guia === item.numero_guia);
+        if (!guia) return null;
+        return (
+          <ProgressBar
+            value={guia.quantidade_executada}
+            max={guia.quantidade_autorizada}
+          />
+        );
+      }
+    },
+    {
       key: 'arquivo_digitalizado',
       label: 'Arquivo',
       render: (value) => value ? (
