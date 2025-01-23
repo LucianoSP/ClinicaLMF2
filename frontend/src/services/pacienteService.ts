@@ -51,20 +51,13 @@ export async function listarPacientes(
 }
 
 export async function criarPaciente(paciente: Paciente): Promise<Paciente> {
-  const response = await api.post("/pacientes", {
-    nome: paciente.nome,
-    nome_responsavel: paciente.nome_responsavel,
-    tipo_responsavel: paciente.tipo_responsavel,
-    data_nascimento: paciente.data_nascimento
-      ? paciente.data_nascimento.split("T")[0]
-      : null,
-    cpf: paciente.cpf,
-    telefone: paciente.telefone,
-    email: paciente.email,
-    status: paciente.status,
-    observacoes_clinicas: paciente.observacoes_clinicas,
-  });
-  return response.data;
+  try {
+    const response = await api.post("/pacientes/", paciente);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar paciente:", error);
+    throw error;
+  }
 }
 
 export async function atualizarPaciente(

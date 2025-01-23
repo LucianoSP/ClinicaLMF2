@@ -340,32 +340,31 @@ def listar_guias(
     Retorna todas as guias com suporte a paginação e busca.
     """
     try:
-        query = supabase.table('guias').select(
-            'id, numero_guia, data_emissao, data_validade, tipo, status, ' +
-            'paciente_carteirinha, paciente_nome, quantidade_autorizada, quantidade_executada, ' +
-            'procedimento_codigo, procedimento_nome, profissional_solicitante, profissional_executante, ' +
-            'observacoes, created_at, updated_at',
-            count='exact'
+        query = supabase.table("guias").select(
+            "id, numero_guia, data_emissao, data_validade, tipo, status, "
+            + "paciente_carteirinha, paciente_nome, quantidade_autorizada, quantidade_executada, "
+            + "procedimento_codigo, procedimento_nome, profissional_solicitante, profissional_executante, "
+            + "observacoes, created_at, updated_at",
+            count="exact",
         )
 
         if search:
             query = query.or_(
-                f'numero_guia.ilike.%{search}%,paciente_nome.ilike.%{search}%'
+                f"numero_guia.ilike.%{search}%,paciente_nome.ilike.%{search}%"
             )
 
         # Primeiro, pegamos o total de registros
         total = query.execute().count
 
         # Depois, aplicamos a paginação
-        query = query.order('created_at', desc=True) \
-            .range(offset, offset + limit - 1)
+        query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
 
         response = query.execute()
 
         return {
-            'items': response.data,
-            'total': total,
-            'pages': ceil(total / limit) if total > 0 else 0
+            "items": response.data,
+            "total": total,
+            "pages": ceil(total / limit) if total > 0 else 0,
         }
 
     except Exception as e:
@@ -379,25 +378,30 @@ def criar_guia(dados: Dict):
     """
     try:
         # Adiciona timestamps
-        dados['created_at'] = datetime.now(timezone.utc)
-        dados['updated_at'] = datetime.now(timezone.utc)
+        dados["created_at"] = datetime.now(timezone.utc)
+        dados["updated_at"] = datetime.now(timezone.utc)
 
         # Garante que quantidade_executada começa em 0
-        dados['quantidade_executada'] = 0
+        dados["quantidade_executada"] = 0
 
         # Define status inicial como pendente se não especificado
-        if 'status' not in dados:
-            dados['status'] = 'pendente'
+        if "status" not in dados:
+            dados["status"] = "pendente"
 
         # Valida o tipo da guia
-        if dados.get('tipo') not in ['sp_sadt', 'consulta', 'internacao']:
+        if dados.get("tipo") not in ["sp_sadt", "consulta", "internacao"]:
             raise Exception("Tipo de guia inválido")
 
         # Valida o status da guia
-        if dados.get('status') not in ['pendente', 'em_andamento', 'concluida', 'cancelada']:
+        if dados.get("status") not in [
+            "pendente",
+            "em_andamento",
+            "concluida",
+            "cancelada",
+        ]:
             raise Exception("Status de guia inválido")
 
-        response = supabase.table('guias').insert(dados).execute()
+        response = supabase.table("guias").insert(dados).execute()
 
         if not response.data:
             raise Exception("Falha ao criar guia")
@@ -414,24 +418,30 @@ def atualizar_guia(guia_id: str, dados: Dict):
     """
     try:
         # Atualiza o timestamp
-        dados['updated_at'] = datetime.now(timezone.utc)
+        dados["updated_at"] = datetime.now(timezone.utc)
 
         # Não permite atualização direta de quantidade_executada
-        if 'quantidade_executada' in dados:
-            del dados['quantidade_executada']
+        if "quantidade_executada" in dados:
+            del dados["quantidade_executada"]
 
         # Valida o tipo da guia se estiver sendo atualizado
-        if dados.get('tipo') and dados['tipo'] not in ['sp_sadt', 'consulta', 'internacao']:
+        if dados.get("tipo") and dados["tipo"] not in [
+            "sp_sadt",
+            "consulta",
+            "internacao",
+        ]:
             raise Exception("Tipo de guia inválido")
 
         # Valida o status da guia se estiver sendo atualizado
-        if dados.get('status') and dados['status'] not in ['pendente', 'em_andamento', 'concluida', 'cancelada']:
+        if dados.get("status") and dados["status"] not in [
+            "pendente",
+            "em_andamento",
+            "concluida",
+            "cancelada",
+        ]:
             raise Exception("Status de guia inválido")
 
-        response = supabase.table('guias') \
-            .update(dados) \
-            .eq('id', guia_id) \
-            .execute()
+        response = supabase.table("guias").update(dados).eq("id", guia_id).execute()
 
         if not response.data:
             raise Exception("Falha ao atualizar guia")
@@ -448,18 +458,14 @@ def excluir_guia(guia_id: str):
     """
     try:
         # Primeiro verifica se existem execuções relacionadas
-        execucoes = supabase.table('execucoes') \
-            .select('id') \
-            .eq('guia_id', guia_id) \
-            .execute()
+        execucoes = (
+            supabase.table("execucoes").select("id").eq("guia_id", guia_id).execute()
+        )
 
         if execucoes.data:
             raise Exception("Não é possível excluir uma guia que possui execuções")
 
-        response = supabase.table('guias') \
-            .delete() \
-            .eq('id', guia_id) \
-            .execute()
+        response = supabase.table("guias").delete().eq("id", guia_id).execute()
 
         if not response.data:
             raise Exception("Falha ao excluir guia")
@@ -882,31 +888,34 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
         if not paciente_response.data:
             print("Paciente não encontrado")
             return {
-                "items": [], 
-                "total": 0, 
+                "items": [],
+                "total": 0,
                 "plano": None,
                 "carteirinhas": [],
-                "fichas": []
+                "fichas": [],
             }
 
         paciente = paciente_response.data[0]
-        
+
         # Processa somente os campos necessários das carteirinhas
         carteirinhas = paciente.get("carteirinhas", [])
         carteirinhas_processadas = []
-        
+
         for carteirinha in carteirinhas:
             plano_saude = carteirinha.get("planos_saude", {})
-            carteirinhas_processadas.append({
-                "numero": carteirinha.get("numero_carteirinha"),
-                "data_emissao": formatar_data(carteirinha.get("data_emissao")),
-                "data_validade": formatar_data(carteirinha.get("data_validade")),
-                "status": carteirinha.get("status", "ativo"),
-                "plano_saude": {
-                    "id": plano_saude.get("id"),
-                    "nome": plano_saude.get("nome")
-                } if plano_saude else None
-            })
+            carteirinhas_processadas.append(
+                {
+                    "numero": carteirinha.get("numero_carteirinha"),
+                    "data_emissao": formatar_data(carteirinha.get("data_emissao")),
+                    "data_validade": formatar_data(carteirinha.get("data_validade")),
+                    "status": carteirinha.get("status", "ativo"),
+                    "plano_saude": (
+                        {"id": plano_saude.get("id"), "nome": plano_saude.get("nome")}
+                        if plano_saude
+                        else None
+                    ),
+                }
+            )
 
         # Resto do código permanece igual...
         carteirinha = carteirinhas[0] if carteirinhas else None
@@ -916,7 +925,7 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
             plano = carteirinha["planos_saude"]
 
         numero_carteirinha = carteirinha["numero_carteirinha"] if carteirinha else None
-        
+
         if numero_carteirinha:
             # Busca as guias
             guias_response = (
@@ -962,26 +971,26 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 "total": len(guias),
                 "plano": plano,
                 "fichas": fichas,
-                "carteirinhas": carteirinhas_processadas
+                "carteirinhas": carteirinhas_processadas,
             }
 
         return {
-            "items": [], 
-            "total": 0, 
+            "items": [],
+            "total": 0,
             "plano": None,
             "carteirinhas": carteirinhas_processadas,
-            "fichas": []
+            "fichas": [],
         }
 
     except Exception as e:
         print(f"Erro ao listar guias do paciente: {e}")
         traceback.print_exc()
         return {
-            "items": [], 
-            "total": 0, 
+            "items": [],
+            "total": 0,
             "plano": None,
             "carteirinhas": [],
-            "fichas": []
+            "fichas": [],
         }
 
 
@@ -1484,7 +1493,9 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
 
         resultado = {
             "total_carteirinhas": len(carteirinhas),
-            "carteirinhas_ativas": len([c for c in carteirinhas if c["status"] == "ativa"]),
+            "carteirinhas_ativas": len(
+                [c for c in carteirinhas if c["status"] == "ativa"]
+            ),
             "total_guias": len(guias),
             "guias_ativas": guias_por_status["pendente"]
             + guias_por_status["em_andamento"],
@@ -1612,38 +1623,36 @@ def listar_carteirinhas(
     offset: int = 0,
     search: Optional[str] = None,
     plano_id: Optional[str] = None,
-    status: Optional[str] = None
+    status: Optional[str] = None,
 ) -> Dict:
     """Lista todas as carteirinhas com suporte a paginação, busca e filtros."""
     try:
-        query = supabase.table('carteirinhas').select(
-            'id,'
-            'paciente_id,'
-            'plano_saude_id,'
-            'numero_carteirinha,'
-            'data_validade,'
-            'status,'
-            'motivo_inativacao,'
-            'created_at,'
-            'updated_at,'
-            'pacientes(id,nome,cpf,email,telefone,data_nascimento,nome_responsavel),'
-            'planos_saude(id,nome,ativo,codigo)'
+        query = supabase.table("carteirinhas").select(
+            "id,"
+            "paciente_id,"
+            "plano_saude_id,"
+            "numero_carteirinha,"
+            "data_validade,"
+            "status,"
+            "motivo_inativacao,"
+            "created_at,"
+            "updated_at,"
+            "pacientes(id,nome,cpf,email,telefone,data_nascimento,nome_responsavel),"
+            "planos_saude(id,nome,ativo,codigo)"
         )
 
         # Aplica filtros
         if search:
-            query = query.or_(
-                f'numero_carteirinha.ilike.%{search}%'
-            )
-        
+            query = query.or_(f"numero_carteirinha.ilike.%{search}%")
+
         if plano_id:
-            query = query.eq('plano_saude_id', plano_id)
-            
+            query = query.eq("plano_saude_id", plano_id)
+
         if status:
-            query = query.eq('status', status)
+            query = query.eq("status", status)
 
         # Ordenação
-        query = query.order('created_at', desc=True)
+        query = query.order("created_at", desc=True)
 
         # Contagem total antes da paginação
         total = len(query.execute().data)
@@ -1653,90 +1662,109 @@ def listar_carteirinhas(
             query = query.range(offset, offset + limit - 1)
 
         response = query.execute()
-        logging.info(f'Dados retornados do Supabase: {response.data}')
+        logging.info(f"Dados retornados do Supabase: {response.data}")
 
         return {
-            'items': response.data,
-            'total': total,
-            'pages': ceil(total / limit) if limit > 0 else 1
+            "items": response.data,
+            "total": total,
+            "pages": ceil(total / limit) if limit > 0 else 1,
         }
 
     except Exception as e:
-        logging.error(f'Erro ao listar carteirinhas: {e}')
+        logging.error(f"Erro ao listar carteirinhas: {e}")
         raise e
 
 
 # Funções para Pacientes
-def criar_paciente(dados: Dict) -> Dict:
+def criar_paciente(dados: Dict):
     """Cria um novo paciente."""
+    try:
+        # Adiciona timestamps
+        dados["created_at"] = datetime.now(timezone.utc).isoformat()
+        dados["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        # Gera um UUID para o id
+        dados["id"] = str(uuid.uuid4())
+
+        response = supabase.table("pacientes").insert(dados).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logging.error(f"Erro ao criar paciente: {str(e)}")
+        return None
+
 
 # Funções para Carteirinhas
 def criar_carteirinha(dados: Dict) -> Dict:
     """Cria uma nova carteirinha (cartão do plano de saúde)."""
     try:
         # Validar dados obrigatórios
-        campos_obrigatorios = ['paciente_id', 'plano_saude_id', 'numero_carteirinha']
+        campos_obrigatorios = ["paciente_id", "plano_saude_id", "numero_carteirinha"]
         for campo in campos_obrigatorios:
             if campo not in dados:
-                raise ValueError(f'Campo obrigatório ausente: {campo}')
+                raise ValueError(f"Campo obrigatório ausente: {campo}")
 
         # Adiciona timestamps
-        dados['created_at'] = datetime.now(timezone.utc).isoformat()
-        dados['updated_at'] = datetime.now(timezone.utc).isoformat()
+        dados["created_at"] = datetime.now(timezone.utc).isoformat()
+        dados["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         # Gera um UUID para o id se não fornecido
-        if 'id' not in dados:
-            dados['id'] = str(uuid.uuid4())
+        if "id" not in dados:
+            dados["id"] = str(uuid.uuid4())
 
         # Define valor padrão para status se não fornecido
-        if 'status' not in dados:
-            dados['status'] = 'ativa'
+        if "status" not in dados:
+            dados["status"] = "ativa"
 
-        response = supabase.table('carteirinhas').insert(dados).execute()
+        response = supabase.table("carteirinhas").insert(dados).execute()
         return response.data[0] if response.data else None
 
     except Exception as e:
-        logging.error(f'Erro ao criar carteirinha: {e}')
+        logging.error(f"Erro ao criar carteirinha: {e}")
         raise e
+
 
 def atualizar_carteirinha(carteirinha_id: str, dados: Dict) -> Dict:
     """Atualiza uma carteirinha existente."""
     try:
         # Remove campos que não devem ser atualizados manualmente
         dados_atualizacao = dados.copy()
-        campos_remover = ['created_at', 'id']
+        campos_remover = ["created_at", "id"]
         for campo in campos_remover:
             dados_atualizacao.pop(campo, None)
-            
-        dados_atualizacao['updated_at'] = datetime.now(timezone.utc).isoformat()
+
+        dados_atualizacao["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         # Se o status for cancelada ou suspensa, garante que tenha motivo
-        if dados_atualizacao.get('status') in ['cancelada', 'suspensa']:
-            if not dados_atualizacao.get('motivo_inativacao'):
-                raise ValueError('Motivo é obrigatório para carteirinhas canceladas ou suspensas')
+        if dados_atualizacao.get("status") in ["cancelada", "suspensa"]:
+            if not dados_atualizacao.get("motivo_inativacao"):
+                raise ValueError(
+                    "Motivo é obrigatório para carteirinhas canceladas ou suspensas"
+                )
 
-        response = supabase.table('carteirinhas')\
-            .update(dados_atualizacao)\
-            .eq('id', carteirinha_id)\
+        response = (
+            supabase.table("carteirinhas")
+            .update(dados_atualizacao)
+            .eq("id", carteirinha_id)
             .execute()
+        )
 
         return response.data[0] if response.data else None
 
     except Exception as e:
-        logging.error(f'Erro ao atualizar carteirinha: {e}')
+        logging.error(f"Erro ao atualizar carteirinha: {e}")
         raise e
+
 
 def deletar_carteirinha(carteirinha_id: str) -> bool:
     """Deleta uma carteirinha."""
     try:
-        response = supabase.table('carteirinhas')\
-            .delete()\
-            .eq('id', carteirinha_id)\
-            .execute()
+        response = (
+            supabase.table("carteirinhas").delete().eq("id", carteirinha_id).execute()
+        )
         return bool(response.data)
 
     except Exception as e:
-        logging.error(f'Erro ao deletar carteirinha: {e}')
+        logging.error(f"Erro ao deletar carteirinha: {e}")
         raise e
     try:
         response = supabase.table("pacientes").insert(dados).execute()
@@ -1894,66 +1922,66 @@ def save_unimed_guide(guide_data: Dict) -> Optional[Dict]:
     try:
         # Validate required fields
         required_fields = [
-            'numero_guia',
-            'carteira', 
-            'nome_beneficiario',
-            'codigo_procedimento',
-            'data_atendimento',
-            'nome_profissional',
-            'conselho_profissional',
-            'numero_conselho',
-            'uf_conselho',
-            'codigo_cbo'
+            "numero_guia",
+            "carteira",
+            "nome_beneficiario",
+            "codigo_procedimento",
+            "data_atendimento",
+            "nome_profissional",
+            "conselho_profissional",
+            "numero_conselho",
+            "uf_conselho",
+            "codigo_cbo",
         ]
 
         for field in required_fields:
             if field not in guide_data:
-                raise ValueError(f'Required field missing: {field}')
+                raise ValueError(f"Required field missing: {field}")
 
         # Format dates
-        if isinstance(guide_data['data_atendimento'], str):
-            guide_data['data_atendimento'] = datetime.strptime(
-                guide_data['data_atendimento'], '%d/%m/%Y'
-            ).strftime('%Y-%m-%d')
+        if isinstance(guide_data["data_atendimento"], str):
+            guide_data["data_atendimento"] = datetime.strptime(
+                guide_data["data_atendimento"], "%d/%m/%Y"
+            ).strftime("%Y-%m-%d")
 
-        if 'data_execucao' in guide_data and guide_data['data_execucao']:
-            guide_data['data_execucao'] = datetime.strptime(
-                guide_data['data_execucao'], '%d/%m/%Y'
-            ).strftime('%Y-%m-%d')
+        if "data_execucao" in guide_data and guide_data["data_execucao"]:
+            guide_data["data_execucao"] = datetime.strptime(
+                guide_data["data_execucao"], "%d/%m/%Y"
+            ).strftime("%Y-%m-%d")
 
         # Add timestamps
-        guide_data['updated_at'] = datetime.now(timezone.utc).isoformat()
-        
+        guide_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+
         # Check if guide exists
-        existing = supabase.table('guias_unimed')\
-            .select('id')\
-            .eq('numero_guia', guide_data['numero_guia'])\
+        existing = (
+            supabase.table("guias_unimed")
+            .select("id")
+            .eq("numero_guia", guide_data["numero_guia"])
             .execute()
+        )
 
         if existing.data:
             # Update existing guide
-            response = supabase.table('guias_unimed')\
-                .update(guide_data)\
-                .eq('numero_guia', guide_data['numero_guia'])\
+            response = (
+                supabase.table("guias_unimed")
+                .update(guide_data)
+                .eq("numero_guia", guide_data["numero_guia"])
                 .execute()
+            )
         else:
             # Insert new guide
-            guide_data['created_at'] = datetime.now(timezone.utc).isoformat()
-            response = supabase.table('guias_unimed')\
-                .insert(guide_data)\
-                .execute()
+            guide_data["created_at"] = datetime.now(timezone.utc).isoformat()
+            response = supabase.table("guias_unimed").insert(guide_data).execute()
 
         return response.data[0] if response.data else None
 
     except Exception as e:
-        logging.error(f'Error saving Unimed guide: {str(e)}')
+        logging.error(f"Error saving Unimed guide: {str(e)}")
         return None
 
 
 def get_unimed_guides(
-    limit: int = 100,
-    offset: int = 0,
-    filters: Optional[Dict] = None
+    limit: int = 100, offset: int = 0, filters: Optional[Dict] = None
 ) -> Dict:
     """Get Unimed guides with filtering and pagination.
 
@@ -1966,37 +1994,37 @@ def get_unimed_guides(
         Dictionary containing guides data and pagination info
     """
     try:
-        query = supabase.table('guias_unimed').select('*')
+        query = supabase.table("guias_unimed").select("*")
 
         # Apply filters
         if filters:
-            if filters.get('numero_guia'):
-                query = query.eq('numero_guia', filters['numero_guia'])
-            if filters.get('carteira'):
-                query = query.eq('carteira', filters['carteira'])
-            if filters.get('data_inicio'):
-                query = query.gte('data_atendimento', filters['data_inicio'])
-            if filters.get('data_fim'):
-                query = query.lte('data_atendimento', filters['data_fim'])
-            if filters.get('status'):
-                query = query.eq('status', filters['status'])
+            if filters.get("numero_guia"):
+                query = query.eq("numero_guia", filters["numero_guia"])
+            if filters.get("carteira"):
+                query = query.eq("carteira", filters["carteira"])
+            if filters.get("data_inicio"):
+                query = query.gte("data_atendimento", filters["data_inicio"])
+            if filters.get("data_fim"):
+                query = query.lte("data_atendimento", filters["data_fim"])
+            if filters.get("status"):
+                query = query.eq("status", filters["status"])
 
         # Get total count
         total = len(query.execute().data)
 
         # Apply pagination
-        query = query.order('created_at', desc=True)
+        query = query.order("created_at", desc=True)
         if limit > 0:
             query = query.range(offset, offset + limit - 1)
 
         response = query.execute()
 
         return {
-            'guides': response.data,
-            'total': total,
-            'pages': ceil(total / limit) if limit > 0 else 1
+            "guides": response.data,
+            "total": total,
+            "pages": ceil(total / limit) if limit > 0 else 1,
         }
 
     except Exception as e:
-        logging.error(f'Error getting Unimed guides: {str(e)}')
-        return {'guides': [], 'total': 0, 'pages': 0}
+        logging.error(f"Error getting Unimed guides: {str(e)}")
+        return {"guides": [], "total": 0, "pages": 0}

@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PDF Processor API")
 
-# Configuração do CORS - totalmente permissivo para desenvolvimento
+# Configuração do CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -75,7 +75,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,
 )
 
 # Debug: Verificar variáveis do Supabase
@@ -1726,9 +1725,7 @@ async def conferir_sessao(sessao_id: str):
 def listar_carteirinhas_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(
-        None, description="Buscar por número da carteirinha"
-    ),
+    search: str = Query(None, description="Buscar por número da carteirinha"),
     paciente_id: str = Query(None, description="Filtrar por paciente"),
 ):
     try:
@@ -1737,9 +1734,7 @@ def listar_carteirinhas_route(
         )
 
         if search:
-            response = response.or_(
-                f"numero_carteirinha.ilike.%{search}%"
-            )
+            response = response.or_(f"numero_carteirinha.ilike.%{search}%")
 
         if paciente_id:
             response = response.eq("paciente_id", paciente_id)
