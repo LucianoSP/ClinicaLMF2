@@ -142,9 +142,10 @@ export default function FichasPresencaPage() {
           *,
           sessoes (
             *,
-            procedimentos (
+            procedimento:procedimentos (
               id,
-              nome
+              nome,
+              codigo
             )
           )
         `)
@@ -162,7 +163,7 @@ export default function FichasPresencaPage() {
         created_at: formatDate(ficha.created_at),
         sessoes: ficha.sessoes?.map((sessao: any) => ({
           ...sessao,
-          procedimento_nome: sessao.procedimentos?.nome || '-'
+          procedimento_nome: sessao.procedimento?.nome || '-'
         }))
       })) || [];
 
@@ -422,53 +423,82 @@ export default function FichasPresencaPage() {
     if (!selectedSessao || !editedSessao) return;
 
     try {
-      const { error } = await supabase
+      // Dados a serem atualizados
+      const updateData = {
+        data_sessao: editedSessao.data_sessao,
+        procedimento_id: editedSessao.procedimento_id,
+        profissional_executante: editedSessao.profissional_executante,
+        valor_sessao: editedSessao.valor_sessao,
+        observacoes_sessao: editedSessao.observacoes_sessao,
+        possui_assinatura: editedSessao.possui_assinatura
+      };
+
+      console.log('Atualizando sessão com dados:', updateData);
+
+      // Atualiza no banco
+      const { error: updateError } = await supabase
         .from('sessoes')
-        .update({
-          data_sessao: editedSessao.data_sessao,
-          procedimento_id: editedSessao.procedimento_id,
-          profissional_executante: editedSessao.profissional_executante,
-          valor_sessao: editedSessao.valor_sessao,
-          observacoes_sessao: editedSessao.observacoes_sessao,
-          possui_assinatura: editedSessao.possui_assinatura
-        })
+        .update(updateData)
         .eq('id', selectedSessao.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      // Buscar a sessão atualizada com o nome do procedimento
+      // Busca a sessão atualizada com o procedimento
       const { data: updatedSessaoData, error: fetchError } = await supabase
         .from('sessoes')
         .select(`
           *,
-          procedimento:procedimentos(id, nome)
+          procedimento:procedimentos (
+            id,
+            nome,
+            codigo
+          )
         `)
         .eq('id', selectedSessao.id)
         .single();
 
       if (fetchError) throw fetchError;
 
-      const updatedSessao = {
-        ...updatedSessaoData,
-        procedimento_nome: updatedSessaoData.procedimento?.nome
-      };
+      console.log('Sessão atualizada:', updatedSessaoData);
 
       // Atualiza o estado local
       if (selectedFicha) {
         const updatedSessoes = selectedFicha.sessoes?.map(s =>
-          s.id === selectedSessao.id ? updatedSessao : s
+          s.id === selectedSessao.id
+            ? {
+                ...updatedSessaoData,
+                procedimento_nome: updatedSessaoData.procedimento?.nome || '-'
+              }
+            : s
         );
+
         setSelectedFicha({
           ...selectedFicha,
           sessoes: updatedSessoes
         });
+
+        // Atualiza também na lista principal de fichas
+        setFichas(fichas.map(ficha =>
+          ficha.id === selectedFicha.id
+            ? {
+                ...ficha,
+                sessoes: updatedSessoes
+              }
+            : ficha
+        ));
       }
 
       toast({
         title: "Sucesso",
         description: "Sessão atualizada com sucesso",
       });
+
+      // Fecha o modal
       setShowEditSessaoDialog(false);
+      
+      // Recarrega os dados para garantir
+      fetchFichas();
+
     } catch (error) {
       console.error('Erro ao atualizar sessão:', error);
       toast({
@@ -991,7 +1021,7 @@ export default function FichasPresencaPage() {
               <Label>Data da Sessão</Label>
               <Input
                 type="date"
-                value={editedSessao.data_sessao?.split('T')[0] || ''}
+                value={editedSessao?.data_sessao?.split('T')[0] || ''}
                 onChange={(e) => setEditedSessao({
                   ...editedSessao,
                   data_sessao: e.target.value
@@ -1002,7 +1032,7 @@ export default function FichasPresencaPage() {
               <Label>Procedimento</Label>
               <select
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1"
-                value={editedSessao.procedimento_id || ''}
+                value={editedSessao?.procedimento_id || ''}
                 onChange={(e) => setEditedSessao({
                   ...editedSessao,
                   procedimento_id: e.target.value
@@ -1019,7 +1049,7 @@ export default function FichasPresencaPage() {
             <div className="grid gap-2">
               <Label>Profissional Executante</Label>
               <Input
-                value={editedSessao.profissional_executante || ''}
+                value={editedSessao?.profissional_executante || ''}
                 onChange={(e) => setEditedSessao({
                   ...editedSessao,
                   profissional_executante: e.target.value
@@ -1031,7 +1061,7 @@ export default function FichasPresencaPage() {
               <Input
                 type="number"
                 step="0.01"
-                value={editedSessao.valor_sessao || ''}
+                value={editedSessao?.valor_sessao || ''}
                 onChange={(e) => setEditedSessao({
                   ...editedSessao,
                   valor_sessao: parseFloat(e.target.value)
@@ -1042,7 +1072,7 @@ export default function FichasPresencaPage() {
               <Label>Observações</Label>
               <textarea
                 className="min-h-[80px] rounded-md border border-input bg-background px-3 py-2"
-                value={editedSessao.observacoes_sessao || ''}
+                value={editedSessao?.observacoes_sessao || ''}
                 onChange={(e) => setEditedSessao({
                   ...editedSessao,
                   observacoes_sessao: e.target.value
@@ -1052,7 +1082,7 @@ export default function FichasPresencaPage() {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="possui_assinatura"
-                checked={editedSessao.possui_assinatura || false}
+                checked={editedSessao?.possui_assinatura || false}
                 onCheckedChange={(checked) => setEditedSessao({
                   ...editedSessao,
                   possui_assinatura: checked as boolean

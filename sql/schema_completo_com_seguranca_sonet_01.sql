@@ -3,6 +3,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Tipos enumerados
+
+CREATE TYPE status_sessao AS ENUM ('pendente', 'conferida');
 CREATE TYPE tipo_guia AS ENUM ('sp_sadt', 'consulta', 'internacao');
 CREATE TYPE status_guia AS ENUM ('pendente', 'em_andamento', 'concluida', 'cancelada');
 CREATE TYPE status_carteirinha AS ENUM ('ativa', 'vencida', 'cancelada', 'suspensa', 'em_analise');
@@ -195,6 +197,7 @@ CREATE TABLE IF NOT EXISTS fichas_presenca (
     observacoes text,
     status text DEFAULT 'pendente',
     data_atendimento date NOT NULL,
+    sessoes_conferidas integer DEFAULT 0,
     lote_faturamento_id uuid REFERENCES lotes_faturamento(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
@@ -211,21 +214,17 @@ CREATE TABLE IF NOT EXISTS sessoes (
     procedimento_id uuid REFERENCES procedimentos(id),
     profissional_executante text,
     valor_sessao numeric(10,2),
-    status text DEFAULT 'pendente',
-    status_faturamento text DEFAULT 'pendente',
-    data_faturamento timestamptz,
-    faturado_por uuid REFERENCES auth.users(id),
-    numero_lote text,
+    status status_sessao DEFAULT 'pendente',
     valor_faturado numeric(10,2),
     observacoes_sessao text,
     executado boolean DEFAULT false,
     data_execucao date,
-    executado_por uuid REFERENCES auth.users(id),
+    executado_por uuid REFERENCES usuarios(id),
     paciente_id uuid REFERENCES pacientes(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES auth.users(id),
-    updated_by uuid REFERENCES auth.users(id)
+    created_by uuid REFERENCES usuarios(id),
+    updated_by uuid REFERENCES usuarios(id)
 );
 
 -- Execuções
@@ -520,6 +519,37 @@ CREATE TRIGGER update_procedimentos_updated_at
     BEFORE UPDATE ON procedimentos
     FOR EACH ROW
     EXECUTE PROCEDURE update_updated_at_column();
+
+-- Adicionar ao final do arquivo schema_completo_com_seguranca_sonet_01.sql
+
+-- Função para atualizar sessões conferidas
+CREATE OR REPLACE FUNCTION update_sessoes_conferidas()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
+    UPDATE fichas_presenca
+    SET sessoes_conferidas = (
+      SELECT COUNT(*) 
+      FROM sessoes 
+      WHERE ficha_presenca_id = NEW.ficha_presenca_id 
+      AND status = 'conferida'
+    )
+    WHERE id = NEW.ficha_presenca_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para manter contagem de sessões conferidas atualizada
+CREATE TRIGGER trigger_update_sessoes_conferidas
+AFTER UPDATE ON sessoes
+FOR EACH ROW
+EXECUTE FUNCTION update_sessoes_conferidas();
+
+-- Comentários das funções
+COMMENT ON FUNCTION update_sessoes_conferidas() IS 'Mantém atualizada a contagem de sessões conferidas na tabela fichas_presenca';
+
+
 
 -- Refresh da View Materializada
 CREATE OR REPLACE FUNCTION refresh_vw_resumo_faturamento()
