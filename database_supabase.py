@@ -1267,10 +1267,7 @@ def verificar_formatos_data_banco():
 
         # Verifica fichas_presenca
         fichas = (
-            supabase.table("fichas_presenca")
-            .select("id,data_atendimento")
-            .limit(5)
-            .execute()
+            supabase.table("fichas_presenca").select("id,data_atendimento").limit(5).execute()
         )
         amostras["fichas_presenca"] = [
             (f["id"], f["data_atendimento"]) for f in fichas.data
@@ -1388,7 +1385,7 @@ def obter_estatisticas_gerais() -> Dict:
         # Divergências pendentes
         divergencias = (
             supabase.table("divergencias")
-            .select("count", count="exact")
+            .select("count")
             .eq("status", "pendente")
             .execute()
         )
@@ -1459,11 +1456,21 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
         guias = (
             supabase.table("guias")
             .select("*")
-            .eq("paciente_carteirinha", numero_carteirinha)
+            .eq("carteirinha_id", carteirinha_atual["id"])
             .execute()
         ).data
 
         print(f"Total de guias encontradas: {len(guias)}")
+
+        # Busca fichas de presença
+        fichas = (
+            supabase.table("fichas_presenca")
+            .select("*")
+            .eq("paciente_carteirinha", numero_carteirinha)
+            .execute()
+        ).data
+
+        print(f"Total de fichas encontradas: {len(fichas)}")
 
         # Estatísticas das guias
         guias_por_status = {
@@ -1473,13 +1480,12 @@ def obter_estatisticas_paciente(paciente_id: str) -> Dict:
             "cancelada": 0,
         }
         sessoes_autorizadas = 0
-        sessoes_executadas = 0
+        sessoes_executadas = len(fichas)  # Cada ficha representa uma sessão executada
 
         for guia in guias:
             status = guia["status"]
             guias_por_status[status] = guias_por_status.get(status, 0) + 1
             sessoes_autorizadas += guia["quantidade_autorizada"]
-            sessoes_executadas += guia["quantidade_executada"]
 
         print(f"Sessões: {sessoes_executadas}/{sessoes_autorizadas}")
 
@@ -1620,13 +1626,9 @@ def atualizar_guia(guia_id: str, dados_guia: dict) -> bool:
 
 
 def listar_carteirinhas(
-    limit: int = 100,
-    offset: int = 0,
-    search: Optional[str] = None,
-    plano_id: Optional[str] = None,
-    status: Optional[str] = None,
+    limit: int = 100, offset: int = 0, search: Optional[str] = None
 ) -> Dict:
-    """Lista todas as carteirinhas com suporte a paginação, busca e filtros."""
+    """Lista todas as carteirinhas com suporte a paginação e busca."""
     try:
         query = supabase.table("carteirinhas").select(
             "id,"
@@ -1645,12 +1647,6 @@ def listar_carteirinhas(
         # Aplica filtros
         if search:
             query = query.or_(f"numero_carteirinha.ilike.%{search}%")
-
-        if plano_id:
-            query = query.eq("plano_saude_id", plano_id)
-
-        if status:
-            query = query.eq("status", status)
 
         # Ordenação
         query = query.order("created_at", desc=True)
