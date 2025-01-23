@@ -1,0 +1,138 @@
+erDiagram
+    USUARIOS ||--o{ GUIAS : cria
+    USUARIOS ||--o{ EXECUCOES : realiza
+    USUARIOS ||--o{ DIVERGENCIAS : resolve
+
+    PLANOS_SAUDE ||--o{ CARTEIRINHAS : emite
+    PLANOS_SAUDE ||--o{ LOTES_FATURAMENTO : fatura
+
+    PACIENTES ||--o{ CARTEIRINHAS : possui
+    PACIENTES ||--o{ GUIAS : solicita
+    PACIENTES ||--o{ FICHAS_PRESENCA : possui
+    PACIENTES ||--o{ SESSOES : realiza
+
+    PROCEDIMENTOS ||--o{ GUIAS : define
+    PROCEDIMENTOS ||--o{ SESSOES : define
+
+    CARTEIRINHAS ||--o{ GUIAS : autoriza
+
+    GUIAS ||--o{ EXECUCOES : gera
+    GUIAS ||--o{ HISTORICO_STATUS_GUIAS : registra
+    GUIAS }|--|| PACIENTES : pertence
+    GUIAS }|--|| CARTEIRINHAS : vincula
+
+    FICHAS_PRESENCA ||--o{ SESSOES : contem
+    FICHAS_PRESENCA ||--o{ DIVERGENCIAS : possui
+    FICHAS_PRESENCA }|--|| LOTES_FATURAMENTO : integra
+
+    SESSOES ||--o{ EXECUCOES : registra
+    SESSOES ||--o{ DIVERGENCIAS : possui
+
+    EXECUCOES ||--o{ DIVERGENCIAS : gera
+
+    USUARIOS {
+        uuid id PK
+        uuid auth_user_id UK
+        text nome
+        text tipo_usuario
+        jsonb permissoes
+    }
+
+    PLANOS_SAUDE {
+        uuid id PK
+        varchar codigo UK
+        varchar nome
+        jsonb dados_contrato
+    }
+
+    PACIENTES {
+        uuid id PK
+        text nome
+        text cpf
+        text nome_responsavel
+        jsonb endereco
+    }
+
+    PROCEDIMENTOS {
+        uuid id PK
+        text codigo UK
+        text nome
+        text descricao
+    }
+
+    CARTEIRINHAS {
+        uuid id PK
+        uuid paciente_id FK
+        uuid plano_saude_id FK
+        varchar numero_carteirinha
+        status_carteirinha status
+    }
+
+    GUIAS {
+        uuid id PK
+        text numero_guia UK
+        text numero_guia_operadora
+        text senha_autorizacao
+        date data_emissao
+        tipo_guia tipo
+        status_guia status
+        uuid carteirinha_id FK
+        uuid paciente_id FK
+        uuid procedimento_id FK
+        integer quantidade_autorizada
+    }
+
+    FICHAS_PRESENCA {
+        uuid id PK
+        text codigo_ficha UK
+        text numero_guia
+        uuid paciente_id FK
+        text arquivo_digitalizado
+        date data_atendimento
+        status_ficha status
+    }
+
+    SESSOES {
+        uuid id PK
+        uuid ficha_presenca_id FK
+        uuid procedimento_id FK
+        date data_sessao
+        boolean possui_assinatura
+        status_sessao status
+        numeric valor_sessao
+    }
+
+    EXECUCOES {
+        uuid id PK
+        uuid guia_id FK
+        uuid sessao_id FK
+        date data_execucao
+        text codigo_ficha
+        uuid usuario_executante FK
+    }
+
+    DIVERGENCIAS {
+        uuid id PK
+        text numero_guia
+        tipo_divergencia tipo
+        status_divergencia status
+        uuid ficha_id FK
+        uuid execucao_id FK
+        uuid sessao_id FK
+    }
+
+    LOTES_FATURAMENTO {
+        uuid id PK
+        text numero_lote UK
+        timestamptz data_envio
+        numeric valor_total
+        uuid plano_saude_id FK
+    }
+
+    HISTORICO_STATUS_GUIAS {
+        uuid id PK
+        uuid guia_id FK
+        status_guia status_anterior
+        status_guia status_novo
+        jsonb dados_alteracao
+    }

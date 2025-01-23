@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
     plano_saude_id uuid REFERENCES planos_saude(id) ON DELETE RESTRICT,
-    numero_carteirinha character varying(50) NOT NULL,
+    numero_carteirinha text,
     data_validade date,
     status status_carteirinha NOT NULL DEFAULT 'ativa',
     motivo_inativacao text,
@@ -89,8 +89,7 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
     updated_at timestamptz DEFAULT now(),
     created_by uuid REFERENCES usuarios(id),
     updated_by uuid REFERENCES usuarios(id),
-    UNIQUE(plano_saude_id, numero_carteirinha),
-    CONSTRAINT carteirinhas_numero_carteirinha_check CHECK (numero_carteirinha ~ '^[0-9.\-]+$')
+    UNIQUE(plano_saude_id, numero_carteirinha)
 );
 
 -- Procedimentos
@@ -102,8 +101,8 @@ CREATE TABLE IF NOT EXISTS procedimentos (
     ativo boolean DEFAULT true,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES auth.users(id),
-    updated_by uuid REFERENCES auth.users(id)
+    created_by uuid REFERENCES usuarios(id),
+    updated_by uuid REFERENCES usuarios(id)
 );
 
 -- Dados iniciais de procedimentos
@@ -117,7 +116,7 @@ INSERT INTO procedimentos (codigo, nome, descricao) VALUES
 ('03.01.07.010-3', 'Atendimento/Acompanhamento em Terapia Ocupacional', 'Sessão de atendimento em terapia ocupacional'),
 ('03.01.07.011-1', 'Atendimento/Acompanhamento em Fisioterapia', 'Sessão de atendimento em fisioterapia');
 
--- Índice para busca de procedimentos
+-- Índices para busca de procedimentos
 CREATE INDEX IF NOT EXISTS idx_procedimentos_codigo ON procedimentos(codigo);
 CREATE INDEX IF NOT EXISTS idx_procedimentos_nome ON procedimentos(nome);
 CREATE INDEX IF NOT EXISTS idx_procedimentos_ativo ON procedimentos(ativo);
@@ -126,50 +125,30 @@ CREATE INDEX IF NOT EXISTS idx_procedimentos_ativo ON procedimentos(ativo);
 CREATE TABLE IF NOT EXISTS guias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     numero_guia text UNIQUE,
+    numero_guia_operadora text,
+    senha_autorizacao text,
     data_emissao date,
     data_validade date,
-    tipo tipo_guia,
-    status status_guia DEFAULT 'pendente',
-    carteirinha_id uuid,
-    paciente_id uuid,
-    quantidade_autorizada integer NOT NULL,
-    quantidade_executada integer DEFAULT 0,
-    procedimento_id uuid,
-    profissional_solicitante text,
-    profissional_executante text,
-    observacoes text,
-    created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES usuarios(id),
-    updated_by uuid REFERENCES usuarios(id),
-    CONSTRAINT guias_carteirinha_id_fkey FOREIGN KEY (carteirinha_id) REFERENCES carteirinhas(id) ON DELETE RESTRICT,
-    CONSTRAINT guias_paciente_id_fkey FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE RESTRICT,
-    CONSTRAINT guias_procedimento_id_fkey FOREIGN KEY (procedimento_id) REFERENCES procedimentos(id) ON DELETE RESTRICT
-);
-
--- Índices para melhorar performance
-CREATE INDEX IF NOT EXISTS idx_guias_paciente_id ON guias(paciente_id);
-CREATE INDEX IF NOT EXISTS idx_guias_carteirinha_id ON guias(carteirinha_id);
-CREATE INDEX IF NOT EXISTS idx_guias_numero ON guias(numero_guia);
-CREATE INDEX IF NOT EXISTS idx_guias_status ON guias(status);
-CREATE INDEX IF NOT EXISTS idx_guias_procedimento_id ON guias(procedimento_id);
-
--- Guias Unimed
-CREATE TABLE IF NOT EXISTS guias_unimed (
-    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    guia_id uuid REFERENCES guias(id) ON DELETE CASCADE,
-    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
-    numero_guia_operadora text UNIQUE,
-    senha_autorizacao text,
     data_autorizacao date,
     data_validade_senha date,
-    codigo_procedimento text,
-    nome_procedimento text,
-    quantidade_autorizada integer,
+    
+    tipo tipo_guia,
+    status status_guia DEFAULT 'rascunho',
+    
+    carteirinha_id uuid REFERENCES carteirinhas(id) ON DELETE RESTRICT,
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE RESTRICT,
+    procedimento_id uuid REFERENCES procedimentos(id) ON DELETE RESTRICT,
+    
+    quantidade_autorizada integer NOT NULL,
     quantidade_executada integer DEFAULT 0,
     valor_autorizado numeric(10,2),
-    status text DEFAULT 'pendente',
+    
+    profissional_solicitante text,
+    profissional_executante text,
+    origem text DEFAULT 'manual',
+    dados_adicionais jsonb,
     observacoes text,
+    
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
     created_by uuid REFERENCES usuarios(id),
@@ -260,7 +239,7 @@ CREATE TABLE IF NOT EXISTS execucoes (
 CREATE TABLE IF NOT EXISTS divergencias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     numero_guia text NOT NULL,
-    tipo_divergencia text NOT NULL,
+    tipo tipo_divergencia NOT NULL,
     descricao text,
     paciente_nome text,
     codigo_ficha text,
@@ -268,7 +247,7 @@ CREATE TABLE IF NOT EXISTS divergencias (
     data_atendimento date,
     carteirinha text,
     prioridade text DEFAULT 'MEDIA',
-    status text DEFAULT 'pendente',
+    status status_divergencia DEFAULT 'pendente',
     data_identificacao timestamptz DEFAULT now(),
     data_resolucao timestamptz,
     resolvido_por uuid REFERENCES usuarios(id),
@@ -320,41 +299,52 @@ CREATE TABLE IF NOT EXISTS auditoria_execucoes (
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_carteirinhas_numero ON carteirinhas(numero_carteirinha);
 CREATE INDEX IF NOT EXISTS idx_carteirinhas_paciente ON carteirinhas(paciente_id);
-CREATE INDEX IF NOT EXISTS idx_guias_unimed_paciente_id ON guias_unimed(paciente_id);
-CREATE INDEX IF NOT EXISTS idx_guias_unimed_guia_id ON guias_unimed(guia_id);
-CREATE INDEX IF NOT EXISTS idx_guias_unimed_numero_guia ON guias_unimed(numero_guia_operadora);
+CREATE INDEX IF NOT EXISTS idx_guias_paciente_id ON guias(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_guias_carteirinha_id ON guias(carteirinha_id);
+CREATE INDEX IF NOT EXISTS idx_guias_numero ON guias(numero_guia);
+CREATE INDEX IF NOT EXISTS idx_guias_status ON guias(status);
+CREATE INDEX IF NOT EXISTS idx_guias_procedimento_id ON guias(procedimento_id);
+CREATE INDEX IF NOT EXISTS idx_guias_numero_operadora ON guias(numero_guia_operadora);
 CREATE INDEX IF NOT EXISTS idx_execucoes_paciente_nome ON execucoes(paciente_nome);
 CREATE INDEX IF NOT EXISTS idx_execucoes_paciente_carteirinha ON execucoes(paciente_carteirinha);
 CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia ON execucoes(numero_guia);
 CREATE INDEX IF NOT EXISTS idx_execucoes_codigo_ficha ON execucoes(codigo_ficha);
 CREATE INDEX IF NOT EXISTS idx_execucoes_data_execucao ON execucoes(data_execucao);
-CREATE INDEX IF NOT EXISTS idx_guias_paciente_id ON guias(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_fichas_presenca_paciente_id ON fichas_presenca(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_sessoes_paciente_id ON sessoes(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_divergencias_paciente_id ON divergencias(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_sessoes_status_data ON sessoes(status, data_sessao);
 CREATE INDEX IF NOT EXISTS idx_execucoes_guia_data ON execucoes(guia_id, data_execucao);
-CREATE INDEX IF NOT EXISTS idx_divergencias_tipo_status ON divergencias(tipo_divergencia, status);
+CREATE INDEX IF NOT EXISTS idx_divergencias_tipo_status ON divergencias(tipo, status);
 
 -- View Materializada para Relatórios de Faturamento
 CREATE MATERIALIZED VIEW IF NOT EXISTS vw_resumo_faturamento AS
 SELECT 
     g.id as guia_id,
     g.numero_guia,
-    g.paciente_nome,
-    g.paciente_carteirinha,
+    p.nome as paciente_nome,
+    c.numero_carteirinha as paciente_carteirinha,
     ps.nome as plano_saude,
     COUNT(e.id) as total_execucoes,
     SUM(s.valor_sessao) as valor_total,
     g.status,
     g.created_at as data_criacao
 FROM guias g
+LEFT JOIN pacientes p ON p.id = g.paciente_id
+LEFT JOIN carteirinhas c ON c.id = g.carteirinha_id
+LEFT JOIN planos_saude ps ON ps.id = c.plano_saude_id
 LEFT JOIN execucoes e ON e.guia_id = g.id
 LEFT JOIN sessoes s ON s.id = e.sessao_id
-LEFT JOIN carteirinhas c ON c.numero_carteirinha = g.paciente_carteirinha
-LEFT JOIN planos_saude ps ON ps.id = c.plano_saude_id
-GROUP BY g.id, g.numero_guia, g.paciente_nome, g.paciente_carteirinha, ps.nome
+GROUP BY 
+    g.id, 
+    g.numero_guia, 
+    p.nome,
+    c.numero_carteirinha,
+    ps.nome
 WITH DATA;
+
+-- Criar índice para refresh concorrente
+CREATE UNIQUE INDEX IF NOT EXISTS idx_vw_resumo_faturamento_guia_id ON vw_resumo_faturamento (guia_id);
 
 -- Função de Validação de Guias
 CREATE OR REPLACE FUNCTION validar_guia()
@@ -370,18 +360,13 @@ BEGIN
         RAISE EXCEPTION 'Quantidade autorizada deve ser maior que zero';
     END IF;
     
-    -- Validar número da guia ????????????????? 
-    -- IF NEW.numero_guia !~ '^[0-9]{12}$' THEN
-    --     RAISE EXCEPTION 'Número da guia deve conter 12 dígitos';
-    -- END IF;
-    
     -- Validar carteirinha
     IF NOT EXISTS (
-        SELECT 1 FROM carteirinhas 
-        WHERE numero_carteirinha = NEW.paciente_carteirinha
-        AND status = 'ativa'
+        SELECT 1 FROM carteirinhas c
+        WHERE c.id = NEW.carteirinha_id
+        AND c.status = 'ativa'
     ) THEN
-        RAISE EXCEPTION 'Carteirinha não encontrada ou inativa: %', NEW.paciente_carteirinha;
+        RAISE EXCEPTION 'Carteirinha não encontrada ou inativa';
     END IF;
     
     -- Validar transições de status
@@ -409,47 +394,40 @@ CREATE TRIGGER trigger_validar_guia
 
 -- Função para Atualizar Quantidade Executada
 CREATE OR REPLACE FUNCTION update_guia_quantidade_executada()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
 BEGIN
     IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
         -- Atualiza quantidade_executada baseado no total de execuções
-        UPDATE guias
+        WITH execucoes_count AS (
+            SELECT COUNT(*) as total
+            FROM execucoes
+            WHERE guia_id = COALESCE(NEW.guia_id, OLD.guia_id)
+        )
+        UPDATE guias g
         SET 
-            quantidade_executada = (
-                SELECT COUNT(*)
-                FROM execucoes
-                WHERE numero_guia = NEW.numero_guia
-            ),
+            quantidade_executada = ec.total,
             updated_at = now(),
-            updated_by = NEW.created_by
-        WHERE numero_guia = NEW.numero_guia;
-        
-        -- Verifica se atingiu o limite de execuções
-        IF (SELECT quantidade_executada >= quantidade_autorizada 
-            FROM guias 
-            WHERE numero_guia = NEW.numero_guia) THEN
-            
-            UPDATE guias 
-            SET 
-                status = 'concluida',
-                updated_at = now(),
-                updated_by = NEW.created_by
-            WHERE numero_guia = NEW.numero_guia;
-        END IF;
+            updated_by = NEW.created_by,
+            status = CASE 
+                WHEN ec.total >= g.quantidade_autorizada THEN 'concluida'::status_guia 
+                ELSE g.status 
+            END
+        FROM execucoes_count ec
+        WHERE g.id = COALESCE(NEW.guia_id, OLD.guia_id);
     ELSIF (TG_OP = 'DELETE') THEN
-        UPDATE guias
+        UPDATE guias g
         SET 
             quantidade_executada = (
                 SELECT COUNT(*)
-                FROM execucoes
-                WHERE numero_guia = OLD.numero_guia
+                FROM execucoes e
+                WHERE e.guia_id = g.id
             ),
             updated_at = now()
-        WHERE numero_guia = OLD.numero_guia;
+        WHERE g.id = OLD.guia_id;
     END IF;
     RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Trigger para Atualizar Quantidade Executada
 CREATE TRIGGER trigger_update_guia_quantidade
@@ -459,7 +437,7 @@ CREATE TRIGGER trigger_update_guia_quantidade
 
 -- Função para Registrar Histórico de Status
 CREATE OR REPLACE FUNCTION registrar_historico_status_guia()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
 BEGIN
     IF (TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status) THEN
         INSERT INTO historico_status_guias (
@@ -491,12 +469,57 @@ CREATE TRIGGER trigger_historico_status_guia
     FOR EACH ROW
     EXECUTE FUNCTION registrar_historico_status_guia();
 
+-- Função para atualizar sessões conferidas
+CREATE OR REPLACE FUNCTION update_sessoes_conferidas()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
+        UPDATE fichas_presenca
+        SET sessoes_conferidas = (
+            SELECT COUNT(*) 
+            FROM sessoes 
+            WHERE ficha_presenca_id = NEW.ficha_presenca_id 
+            AND status = 'conferida'
+        )
+        WHERE id = NEW.ficha_presenca_id;
+    END IF;
+    RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+-- Trigger para manter contagem de sessões conferidas atualizada
+CREATE TRIGGER trigger_update_sessoes_conferidas
+    AFTER UPDATE ON sessoes
+    FOR EACH ROW
+    EXECUTE FUNCTION update_sessoes_conferidas();
+
+-- Função para atualizar updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+-- Triggers para atualizar updated_at em todas as tabelas
+CREATE TRIGGER trigger_update_usuarios_timestamp BEFORE UPDATE ON usuarios FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_planos_saude_timestamp BEFORE UPDATE ON planos_saude FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_pacientes_timestamp BEFORE UPDATE ON pacientes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_carteirinhas_timestamp BEFORE UPDATE ON carteirinhas FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_procedimentos_timestamp BEFORE UPDATE ON procedimentos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_guias_timestamp BEFORE UPDATE ON guias FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_sessoes_timestamp BEFORE UPDATE ON sessoes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_execucoes_timestamp BEFORE UPDATE ON execucoes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trigger_update_divergencias_timestamp BEFORE UPDATE ON divergencias FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Configurações de Segurança
 ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execucoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fichas_presenca ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE procedimentos ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de Segurança
 CREATE POLICY usuarios_policy ON usuarios
@@ -507,74 +530,24 @@ CREATE POLICY guias_policy ON guias
     USING (created_by IN (SELECT id FROM usuarios WHERE auth_user_id = auth.uid()) OR 
            EXISTS (SELECT 1 FROM usuarios u WHERE u.auth_user_id = auth.uid() AND u.tipo_usuario = 'admin'));
 
--- Políticas para Procedimentos
 CREATE POLICY procedimentos_policy ON procedimentos
-    USING (created_by = auth.uid() OR 
-           EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.role = 'admin'));
+    USING (TRUE)
+    WITH CHECK (EXISTS (SELECT 1 FROM usuarios u WHERE u.auth_user_id = auth.uid() AND u.tipo_usuario = 'admin'));
 
-ALTER TABLE procedimentos ENABLE ROW LEVEL SECURITY;
-
--- Função para atualizar o updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Criar trigger para atualizar o updated_at em procedimentos
-CREATE TRIGGER update_procedimentos_updated_at
-    BEFORE UPDATE ON procedimentos
-    FOR EACH ROW
-    EXECUTE PROCEDURE update_updated_at_column();
-
--- Adicionar ao final do arquivo schema_completo_com_seguranca_sonet_01.sql
-
--- Função para atualizar sessões conferidas
-CREATE OR REPLACE FUNCTION update_sessoes_conferidas()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
-    UPDATE fichas_presenca
-    SET sessoes_conferidas = (
-      SELECT COUNT(*) 
-      FROM sessoes 
-      WHERE ficha_presenca_id = NEW.ficha_presenca_id 
-      AND status = 'conferida'
-    )
-    WHERE id = NEW.ficha_presenca_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger para manter contagem de sessões conferidas atualizada
-CREATE TRIGGER trigger_update_sessoes_conferidas
-AFTER UPDATE ON sessoes
-FOR EACH ROW
-EXECUTE FUNCTION update_sessoes_conferidas();
-
--- Comentários das funções
-COMMENT ON FUNCTION update_sessoes_conferidas() IS 'Mantém atualizada a contagem de sessões conferidas na tabela fichas_presenca';
-
-
-
--- Refresh da View Materializada
+-- Função para refresh da view materializada
 CREATE OR REPLACE FUNCTION refresh_vw_resumo_faturamento()
-RETURNS void AS $
+RETURNS void AS $$
 BEGIN
     REFRESH MATERIALIZED VIEW CONCURRENTLY vw_resumo_faturamento;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
--- Agendar refresh automático (requer extensão pg_cron)
--- SELECT cron.schedule('0 */1 * * *', 'SELECT refresh_vw_resumo_faturamento()');
-
+-- Comentários
 COMMENT ON TABLE guias IS 'Tabela principal para armazenamento de guias médicas';
 COMMENT ON TABLE execucoes IS 'Registro de execuções de procedimentos';
 COMMENT ON TABLE divergencias IS 'Registro de divergências identificadas no processo de auditoria';
 COMMENT ON TABLE lotes_faturamento IS 'Controle de lotes de faturamento enviados às operadoras';
+COMMENT ON FUNCTION update_sessoes_conferidas() IS 'Mantém atualizada a contagem de sessões conferidas na tabela fichas_presenca';
 
 -- Grants
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
