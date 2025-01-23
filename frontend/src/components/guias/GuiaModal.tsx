@@ -29,10 +29,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Guia, GuiaFormData } from '@/services/guiaService';
+import { Paciente } from '@/types/paciente';
+import { Procedimento } from '@/types/procedimento';
+import { Carteirinha } from '@/types/carteirinha';
 import { listarPacientes } from '@/services/pacienteService';
 import { listarCarteirinhas } from '@/services/carteirinhaService';
-import { Paciente } from '@/types/paciente';
-import { Carteirinha } from '@/services/carteirinhaService';
+import { listarProcedimentos } from '@/services/procedimentoService';
+import { toast } from '@/components/ui/use-toast';
 
 const guiaFormSchema = z.object({
   numero_guia: z.string().min(1, 'Número da guia é obrigatório'),
@@ -42,11 +45,10 @@ const guiaFormSchema = z.object({
     required_error: 'Tipo é obrigatório',
   }),
   status: z.enum(['pendente', 'em_andamento', 'concluida', 'cancelada']).default('pendente'),
-  paciente_carteirinha: z.string().min(1, 'Carteirinha do paciente é obrigatória'),
-  paciente_nome: z.string().min(1, 'Nome do paciente é obrigatório'),
+  paciente_id: z.string().min(1, 'Paciente é obrigatório'),
+  carteirinha_id: z.string().min(1, 'Carteirinha é obrigatória'),
+  procedimento_id: z.string().min(1, 'Procedimento é obrigatório'),
   quantidade_autorizada: z.number().min(1, 'Quantidade autorizada é obrigatória'),
-  procedimento_codigo: z.string().optional(),
-  procedimento_nome: z.string().optional(),
   profissional_solicitante: z.string().optional(),
   profissional_executante: z.string().optional(),
   observacoes: z.string().optional(),
@@ -62,7 +64,7 @@ interface GuiaModalProps {
 export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [carteirinhas, setCarteirinhas] = useState<Carteirinha[]>([]);
-  const [selectedPaciente, setSelectedPaciente] = useState<string>('');
+  const [procedimentos, setProcedimentos] = useState<Procedimento[]>([]);
 
   const form = useForm<GuiaFormData>({
     resolver: zodResolver(guiaFormSchema),
@@ -72,49 +74,52 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
       data_validade: '',
       tipo: 'sp_sadt',
       status: 'pendente',
-      paciente_carteirinha: '',
-      paciente_nome: '',
+      paciente_id: '',
+      carteirinha_id: '',
+      procedimento_id: '',
       quantidade_autorizada: 1,
-      procedimento_codigo: '',
-      procedimento_nome: '',
       profissional_solicitante: '',
       profissional_executante: '',
       observacoes: '',
-    }
+    },
   });
 
   useEffect(() => {
-    const fetchPacientes = async () => {
-      try {
-        const response = await listarPacientes(1, '', 100);
-        setPacientes(response.items);
-      } catch (error) {
-        console.error('Erro ao buscar pacientes:', error);
-      }
-    };
-
-    fetchPacientes();
-  }, []);
+    if (isOpen) {
+      const fetchData = async () => {
+        try {
+          const [pacientesData, procedimentosData] = await Promise.all([
+            listarPacientes(),
+            listarProcedimentos()
+          ]);
+          setPacientes(pacientesData.items || []);
+          setProcedimentos(procedimentosData || []);
+        } catch (error) {
+          console.error('Erro ao carregar dados:', error);
+          toast.error('Erro ao carregar dados');
+        }
+      };
+      fetchData();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
-    const fetchCarteirinhas = async () => {
-      if (selectedPaciente) {
+    const pacienteId = form.getValues('paciente_id');
+    if (pacienteId) {
+      const fetchCarteirinhas = async () => {
         try {
-          const response = await listarCarteirinhas(1, 100);
-          const carteirinhasDoPaciente = response.items.filter(
-            c => c.paciente?.id === selectedPaciente
-          );
-          setCarteirinhas(carteirinhasDoPaciente);
+          const data = await listarCarteirinhas(pacienteId);
+          setCarteirinhas(data || []);
         } catch (error) {
-          console.error('Erro ao buscar carteirinhas:', error);
+          console.error('Erro ao carregar carteirinhas:', error);
+          toast.error('Erro ao carregar carteirinhas');
         }
-      } else {
-        setCarteirinhas([]);
-      }
-    };
-
-    fetchCarteirinhas();
-  }, [selectedPaciente]);
+      };
+      fetchCarteirinhas();
+    } else {
+      setCarteirinhas([]);
+    }
+  }, [form.watch('paciente_id')]);
 
   useEffect(() => {
     if (guia) {
@@ -124,11 +129,10 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
         data_validade: guia.data_validade || '',
         tipo: guia.tipo,
         status: guia.status,
-        paciente_carteirinha: guia.paciente_carteirinha,
-        paciente_nome: guia.paciente_nome,
+        paciente_id: guia.paciente_id,
+        carteirinha_id: guia.carteirinha_id,
+        procedimento_id: guia.procedimento_id,
         quantidade_autorizada: guia.quantidade_autorizada,
-        procedimento_codigo: guia.procedimento_codigo || '',
-        procedimento_nome: guia.procedimento_nome || '',
         profissional_solicitante: guia.profissional_solicitante || '',
         profissional_executante: guia.profissional_executante || '',
         observacoes: guia.observacoes || '',
@@ -136,251 +140,219 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
     }
   }, [guia, form]);
 
-  const handlePacienteChange = (pacienteId: string) => {
-    setSelectedPaciente(pacienteId);
-    const paciente = pacientes.find(p => p.id === pacienteId);
-    if (paciente) {
-      form.setValue('paciente_nome', paciente.nome);
+  const handleSubmit = async (data: GuiaFormData) => {
+    try {
+      await onSubmit(data);
+      form.reset();
+      onClose();
+      toast.success(guia ? 'Guia atualizada com sucesso!' : 'Guia criada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar guia:', error);
+      toast.error('Erro ao salvar guia');
     }
-  };
-
-  const handleSubmit = (data: GuiaFormData) => {
-    onSubmit(data);
-    onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{guia ? 'Editar Guia' : 'Nova Guia'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="numero_guia"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número da Guia</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tipo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="numero_guia"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número da Guia</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
+                      <Input {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="sp_sadt">SP/SADT</SelectItem>
-                      <SelectItem value="consulta">Consulta</SelectItem>
-                      <SelectItem value="internacao">Internação</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="data_emissao"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data de Emissão</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="sp_sadt">SP/SADT</SelectItem>
+                        <SelectItem value="consulta">Consulta</SelectItem>
+                        <SelectItem value="internacao">Internação</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="data_validade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data de Validade</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              <FormField
+                control={form.control}
+                name="data_emissao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Emissão</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
+                      <Input type="date" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                      <SelectItem value="concluida">Concluída</SelectItem>
-                      <SelectItem value="cancelada">Cancelada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="paciente_nome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Paciente</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      handlePacienteChange(value);
-                      field.onChange(pacientes.find(p => p.id === value)?.nome || '');
-                    }}
-                    value={selectedPaciente}
-                  >
+              <FormField
+                control={form.control}
+                name="data_validade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Validade</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o paciente" />
-                      </SelectTrigger>
+                      <Input type="date" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {pacientes.map((paciente) => (
-                        <SelectItem key={paciente.id} value={paciente.id}>
-                          {paciente.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="paciente_carteirinha"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Carteirinha</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={!selectedPaciente}
-                  >
+              <FormField
+                control={form.control}
+                name="paciente_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Paciente</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o paciente" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {pacientes.map((paciente) => (
+                          <SelectItem key={paciente.id} value={paciente.id}>
+                            {paciente.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="carteirinha_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Carteirinha</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={!form.getValues('paciente_id')}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a carteirinha" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {carteirinhas.map((carteirinha) => (
+                          <SelectItem key={carteirinha.id} value={carteirinha.id}>
+                            {carteirinha.numero_carteirinha} - {carteirinha.plano_saude?.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="procedimento_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Procedimento</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o procedimento" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {procedimentos.map((procedimento) => (
+                          <SelectItem key={procedimento.id} value={procedimento.id}>
+                            {procedimento.codigo} - {procedimento.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quantidade_autorizada"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade Autorizada</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a carteirinha" />
-                      </SelectTrigger>
+                      <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
                     </FormControl>
-                    <SelectContent>
-                      {carteirinhas.map((carteirinha) => (
-                        <SelectItem key={carteirinha.id} value={carteirinha.numero_carteirinha}>
-                          {carteirinha.numero_carteirinha} - {carteirinha.plano_saude?.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="quantidade_autorizada"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantidade Autorizada</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="profissional_solicitante"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Profissional Solicitante</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="procedimento_codigo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Código do Procedimento</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="procedimento_nome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Procedimento</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="profissional_solicitante"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Profissional Solicitante</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="profissional_executante"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Profissional Executante</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="profissional_executante"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Profissional Executante</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
               name="observacoes"
               render={({ field }) => (
-                <FormItem className="col-span-2">
+                <FormItem>
                   <FormLabel>Observações</FormLabel>
                   <FormControl>
                     <Textarea {...field} />
@@ -390,12 +362,12 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
               )}
             />
 
-            <div className="col-span-2 flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose}>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" type="button" onClick={onClose}>
                 Cancelar
               </Button>
               <Button type="submit">
-                {guia ? 'Salvar' : 'Criar'}
+                {guia ? 'Atualizar' : 'Criar'}
               </Button>
             </div>
           </form>

@@ -82,33 +82,63 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
     CONSTRAINT carteirinhas_numero_carteirinha_check CHECK (numero_carteirinha ~ '^[0-9.\-]+$')
 );
 
+-- Procedimentos
+CREATE TABLE IF NOT EXISTS procedimentos (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    codigo text UNIQUE NOT NULL,
+    nome text NOT NULL,
+    descricao text,
+    ativo boolean DEFAULT true,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
+);
+
+-- Dados iniciais de procedimentos
+INSERT INTO procedimentos (codigo, nome, descricao) VALUES
+('03.01.07.004-9', 'Consulta/Avaliação em Psicologia', 'Consulta em psicologia para avaliação inicial'),
+('03.01.07.005-7', 'Consulta/Avaliação em Fonoaudiologia', 'Consulta em fonoaudiologia para avaliação inicial'),
+('03.01.07.006-5', 'Consulta/Avaliação em Terapia Ocupacional', 'Consulta em terapia ocupacional para avaliação inicial'),
+('03.01.07.007-3', 'Consulta/Avaliação em Fisioterapia', 'Consulta em fisioterapia para avaliação inicial'),
+('03.01.07.008-1', 'Atendimento/Acompanhamento em Psicologia', 'Sessão de atendimento em psicologia'),
+('03.01.07.009-0', 'Atendimento/Acompanhamento em Fonoaudiologia', 'Sessão de atendimento em fonoaudiologia'),
+('03.01.07.010-3', 'Atendimento/Acompanhamento em Terapia Ocupacional', 'Sessão de atendimento em terapia ocupacional'),
+('03.01.07.011-1', 'Atendimento/Acompanhamento em Fisioterapia', 'Sessão de atendimento em fisioterapia');
+
+-- Índice para busca de procedimentos
+CREATE INDEX IF NOT EXISTS idx_procedimentos_codigo ON procedimentos(codigo);
+CREATE INDEX IF NOT EXISTS idx_procedimentos_nome ON procedimentos(nome);
+CREATE INDEX IF NOT EXISTS idx_procedimentos_ativo ON procedimentos(ativo);
+
 -- Guias
 CREATE TABLE IF NOT EXISTS guias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     numero_guia text UNIQUE,
-    data_emissao date NOT NULL,
-    data_validade date NOT NULL,
-    tipo tipo_guia NOT NULL,
+    data_emissao date,
+    data_validade date,
+    tipo tipo_guia,
     status status_guia DEFAULT 'pendente',
-    paciente_carteirinha text NOT NULL,
-    paciente_nome text NOT NULL,
-    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
+    carteirinha_id uuid REFERENCES carteirinhas(id) ON DELETE RESTRICT,
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE RESTRICT,
     quantidade_autorizada integer NOT NULL,
     quantidade_executada integer DEFAULT 0,
-    procedimento_codigo text NOT NULL,
-    procedimento_nome text NOT NULL,
+    procedimento_id uuid REFERENCES procedimentos(id) ON DELETE RESTRICT,
     profissional_solicitante text,
     profissional_executante text,
     observacoes text,
-    versao integer DEFAULT 1,
-    guia_original_id uuid REFERENCES guias(id),
-    valor_autorizado numeric(10,2),
-    dados_autorizacao jsonb,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
-    created_by uuid REFERENCES usuarios(id),
-    updated_by uuid REFERENCES usuarios(id)
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
 );
+
+-- Índices para melhorar performance
+CREATE INDEX IF NOT EXISTS idx_guias_paciente_id ON guias(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_guias_carteirinha_id ON guias(carteirinha_id);
+CREATE INDEX IF NOT EXISTS idx_guias_numero ON guias(numero_guia);
+CREATE INDEX IF NOT EXISTS idx_guias_status ON guias(status);
+CREATE INDEX IF NOT EXISTS idx_guias_procedimento_id ON guias(procedimento_id);
 
 -- Guias Unimed
 CREATE TABLE IF NOT EXISTS guias_unimed (

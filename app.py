@@ -1980,111 +1980,178 @@ async def atualizar_guia_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class Procedimento(BaseModel):
+    id: Optional[str] = None
+    codigo: str
+    nome: str
+    descricao: Optional[str] = None
+    ativo: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
 class Guia(BaseModel):
     id: Optional[str] = None
     numero_guia: str
     data_emissao: Optional[str] = None
     data_validade: Optional[str] = None
-    tipo: str  # tipo_guia ENUM: 'sp_sadt', 'consulta', 'internacao'
-    status: str = (
-        "pendente"  # status_guia ENUM: 'pendente', 'em_andamento', 'concluida', 'cancelada'
-    )
-    paciente_carteirinha: str
-    paciente_nome: str
+    tipo: str
+    status: str = "pendente"
+    carteirinha_id: str
+    paciente_id: str
     quantidade_autorizada: int
     quantidade_executada: int = 0
-    procedimento_codigo: Optional[str] = None
-    procedimento_nome: Optional[str] = None
+    procedimento_id: str
     profissional_solicitante: Optional[str] = None
     profissional_executante: Optional[str] = None
     observacoes: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-    @validator("tipo")
-    def validate_tipo(cls, v):
-        valid_tipos = ["sp_sadt", "consulta", "internacao"]
-        if v not in valid_tipos:
-            raise ValueError(
-                f'Tipo deve ser um dos seguintes: {", ".join(valid_tipos)}'
-            )
-        return v
-
-    @validator("status")
-    def validate_status(cls, v):
-        valid_status = ["pendente", "em_andamento", "concluida", "cancelada"]
-        if v not in valid_status:
-            raise ValueError(
-                f'Status deve ser um dos seguintes: {", ".join(valid_status)}'
-            )
-        return v
-
-    @validator("data_emissao", "data_validade", pre=True)
-    def validate_date(cls, v):
-        if isinstance(v, str):
-            try:
-                if "/" in v:
-                    day, month, year = v.split("/")
-                    return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-                return v
-            except:
-                raise ValueError("Data inválida")
-        return v
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+    carteirinha: Optional[dict] = None
+    paciente: Optional[dict] = None
+    procedimento: Optional[dict] = None
 
     class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None,
+            date: lambda v: v.isoformat() if v else None,
+        }
 
 
-# Rotas para Guias
-@app.get("/guias/", response_model=dict)
-def listar_guias_route(
-    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
-    offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(
-        None, description="Buscar por número da guia ou nome do paciente"
-    ),
-):
-    """Lista todas as guias com suporte a paginação e busca."""
+@app.get("/procedimentos/")
+def listar_procedimentos_route():
     try:
-        response = database_supabase.listar_guias(
-            limit=limit, offset=offset, search=search
-        )
-        return response
+        response = supabase.table("procedimentos").select("*").eq("ativo", True).execute()
+        return response.data
     except Exception as e:
+        logging.error(f"Erro ao listar procedimentos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/guias/", response_model=Guia)
-def criar_guia_route(guia: Guia):
-    """Cria uma nova guia."""
+@app.get("/guias/")
+def listar_guias_route(
+    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+    offset: int = Query(0, ge=0, description="Número de itens para pular"),
+    search: str = Query(None, description="Buscar por número da guia ou nome do paciente"),
+):
     try:
-        dados_guia = guia.dict(
-            exclude={"id", "created_at", "updated_at", "quantidade_executada"}
+        response = supabase.table("guias").select(
+            "*, carteirinhas!guias_carteirinha_id_fkey(*), pacientes!guias_paciente_id_fkey(*), procedimentos!guias_procedimento_id_fkey(*)"
         )
-        response = database_supabase.criar_guia(dados_guia)
-        return response
+
+        if search:
+            response = response.or_(
+                f"numero_guia.ilike.%{search}%,pacientes.nome.ilike.%{search}%"
+            )
+
+        # Get total count before pagination
+        total = len(response.execute().data)
+
+        # Apply pagination
+        response = response.range(offset, offset + limit - 1)
+
+        result = response.execute()
+        
+        # Format data for frontend
+        formatted_data = []
+        for item in result.data:
+            guia_data = {
+                "id": item["id"],
+                "numero_guia": item["numero_guia"],
+                "data_emissao": item["data_emissao"],
+                "data_validade": item["data_validade"],
+                "tipo": item["tipo"],
+                "status": item["status"],
+                "carteirinha_id": item["carteirinha_id"],
+                "paciente_id": item["paciente_id"],
+                "quantidade_autorizada": item["quantidade_autorizada"],
+                "quantidade_executada": item["quantidade_executada"],
+                "procedimento_id": item["procedimento_id"],
+                "profissional_solicitante": item["profissional_solicitante"],
+                "profissional_executante": item["profissional_executante"],
+                "observacoes": item["observacoes"],
+                "created_at": item["created_at"],
+                "updated_at": item["updated_at"],
+                "created_by": item["created_by"],
+                "updated_by": item["updated_by"],
+                "carteirinha": item["carteirinhas"],
+                "paciente": item["pacientes"],
+                "procedimento": item["procedimentos"]
+            }
+            formatted_data.append(guia_data)
+
+        return {"items": formatted_data, "total": total, "pages": ceil(total / limit)}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logging.error(f"Erro ao listar guias: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/guias/{guia_id}", response_model=Guia)
-def atualizar_guia_route(guia_id: str, guia: Guia):
-    """Atualiza uma guia existente."""
+@app.post("/guias/")
+def criar_guia_route(guia: Guia, request: Request):
     try:
-        dados_guia = guia.dict(
-            exclude={"id", "created_at", "updated_at", "quantidade_executada"}
-        )
-        response = database_supabase.atualizar_guia(guia_id, dados_guia)
-        return response
+        # Pega o usuário da requisição
+        user_id = request.headers.get("user-id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID não fornecido")
+
+        # Prepara os dados para inserção
+        guia_data = guia.model_dump(exclude_unset=True)
+        guia_data["created_by"] = user_id
+        guia_data["updated_by"] = user_id
+        guia_data["created_at"] = datetime.now()
+        guia_data["updated_at"] = datetime.now()
+
+        # Valida se a carteirinha existe
+        carteirinha = supabase.table("carteirinhas").select("*").eq("id", guia_data["carteirinha_id"]).execute()
+        if not carteirinha.data:
+            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+
+        # Valida se o paciente existe
+        paciente = supabase.table("pacientes").select("*").eq("id", guia_data["paciente_id"]).execute()
+        if not paciente.data:
+            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+
+        # Insere no banco de dados
+        response = supabase.table("guias").insert(guia_data).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=500, detail="Erro ao criar guia")
+
+        return response.data[0]
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logging.error(f"Erro ao criar guia: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/guias/{guia_id}")
-def deletar_guia_route(guia_id: str):
-    """Deleta uma guia."""
+@app.put("/guias/{guia_id}")
+def atualizar_guia_route(guia_id: str, guia: Guia, request: Request):
     try:
-        database_supabase.excluir_guia(guia_id)
-        return {"message": "Guia excluída com sucesso"}
+        # Pega o usuário da requisição
+        user_id = request.headers.get("user-id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID não fornecido")
+
+        # Prepara os dados para atualização
+        guia_data = guia.model_dump(exclude_unset=True)
+        guia_data["updated_by"] = user_id
+        guia_data["updated_at"] = datetime.now()
+
+        # Remove campos que não devem ser atualizados
+        guia_data.pop("id", None)
+        guia_data.pop("created_at", None)
+        guia_data.pop("created_by", None)
+
+        # Atualiza no banco de dados
+        response = supabase.table("guias").update(guia_data).eq("id", guia_id).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Guia não encontrada")
+
+        return response.data[0]
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logging.error(f"Erro ao atualizar guia: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
