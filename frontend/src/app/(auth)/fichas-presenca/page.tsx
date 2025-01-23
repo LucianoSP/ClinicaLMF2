@@ -455,6 +455,21 @@ export default function FichasPresencaPage() {
       className: 'w-[150px] text-center'
     },
     {
+      key: 'arquivo_digitalizado',
+      label: 'Arquivo',
+      className: 'w-[100px] text-center',
+      render: (value) => value ? (
+        <a 
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800"
+        >
+          <FiDownload className="inline-block w-4 h-4" />
+        </a>
+      ) : null
+    },
+    {
       key: 'created_at',
       label: 'Data Cadastro',
       className: 'w-[130px] text-center',
@@ -782,6 +797,17 @@ export default function FichasPresencaPage() {
                        updatedSessoes[0] = { ...updatedSessoes[0], profissional_executante: e.target.value };
                        setEditedFicha({ ...editedFicha, sessoes: updatedSessoes });
                      }}
+                   />
+                 </div>
+                 <div className="grid gap-2">
+                   <Label>Link do Arquivo Digitalizado</Label>
+                   <Input
+                     value={editedFicha.arquivo_digitalizado || ''}
+                     onChange={(e) => setEditedFicha({
+                       ...editedFicha,
+                       arquivo_digitalizado: e.target.value
+                     })}
+                     placeholder="URL do arquivo digitalizado"
                    />
                  </div>
                </div>
