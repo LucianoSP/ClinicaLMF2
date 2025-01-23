@@ -259,6 +259,28 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
       render: (value) => <span>{formatDate(value as string)}</span>
     },
     {
+      key: 'paciente_carteirinha',
+      label: 'Carteirinha',
+    },
+    {
+      key: 'numero_guia',
+      label: 'Guia'
+    },
+    {
+      key: 'arquivo_digitalizado',
+      label: 'Arquivo',
+      render: (value) => value ? (
+        <a 
+          href={value as string}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800"
+        >
+          <Download className="inline-block w-4 h-4" />
+        </a>
+      ) : null
+    },
+    {
       key: 'possui_assinatura',
       label: 'Status',
       render: (value) => (
@@ -275,7 +297,6 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
   ]
 
   // Define columns for Carteirinhas table
-  // Dentro do PatientDetails.tsx, substitua o carteirinhaColumns por:
   const carteirinhaColumns: Column<Carteirinha>[] = [
     {
       key: 'numero',
