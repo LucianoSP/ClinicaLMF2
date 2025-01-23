@@ -924,14 +924,14 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
         if carteirinha and carteirinha.get("planos_saude"):
             plano = carteirinha["planos_saude"]
 
-        numero_carteirinha = carteirinha["numero_carteirinha"] if carteirinha else None
+        carteirinha_id = carteirinha["id"] if carteirinha else None
 
-        if numero_carteirinha:
-            # Busca as guias
+        if carteirinha_id:
+            # Busca as guias usando carteirinha_id
             guias_response = (
                 supabase.table("guias")
                 .select("*")
-                .eq("paciente_carteirinha", numero_carteirinha)
+                .eq("carteirinha_id", carteirinha_id)
                 .order("created_at", desc=True)
                 .execute()
             )
@@ -945,7 +945,8 @@ def listar_guias_paciente(paciente_id: str) -> Dict:
                 for guia in guias_response.data
             ]
 
-            # Busca fichas de presença
+            # Busca fichas de presença usando o número da carteirinha
+            numero_carteirinha = carteirinha["numero_carteirinha"]
             fichas_response = (
                 supabase.table("fichas_presenca")
                 .select("*")
