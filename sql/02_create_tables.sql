@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS carteirinhas (
 -- Index for faster carteirinha lookups
 CREATE INDEX IF NOT EXISTS idx_carteirinhas_numero ON carteirinhas(numero_carteirinha);
 CREATE INDEX IF NOT EXISTS idx_carteirinhas_paciente ON carteirinhas(paciente_id);
+
 -- Guias
 CREATE TABLE IF NOT EXISTS guias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -68,9 +69,8 @@ CREATE TABLE IF NOT EXISTS guias (
     data_validade date,
     tipo tipo_guia,
     status status_guia DEFAULT 'pendente',
-    paciente_carteirinha text,
-    paciente_nome text,
-    paciente_id uuid REFERENCES pacientes(id) ON DELETE CASCADE,
+    carteirinha_id uuid REFERENCES carteirinhas(id) ON DELETE RESTRICT,
+    paciente_id uuid REFERENCES pacientes(id) ON DELETE RESTRICT,
     quantidade_autorizada integer NOT NULL,
     quantidade_executada integer DEFAULT 0,
     procedimento_codigo text,
@@ -79,8 +79,16 @@ CREATE TABLE IF NOT EXISTS guias (
     profissional_executante text,
     observacoes text,
     created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now()
+    updated_at timestamptz DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
 );
+
+-- Índices para melhorar performance
+CREATE INDEX IF NOT EXISTS idx_guias_paciente_id ON guias(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_guias_carteirinha_id ON guias(carteirinha_id);
+CREATE INDEX IF NOT EXISTS idx_guias_numero ON guias(numero_guia);
+CREATE INDEX IF NOT EXISTS idx_guias_status ON guias(status);
 
 -- Guias Unimed
 CREATE TABLE IF NOT EXISTS guias_unimed (
@@ -157,6 +165,7 @@ CREATE TABLE IF NOT EXISTS execucoes (
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
+
 -- Divergências
 CREATE TABLE IF NOT EXISTS divergencias (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -206,7 +215,6 @@ CREATE INDEX IF NOT EXISTS idx_execucoes_paciente_carteirinha ON execucoes(pacie
 CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia ON execucoes(numero_guia);
 CREATE INDEX IF NOT EXISTS idx_execucoes_codigo_ficha ON execucoes(codigo_ficha);
 CREATE INDEX IF NOT EXISTS idx_execucoes_data_execucao ON execucoes(data_execucao);
-CREATE INDEX IF NOT EXISTS idx_guias_paciente_id ON guias(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_fichas_presenca_paciente_id ON fichas_presenca(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_sessoes_paciente_id ON sessoes(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_divergencias_paciente_id ON divergencias(paciente_id);

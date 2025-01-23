@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,6 +29,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Guia, GuiaFormData } from '@/services/guiaService';
+import { listarPacientes } from '@/services/pacienteService';
+import { listarCarteirinhas } from '@/services/carteirinhaService';
+import { Paciente } from '@/types/paciente';
+import { Carteirinha } from '@/services/carteirinhaService';
 
 const guiaFormSchema = z.object({
   numero_guia: z.string().min(1, 'Número da guia é obrigatório'),
@@ -56,6 +60,10 @@ interface GuiaModalProps {
 }
 
 export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [carteirinhas, setCarteirinhas] = useState<Carteirinha[]>([]);
+  const [selectedPaciente, setSelectedPaciente] = useState<string>('');
+
   const form = useForm<GuiaFormData>({
     resolver: zodResolver(guiaFormSchema),
     defaultValues: {
@@ -76,6 +84,39 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
   });
 
   useEffect(() => {
+    const fetchPacientes = async () => {
+      try {
+        const response = await listarPacientes(1, '', 100);
+        setPacientes(response.items);
+      } catch (error) {
+        console.error('Erro ao buscar pacientes:', error);
+      }
+    };
+
+    fetchPacientes();
+  }, []);
+
+  useEffect(() => {
+    const fetchCarteirinhas = async () => {
+      if (selectedPaciente) {
+        try {
+          const response = await listarCarteirinhas(1, 100);
+          const carteirinhasDoPaciente = response.items.filter(
+            c => c.paciente?.id === selectedPaciente
+          );
+          setCarteirinhas(carteirinhasDoPaciente);
+        } catch (error) {
+          console.error('Erro ao buscar carteirinhas:', error);
+        }
+      } else {
+        setCarteirinhas([]);
+      }
+    };
+
+    fetchCarteirinhas();
+  }, [selectedPaciente]);
+
+  useEffect(() => {
     if (guia) {
       form.reset({
         numero_guia: guia.numero_guia,
@@ -94,6 +135,14 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
       });
     }
   }, [guia, form]);
+
+  const handlePacienteChange = (pacienteId: string) => {
+    setSelectedPaciente(pacienteId);
+    const paciente = pacientes.find(p => p.id === pacienteId);
+    if (paciente) {
+      form.setValue('paciente_nome', paciente.nome);
+    }
+  };
 
   const handleSubmit = (data: GuiaFormData) => {
     onSubmit(data);
@@ -199,13 +248,30 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
 
             <FormField
               control={form.control}
-              name="paciente_carteirinha"
+              name="paciente_nome"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Carteirinha do Paciente</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
+                  <FormLabel>Paciente</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      handlePacienteChange(value);
+                      field.onChange(pacientes.find(p => p.id === value)?.nome || '');
+                    }}
+                    value={selectedPaciente}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o paciente" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {pacientes.map((paciente) => (
+                        <SelectItem key={paciente.id} value={paciente.id}>
+                          {paciente.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -213,13 +279,28 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
 
             <FormField
               control={form.control}
-              name="paciente_nome"
+              name="paciente_carteirinha"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Paciente</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
+                  <FormLabel>Carteirinha</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!selectedPaciente}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a carteirinha" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {carteirinhas.map((carteirinha) => (
+                        <SelectItem key={carteirinha.id} value={carteirinha.numero_carteirinha}>
+                          {carteirinha.numero_carteirinha} - {carteirinha.plano_saude?.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
