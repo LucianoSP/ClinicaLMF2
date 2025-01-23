@@ -2036,52 +2036,55 @@ def listar_guias_route(
     search: str = Query(None, description="Buscar por número da guia ou nome do paciente"),
 ):
     try:
-        response = supabase.table("guias").select(
-            "*, carteirinhas!guias_carteirinha_id_fkey(*), pacientes!guias_paciente_id_fkey(*), procedimentos!guias_procedimento_id_fkey(*)"
-        )
+        # Inicia a query base
+        query = supabase.table("guias").select("*")
 
+        # Adiciona busca se fornecida
         if search:
-            response = response.or_(
-                f"numero_guia.ilike.%{search}%,pacientes.nome.ilike.%{search}%"
-            )
+            query = query.or_(f'numero_guia.ilike.%{search}%')
 
-        # Get total count before pagination
-        total = len(response.execute().data)
+        # Conta total de registros
+        count_response = query.execute()
+        total_count = len(count_response.data)
 
-        # Apply pagination
-        response = response.range(offset, offset + limit - 1)
+        # Adiciona paginação
+        query = query.limit(limit).offset(offset)
 
-        result = response.execute()
-        
-        # Format data for frontend
-        formatted_data = []
-        for item in result.data:
-            guia_data = {
-                "id": item["id"],
-                "numero_guia": item["numero_guia"],
-                "data_emissao": item["data_emissao"],
-                "data_validade": item["data_validade"],
-                "tipo": item["tipo"],
-                "status": item["status"],
-                "carteirinha_id": item["carteirinha_id"],
-                "paciente_id": item["paciente_id"],
-                "quantidade_autorizada": item["quantidade_autorizada"],
-                "quantidade_executada": item["quantidade_executada"],
-                "procedimento_id": item["procedimento_id"],
-                "profissional_solicitante": item["profissional_solicitante"],
-                "profissional_executante": item["profissional_executante"],
-                "observacoes": item["observacoes"],
-                "created_at": item["created_at"],
-                "updated_at": item["updated_at"],
-                "created_by": item["created_by"],
-                "updated_by": item["updated_by"],
-                "carteirinha": item["carteirinhas"],
-                "paciente": item["pacientes"],
-                "procedimento": item["procedimentos"]
-            }
-            formatted_data.append(guia_data)
+        # Executa a query
+        response = query.execute()
 
-        return {"items": formatted_data, "total": total, "pages": ceil(total / limit)}
+        if not response.data:
+            return {"items": [], "total": 0, "pages": 0}
+
+        # Para cada guia, busca os dados relacionados
+        guias_completas = []
+        for guia in response.data:
+            # Busca dados da carteirinha
+            if guia.get("carteirinha_id"):
+                carteirinha = supabase.table("carteirinhas").select("*").eq("id", guia["carteirinha_id"]).execute()
+                if carteirinha.data:
+                    guia["carteirinha"] = carteirinha.data[0]
+
+            # Busca dados do paciente
+            if guia.get("paciente_id"):
+                paciente = supabase.table("pacientes").select("*").eq("id", guia["paciente_id"]).execute()
+                if paciente.data:
+                    guia["paciente"] = paciente.data[0]
+
+            # Busca dados do procedimento
+            if guia.get("procedimento_id"):
+                procedimento = supabase.table("procedimentos").select("*").eq("id", guia["procedimento_id"]).execute()
+                if procedimento.data:
+                    guia["procedimento"] = procedimento.data[0]
+
+            guias_completas.append(guia)
+
+        return {
+            "items": guias_completas,
+            "total": total_count,
+            "pages": ceil(total_count / limit)
+        }
+
     except Exception as e:
         logging.error(f"Erro ao listar guias: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -2091,9 +2094,16 @@ def listar_guias_route(
 def criar_guia_route(guia: Guia, request: Request):
     try:
         # Pega o usuário da requisição
-        user_id = request.headers.get("user-id")
-        if not user_id:
+        auth_user_id = request.headers.get("user-id")
+        if not auth_user_id:
             raise HTTPException(status_code=401, detail="User ID não fornecido")
+
+        # Busca o ID do usuário na tabela usuarios
+        usuario = supabase.table("usuarios").select("id").eq("auth_user_id", auth_user_id).execute()
+        if not usuario.data:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        
+        user_id = usuario.data[0]["id"]
 
         # Prepara os dados para inserção
         guia_data = guia.model_dump(exclude_unset=True)
@@ -2109,11 +2119,26 @@ def criar_guia_route(guia: Guia, request: Request):
         carteirinha = supabase.table("carteirinhas").select("*").eq("id", guia_data["carteirinha_id"]).execute()
         if not carteirinha.data:
             raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+        carteirinha_data = carteirinha.data[0]
 
         # Valida se o paciente existe
         paciente = supabase.table("pacientes").select("*").eq("id", guia_data["paciente_id"]).execute()
         if not paciente.data:
             raise HTTPException(status_code=404, detail="Paciente não encontrado")
+        paciente_data = paciente.data[0]
+
+        # Busca dados do procedimento se houver
+        procedimento_data = None
+        if guia_data.get("procedimento_id"):
+            procedimento = supabase.table("procedimentos").select("*").eq("id", guia_data["procedimento_id"]).execute()
+            if procedimento.data:
+                procedimento_data = procedimento.data[0]
+
+        # Remove campos que não existem na tabela
+        campos_para_remover = ["carteirinha", "paciente", "procedimento"]
+        for campo in campos_para_remover:
+            if campo in guia_data:
+                del guia_data[campo]
 
         # Insere no banco de dados
         response = supabase.table("guias").insert(guia_data).execute()
@@ -2121,7 +2146,14 @@ def criar_guia_route(guia: Guia, request: Request):
         if not response.data:
             raise HTTPException(status_code=500, detail="Erro ao criar guia")
 
-        return response.data[0]
+        # Adiciona os dados relacionados na resposta
+        guia_criada = response.data[0]
+        guia_criada["carteirinha"] = carteirinha_data
+        guia_criada["paciente"] = paciente_data
+        if procedimento_data:
+            guia_criada["procedimento"] = procedimento_data
+
+        return guia_criada
     except Exception as e:
         logging.error(f"Erro ao criar guia: {e}")
         raise HTTPException(status_code=500, detail=str(e))
