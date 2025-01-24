@@ -9,12 +9,20 @@ from dotenv import load_dotenv
 from rq import Queue
 from redis import Redis
 from worker import process_scraping
+import json
+import logging
 
 # Carrega variáveis de ambiente
 load_dotenv()
 
+# Configuração de logging
+logging.basicConfig(level=logging.DEBUG,
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 # Configuração do Redis
 def init_redis(max_retries=3):
+    """Configure and initialize Redis"""
     for attempt in range(max_retries):
         try:
             # Start Redis server
@@ -25,15 +33,14 @@ def init_redis(max_retries=3):
             redis_conn = Redis(
                 host='0.0.0.0',
                 port=6379,
-                decode_responses=True,
                 socket_timeout=5,
                 retry_on_timeout=True
             )
             redis_conn.ping()
-            print("✅ Conectado ao Redis com sucesso!")
+            logger.info("✅ Conectado ao Redis com sucesso!")
             return redis_conn
         except Exception as e:
-            print(f"❌ Tentativa {attempt + 1}/{max_retries}: {str(e)}")
+            logger.error(f"❌ Tentativa {attempt + 1}/{max_retries}: {str(e)}")
             time.sleep(2)
     raise Exception("Não foi possível conectar ao Redis após várias tentativas")
 
@@ -41,6 +48,7 @@ redis_conn = init_redis()
 
 # Inicializa a fila
 task_queue = Queue(connection=redis_conn)
+logger.info(f"✅ Fila Redis inicializada. Tamanho atual: {len(task_queue)}")
 
 # Credenciais Unimed
 UNIMED_USERNAME = os.getenv("UNIMED_USERNAME")
@@ -77,34 +85,59 @@ class ScrapingResult(BaseModel):
 
 
 # Armazenamento em memória dos resultados (em produção, usar Redis ou banco de dados)
-task_results = {}
+# task_results = {}
 
 
 @app.post("/scrape", response_model=ScrapingResult)
 async def start_scraping(task: ScrapingTask,
                          background_tasks: BackgroundTasks):
     task_id = str(datetime.now().timestamp())
-    task_results[task_id] = {"status": "processing"}
+    logger.info(f"📋 Nova tarefa de scraping iniciada: {task_id}")
+    logger.debug(f"Dados da tarefa: {task.model_dump()}")
+    
+    # Inicializa o status no Redis
+    try:
+        redis_conn.hset(f"task:{task_id}", mapping={"status": "processing"})
+        logger.info("✅ Status inicial salvo no Redis")
+    except Exception as e:
+        logger.error(f"❌ Erro ao salvar status no Redis: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro ao inicializar tarefa")
 
     # Adiciona tarefa à fila do Redis
-    job = task_queue.enqueue(process_scraping, task_id, task.dict(),
-                             task_results)
+    try:
+        job = task_queue.enqueue(process_scraping, task_id, task.model_dump())
+        logger.info(f"✅ Tarefa adicionada à fila. Job ID: {job.id}")
+        logger.info(f"📊 Tamanho atual da fila: {len(task_queue)}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao adicionar tarefa à fila: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro ao iniciar processamento")
 
     return ScrapingResult(task_id=task_id, status="processing")
 
 
 @app.get("/status/{task_id}", response_model=ScrapingResult)
 async def get_status(task_id: str):
-    if task_id not in task_results:
-        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    # Busca o status no Redis
+    try:
+        result = {
+            k.decode('utf-8'): v.decode('utf-8') 
+            for k, v in redis_conn.hgetall(f"task:{task_id}").items()
+        }
+        logger.debug(f"📋 Status da tarefa {task_id}: {result}")
+        
+        if not result:
+            logger.warning(f"⚠️ Tarefa não encontrada: {task_id}")
+            raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
-    result = task_results[task_id]
-    return ScrapingResult(
-        task_id=task_id,
-        status=result["status"],
-        result=result.get("result"),
-        error=result.get("error"),
-    )
+        return ScrapingResult(
+            task_id=task_id,
+            status=result.get("status", "processing"),
+            result=json.loads(result.get("result", "null")) if result.get("result") else None,
+            error=result.get("error"),
+        )
+    except Exception as e:
+        logger.error(f"❌ Erro ao buscar status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar status: {str(e)}")
 
 
 if __name__ == "__main__":
