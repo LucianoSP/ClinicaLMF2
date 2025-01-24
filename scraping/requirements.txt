@@ -5,3 +5,6 @@ selenium==4.15.2
 redis==5.0.1
 rq==1.15.1
 requests==2.31.0
+pydantic==2.5.2
+python-multipart==0.0.6
+webdriver-manager==4.0.1
