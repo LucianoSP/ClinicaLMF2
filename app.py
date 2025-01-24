@@ -126,7 +126,7 @@ class Carteirinha(BaseModel):
         }
     }
 
-    @validator('data_validade')
+    @validator("data_validade")
     def parse_data_validade(cls, v):
         if not v:
             return None
@@ -134,10 +134,10 @@ class Carteirinha(BaseModel):
             # Tenta converter a data para o formato correto
             if isinstance(v, str):
                 # Se já é uma string ISO, retorna como está
-                if 'T' in v or '-' in v:
+                if "T" in v or "-" in v:
                     return v
                 # Caso contrário, tenta converter de DD/MM/YYYY para YYYY-MM-DD
-                dia, mes, ano = v.split('/')
+                dia, mes, ano = v.split("/")
                 return f"{ano}-{mes.zfill(2)}-{dia.zfill(2)}"
             return v
         except Exception as e:
@@ -480,7 +480,7 @@ async def extract_info_from_pdf(pdf_path: str):
                         Analise este documento PDF e extraia as seguintes informações em JSON válido:
 
                         {
-                            "codigo_ficha": string,  // Campo 1 - FICHA no canto superior direito, formato XX-XXXXXXXX...
+                            "codigo_ficha": string,  // Campo 2 no canto superior direito, formato XX-XXXXXXXX (Diferente do campo 3 - Código na Operadora.)
                             "registros": [
                                 {
                                     "data_execucao": string,         // Campo 11 - Data do atendimento no formato DD/MM/YYYY
@@ -495,10 +495,11 @@ async def extract_info_from_pdf(pdf_path: str):
                         Regras de extração:
                         1. Cada linha numerada (1-, 2-, 3-, etc) representa uma sessão diferente do mesmo paciente
                         2. Inclua TODAS as linhas que têm data de atendimento preenchida, mesmo que não tenham assinatura
-                        3. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano)
-                        4. Todas as datas devem ser válidas (30/02/2024 seria uma data inválida)
+                        3. IMPORTANTE: Todas as datas DEVEM estar no formato DD/MM/YYYY (com 4 dígitos no ano). 
+                        4. Todas as datas devem ser válidas (30/02/2024 seria uma data inválida). As datas preenchidas numa ficha são sempre a mesma para todas as linhas. 
                         5. Mantenha o número da carteirinha EXATAMENTE como está no documento, incluindo pontos e hífens
-                        6. Retorne APENAS o JSON, sem texto adicional
+                        6. Assinale se houver assinaturas válidas. Para considerar uma linha com assinatura válida, basta verificar um pequeno quadrado no final da linha. Caso este quadrado esteja marcado ou pintado, é um campo que deveria ter uma assinatura na linha à esquerda. 
+                        7. Retorne APENAS o JSON, sem texto adicional
                     """,
                         },
                     ],
@@ -1759,7 +1760,7 @@ def listar_carteirinhas_route(
                 "plano_saude": item["planos_saude"],
                 "created_by": item.get("created_by"),
                 "created_at": item.get("created_at"),
-                "updated_at": item.get("updated_at")
+                "updated_at": item.get("updated_at"),
             }
             for item in result.data
         ]
@@ -1866,7 +1867,8 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
 
         if not response.data:
             raise HTTPException(
-                status_code=500, detail="Erro ao atualizar carteirinha no banco de dados"
+                status_code=500,
+                detail="Erro ao atualizar carteirinha no banco de dados",
             )
 
         updated_data = response.data[0]
@@ -2022,7 +2024,9 @@ class Guia(BaseModel):
 @app.get("/procedimentos/")
 def listar_procedimentos_route():
     try:
-        response = supabase.table("procedimentos").select("*").eq("ativo", True).execute()
+        response = (
+            supabase.table("procedimentos").select("*").eq("ativo", True).execute()
+        )
         return response.data
     except Exception as e:
         logging.error(f"Erro ao listar procedimentos: {e}")
@@ -2033,7 +2037,9 @@ def listar_procedimentos_route():
 def listar_guias_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(None, description="Buscar por número da guia ou nome do paciente"),
+    search: str = Query(
+        None, description="Buscar por número da guia ou nome do paciente"
+    ),
 ):
     try:
         # Inicia a query base
@@ -2041,7 +2047,7 @@ def listar_guias_route(
 
         # Adiciona busca se fornecida
         if search:
-            query = query.or_(f'numero_guia.ilike.%{search}%')
+            query = query.or_(f"numero_guia.ilike.%{search}%")
 
         # Conta total de registros
         count_response = query.execute()
@@ -2061,19 +2067,34 @@ def listar_guias_route(
         for guia in response.data:
             # Busca dados da carteirinha
             if guia.get("carteirinha_id"):
-                carteirinha = supabase.table("carteirinhas").select("*").eq("id", guia["carteirinha_id"]).execute()
+                carteirinha = (
+                    supabase.table("carteirinhas")
+                    .select("*")
+                    .eq("id", guia["carteirinha_id"])
+                    .execute()
+                )
                 if carteirinha.data:
                     guia["carteirinha"] = carteirinha.data[0]
 
             # Busca dados do paciente
             if guia.get("paciente_id"):
-                paciente = supabase.table("pacientes").select("*").eq("id", guia["paciente_id"]).execute()
+                paciente = (
+                    supabase.table("pacientes")
+                    .select("*")
+                    .eq("id", guia["paciente_id"])
+                    .execute()
+                )
                 if paciente.data:
                     guia["paciente"] = paciente.data[0]
 
             # Busca dados do procedimento
             if guia.get("procedimento_id"):
-                procedimento = supabase.table("procedimentos").select("*").eq("id", guia["procedimento_id"]).execute()
+                procedimento = (
+                    supabase.table("procedimentos")
+                    .select("*")
+                    .eq("id", guia["procedimento_id"])
+                    .execute()
+                )
                 if procedimento.data:
                     guia["procedimento"] = procedimento.data[0]
 
@@ -2082,7 +2103,7 @@ def listar_guias_route(
         return {
             "items": guias_completas,
             "total": total_count,
-            "pages": ceil(total_count / limit)
+            "pages": ceil(total_count / limit),
         }
 
     except Exception as e:
@@ -2099,30 +2120,45 @@ def criar_guia_route(guia: Guia, request: Request):
             raise HTTPException(status_code=401, detail="User ID não fornecido")
 
         # Busca o ID do usuário na tabela usuarios
-        usuario = supabase.table("usuarios").select("id").eq("auth_user_id", auth_user_id).execute()
+        usuario = (
+            supabase.table("usuarios")
+            .select("id")
+            .eq("auth_user_id", auth_user_id)
+            .execute()
+        )
         if not usuario.data:
             raise HTTPException(status_code=404, detail="Usuário não encontrado")
-        
+
         user_id = usuario.data[0]["id"]
 
         # Prepara os dados para inserção
         guia_data = guia.model_dump(exclude_unset=True)
         guia_data["created_by"] = user_id
         guia_data["updated_by"] = user_id
-        
+
         # Converte as datas para string ISO
         current_time = datetime.now().isoformat()
         guia_data["created_at"] = current_time
         guia_data["updated_at"] = current_time
 
         # Valida se a carteirinha existe
-        carteirinha = supabase.table("carteirinhas").select("*").eq("id", guia_data["carteirinha_id"]).execute()
+        carteirinha = (
+            supabase.table("carteirinhas")
+            .select("*")
+            .eq("id", guia_data["carteirinha_id"])
+            .execute()
+        )
         if not carteirinha.data:
             raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
         carteirinha_data = carteirinha.data[0]
 
         # Valida se o paciente existe
-        paciente = supabase.table("pacientes").select("*").eq("id", guia_data["paciente_id"]).execute()
+        paciente = (
+            supabase.table("pacientes")
+            .select("*")
+            .eq("id", guia_data["paciente_id"])
+            .execute()
+        )
         if not paciente.data:
             raise HTTPException(status_code=404, detail="Paciente não encontrado")
         paciente_data = paciente.data[0]
@@ -2130,7 +2166,12 @@ def criar_guia_route(guia: Guia, request: Request):
         # Busca dados do procedimento se houver
         procedimento_data = None
         if guia_data.get("procedimento_id"):
-            procedimento = supabase.table("procedimentos").select("*").eq("id", guia_data["procedimento_id"]).execute()
+            procedimento = (
+                supabase.table("procedimentos")
+                .select("*")
+                .eq("id", guia_data["procedimento_id"])
+                .execute()
+            )
             if procedimento.data:
                 procedimento_data = procedimento.data[0]
 
