@@ -38,10 +38,11 @@ def process_scraping(task_id: str, task_data: dict, task_results: dict):
         # Define datas padrão se não fornecidas
         start_date = task_data.get("start_date") or datetime.now().strftime("%d/%m/%Y")
         end_date = task_data.get("end_date") or datetime.now().strftime("%d/%m/%Y")
+        max_guides = task_data.get("max_guides")  # Pode ser None
 
-        logger.info("Extraindo guias...")
+        logger.info(f"Extraindo guias (limite: {max_guides if max_guides else 'sem limite'})...")
         atualizar_status(task_id, "extraindo", {"message": "Extraindo guias do sistema Unimed"})
-        results = scraper.extract_guides(start_date, end_date)
+        results = scraper.extract_guides(start_date, end_date, max_guides=max_guides)
         logger.info(f"Extraídas {len(results)} guias")
 
         # Envia resultados para o backend principal

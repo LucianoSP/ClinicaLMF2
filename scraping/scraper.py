@@ -149,6 +149,43 @@ class UnimedScraper:
             self.logger.error(f"Error capturing guides: {str(e)}")
             raise
 
+    def extract_guides(self, start_date: str, end_date: str, max_guides: Optional[int] = None) -> List[Dict]:
+        """
+        Extract guides from Unimed system within the specified date range
+        
+        Args:
+            start_date (str): Start date in format dd/mm/yyyy
+            end_date (str): End date in format dd/mm/yyyy
+            max_guides (Optional[int]): Maximum number of guides to extract. If None, extracts all guides.
+        
+        Returns:
+            List[Dict]: List of extracted guides
+        """
+        try:
+            self.setup_driver()
+            self.capture_guides(start_date, end_date)
+            
+            # Se max_guides for especificado, limita o número de guias
+            if max_guides is not None and max_guides > 0:
+                self.captured_guides = self.captured_guides[:max_guides]
+                self.protocol_data = self.protocol_data[:max_guides]
+            
+            # Processa e retorna as guias capturadas
+            guides_data = []
+            for guide, protocol in zip(self.captured_guides, self.protocol_data):
+                guide_info = self.process_guide_data(guide, protocol)
+                if guide_info:
+                    guides_data.append(guide_info)
+                    
+                    # Se atingiu o limite, para o processamento
+                    if max_guides is not None and len(guides_data) >= max_guides:
+                        break
+            
+            return guides_data
+        except Exception as e:
+            self.logger.error(f"Error extracting guides: {str(e)}")
+            raise
+
     def process_guide(self, guide_data: Dict):
         """Process individual guide and extract detailed information"""
         try:

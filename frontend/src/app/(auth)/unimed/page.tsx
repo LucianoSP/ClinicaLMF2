@@ -42,6 +42,7 @@ export default function UnimedPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dataInicial, setDataInicial] = useState<Date>();
   const [dataFinal, setDataFinal] = useState<Date>();
+  const [maxGuias, setMaxGuias] = useState<number>();
   const [isLoading, setIsLoading] = useState(false);
   const [taskId, setTaskId] = useState<string>();
   const [scrapingStatus, setScrapingStatus] = useState<ScrapingStatus>();
@@ -50,7 +51,8 @@ export default function UnimedPage() {
     let interval: NodeJS.Timeout;
 
     if (taskId) {
-      interval = setInterval(async () => {
+      // Verifica imediatamente ao receber o taskId
+      const checkStatus = async () => {
         try {
           const response = await fetch(`${API_URLS.SCRAPING_API}/status/${taskId}`);
           if (!response.ok) {
@@ -63,17 +65,24 @@ export default function UnimedPage() {
             clearInterval(interval);
             setIsLoading(false);
             setTaskId(undefined);
-
-            if (data.status === 'completed') {
-              alert(`Scraping concluído! Total de guias: ${data.result?.total_guides}`);
-            } else {
-              alert(`Erro no scraping: ${data.error}`);
-            }
           }
         } catch (error) {
           console.error('Erro ao verificar status:', error);
+          clearInterval(interval);
+          setIsLoading(false);
+          setTaskId(undefined);
+          setScrapingStatus({
+            status: 'failed',
+            error: 'Erro ao verificar status do processo'
+          });
         }
-      }, 10000); // Verifica a cada 2 segundos
+      };
+
+      // Chama imediatamente
+      checkStatus();
+      
+      // Configura o intervalo para verificar a cada 2 segundos
+      interval = setInterval(checkStatus, 2000);
     }
 
     return () => {
@@ -100,6 +109,7 @@ export default function UnimedPage() {
         body: JSON.stringify({
           start_date: format(dataInicial, 'dd/MM/yyyy'),
           end_date: format(dataFinal, 'dd/MM/yyyy'),
+          max_guides: maxGuias
         }),
       });
 
@@ -117,6 +127,8 @@ export default function UnimedPage() {
   };
 
   const getStatusMessage = (scrapingStatus: ScrapingStatus) => {
+    if (!scrapingStatus) return 'Processando...';
+    
     switch (scrapingStatus.status) {
       case 'starting':
         return 'Iniciando o processo...';
@@ -125,14 +137,11 @@ export default function UnimedPage() {
       case 'extraindo':
         return 'Extraindo guias do sistema...';
       case 'enviando':
-        const processedGuides = scrapingStatus.processed_guides || 0;
-        const totalGuides = scrapingStatus.total_guides || 0;
-        return `Enviando guias: ${processedGuides} de ${totalGuides}`;
+        return `Enviando guias para o sistema (${scrapingStatus.processed_guides}/${scrapingStatus.total_guides})`;
       case 'completed':
-        const resultGuides = scrapingStatus.result?.total_guides || 0;
-        return `Concluído! Total de guias: ${resultGuides}`;
+        return 'Processo concluído com sucesso!';
       case 'failed':
-        return `Erro: ${scrapingStatus.error || 'Erro desconhecido'}`;
+        return `Erro: ${scrapingStatus.error}`;
       default:
         return 'Processando...';
     }
@@ -193,92 +202,124 @@ export default function UnimedPage() {
         <h1 className="text-2xl font-bold">Guias Unimed</h1>
       </div>
 
-      <div className="flex flex-col space-y-4 mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="flex flex-col space-y-2">
-            <label className="text-sm font-medium">Data Inicial</label>
+      <div className="flex flex-col space-y-4 mb-8">
+        <div className="flex space-x-4">
+          <div className="flex-1">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-[240px] justify-start text-left font-normal",
+                    "w-full justify-start text-left font-normal",
                     !dataInicial && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dataInicial ? format(dataInicial, "dd/MM/yyyy") : <span>Selecione a data</span>}
+                  {dataInicial ? format(dataInicial, "PPP", { locale: ptBR }) : <span>Data Inicial</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
+                  mode="single"
                   selected={dataInicial}
                   onSelect={setDataInicial}
-                  className="rounded-md border"
+                  initialFocus
+                  locale={ptBR}
                 />
               </PopoverContent>
             </Popover>
           </div>
 
-          <div className="flex flex-col space-y-2">
-            <label className="text-sm font-medium">Data Final</label>
+          <div className="flex-1">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-[240px] justify-start text-left font-normal",
+                    "w-full justify-start text-left font-normal",
                     !dataFinal && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dataFinal ? format(dataFinal, "dd/MM/yyyy") : <span>Selecione a data</span>}
+                  {dataFinal ? format(dataFinal, "PPP", { locale: ptBR }) : <span>Data Final</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
+                  mode="single"
                   selected={dataFinal}
                   onSelect={setDataFinal}
-                  className="rounded-md border"
+                  initialFocus
+                  locale={ptBR}
                 />
               </PopoverContent>
             </Popover>
           </div>
 
-          <Button
-            onClick={iniciarScraping}
-            disabled={!dataInicial || !dataFinal || isLoading}
-            className="mt-auto"
-          >
-            {isLoading ? "Processando..." : "Iniciar Scraping"}
-          </Button>
+          <div className="flex-1">
+            <Input
+              type="number"
+              placeholder="Quantidade máxima de guias"
+              value={maxGuias || ''}
+              onChange={(e) => setMaxGuias(e.target.value ? parseInt(e.target.value) : undefined)}
+              className="w-full"
+            />
+          </div>
         </div>
 
-        {isLoading && (
+        <Button
+          onClick={iniciarScraping}
+          disabled={!dataInicial || !dataFinal || isLoading}
+          className="mt-auto"
+        >
+          {isLoading ? "Processando..." : "Iniciar Scraping"}
+        </Button>
+      </div>
+
+      {isLoading && (
+        <div className="space-y-4">
           <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
-            <p className="font-medium">{getStatusMessage(scrapingStatus!)}</p>
+            <p className="font-medium">{scrapingStatus ? getStatusMessage(scrapingStatus) : 'Iniciando processo...'}</p>
+            
             {scrapingStatus?.status === 'enviando' && (
-              <div className="w-full bg-blue-200 rounded-full h-2.5 mt-2">
-                <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${(scrapingStatus.processed_guides! / scrapingStatus.total_guides!) * 100}%`
-                  }}
-                ></div>
+              <div className="mt-4 space-y-2">
+                <div className="w-full bg-blue-200 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${(scrapingStatus.processed_guides! / scrapingStatus.total_guides!) * 100}%`
+                    }}
+                  ></div>
+                </div>
+                <p className="text-sm text-blue-600">
+                  {scrapingStatus.processed_guides} de {scrapingStatus.total_guides} guias processadas
+                </p>
+              </div>
+            )}
+
+            {scrapingStatus?.status === 'failed' && (
+              <div className="mt-2 text-red-600">
+                <p className="text-sm">{scrapingStatus.error}</p>
+              </div>
+            )}
+
+            {scrapingStatus?.status === 'completed' && (
+              <div className="mt-2 text-green-600">
+                <p className="text-sm">Total de guias processadas: {scrapingStatus.result?.total_guides}</p>
               </div>
             )}
           </div>
-        )}
-
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar guias..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
         </div>
+      )}
+
+      <div className="relative">
+        <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar guias..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-8"
+        />
       </div>
 
       <div className="rounded-md border">

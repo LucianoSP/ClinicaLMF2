@@ -66,6 +66,7 @@ app.add_middleware(
 class ScrapingTask(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    max_guides: Optional[int] = None
 
 
 class ScrapingResult(BaseModel):
