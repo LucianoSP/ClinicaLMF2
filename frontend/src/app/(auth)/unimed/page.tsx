@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';  // Usando a instância existente do Supabase
 import SortableTable, { Column } from '@/components/SortableTable';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,81 +17,150 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Progress } from "@/components/ui/progress"
 
-interface GuiaUnimed {
-  numero_guia: string;
+// Interfaces
+interface GuiaProcessada {
+  id: number;
   carteira: string;
-  nome_paciente: string;
+  nome_beneficiario: string;
+  codigo_procedimento: string;
+  data_atendimento: string;
   data_execucao: string;
+  numero_guia: string;
+  biometria: string;
   nome_profissional: string;
-  status: string;
+  created_at: string;
 }
 
-interface ScrapingStatus {
+interface ProcessingStatus {
+  id: number;
   status: string;
-  message?: string;
-  total_guides?: number;
-  processed_guides?: number;
-  error?: string;
-  result?: {
-    total_guides: number;
-  };
+  error: string | null;
+  processed_guides: number;
+  total_guides: number;
+  last_update: string;
+}
+
+interface CaptureStatus {
+  status: string;
+  total_guides: number;
+  processed_guides: number;
+  error: string | null;
+  updated_at: string;
 }
 
 export default function UnimedPage() {
-  const [guias] = useState<GuiaUnimed[]>([]);
+  const [guias, setGuias] = useState<GuiaProcessada[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dataInicial, setDataInicial] = useState<Date>();
   const [dataFinal, setDataFinal] = useState<Date>();
   const [maxGuias, setMaxGuias] = useState<number>();
   const [isLoading, setIsLoading] = useState(false);
   const [taskId, setTaskId] = useState<string>();
-  const [scrapingStatus, setScrapingStatus] = useState<ScrapingStatus>();
+  const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
+  const [captureStatus, setCaptureStatus] = useState<CaptureStatus | null>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    // Configurar subscription para atualizações de status
+    const channel = supabase
+      .channel('scraping_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'processing_status'
+        },
+        (payload) => {
+          console.log('Status atualizado:', payload.new);
+          setProcessingStatus(payload.new as ProcessingStatus);
 
-    if (taskId) {
-      // Verifica imediatamente ao receber o taskId
-      const checkStatus = async () => {
-        try {
-          const response = await fetch(`${API_URLS.SCRAPING_API}/status/${taskId}`);
-          if (!response.ok) {
-            throw new Error('Erro ao verificar status');
-          }
-          const data = await response.json();
-          setScrapingStatus(data);
-
-          if (data.status === 'completed' || data.status === 'failed') {
-            clearInterval(interval);
+          // Se o processo foi concluído ou falhou, atualizar estado
+          if (['completed', 'failed'].includes(payload.new.status)) {
             setIsLoading(false);
             setTaskId(undefined);
+            fetchGuias(); // Recarregar guias
           }
-        } catch (error) {
-          console.error('Erro ao verificar status:', error);
-          clearInterval(interval);
-          setIsLoading(false);
-          setTaskId(undefined);
-          setScrapingStatus({
-            status: 'failed',
-            error: 'Erro ao verificar status do processo'
-          });
         }
-      };
+      )
+      .subscribe();
 
-      // Chama imediatamente
-      checkStatus();
-      
-      // Configura o intervalo para verificar a cada 2 segundos
-      interval = setInterval(checkStatus, 2000);
-    }
+    // Carregar dados iniciais
+    fetchInitialData();
 
+    // Cleanup
     return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
+      channel.unsubscribe();
     };
-  }, [taskId]);
+  }, []);
+
+  const fetchInitialData = async () => {
+    try {
+      // Buscar status atual
+      const { data: statusData } = await supabase
+        .from('processing_status')
+        .select('*')
+        .order('last_update', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (statusData) {
+        setProcessingStatus(statusData);
+        // Se houver um processo em andamento, atualizar UI
+        if (statusData.status === 'processing') {
+          setIsLoading(true);
+        }
+      }
+
+      // Buscar guias
+      await fetchGuias();
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais:', error);
+    }
+  };
+
+  const fetchGuias = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('guias_processadas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setGuias(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar guias:', error);
+    }
+  };
+
+  const monitorCaptureProgress = async (taskId: string) => {
+    try {
+      const response = await fetch(`http://147.93.70.96/capture-status/${taskId}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar status da captura');
+      }
+      
+      const status = await response.json();
+      setCaptureStatus(status);
+      
+      // Continua monitorando se ainda estiver em progresso
+      if (status.status === 'processing') {
+        setTimeout(() => monitorCaptureProgress(taskId), 2000);
+      } else if (status.status === 'completed') {
+        alert('Captura finalizada com sucesso!');
+        await fetchGuias();
+        setIsLoading(false);
+        setCaptureStatus(null);
+      } else if (status.status === 'error') {
+        alert(`Erro na captura: ${status.error}`);
+        setIsLoading(false);
+        setCaptureStatus(null);
+      }
+    } catch (error) {
+      console.error('Erro ao monitorar progresso:', error);
+    }
+  };
 
   const iniciarScraping = async () => {
     if (!dataInicial || !dataFinal) {
@@ -99,9 +169,10 @@ export default function UnimedPage() {
     }
 
     setIsLoading(true);
-    setScrapingStatus(undefined);
+    setCaptureStatus(null);
+    
     try {
-      const response = await fetch(`${API_URLS.SCRAPING_API}/scrape`, {
+      const response = await fetch('http://147.93.70.96/capture-guides', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +180,7 @@ export default function UnimedPage() {
         body: JSON.stringify({
           start_date: format(dataInicial, 'dd/MM/yyyy'),
           end_date: format(dataFinal, 'dd/MM/yyyy'),
-          max_guides: maxGuias
+          max_guides: maxGuias || 1
         }),
       });
 
@@ -118,36 +189,31 @@ export default function UnimedPage() {
       }
 
       const data = await response.json();
-      setTaskId(data.task_id);
+      if (data.task_id) {
+        setTaskId(data.task_id);
+        monitorCaptureProgress(data.task_id);
+      }
     } catch (error) {
       console.error('Erro:', error);
-      alert('Erro ao iniciar o scraping');
+      alert('Erro ao iniciar a captura');
       setIsLoading(false);
     }
   };
 
-  const getStatusMessage = (scrapingStatus: ScrapingStatus) => {
-    if (!scrapingStatus) return 'Processando...';
-    
-    switch (scrapingStatus.status) {
-      case 'starting':
-        return 'Iniciando o processo...';
-      case 'login':
-        return 'Realizando login na Unimed...';
-      case 'extraindo':
-        return 'Extraindo guias do sistema...';
-      case 'enviando':
-        return `Enviando guias para o sistema (${scrapingStatus.processed_guides}/${scrapingStatus.total_guides})`;
+  const getStatusMessage = (status: ProcessingStatus) => {
+    switch (status.status) {
+      case 'processing':
+        return `Processando guias (${status.processed_guides}/${status.total_guides})`;
       case 'completed':
         return 'Processo concluído com sucesso!';
       case 'failed':
-        return `Erro: ${scrapingStatus.error}`;
+        return `Erro: ${status.error}`;
       default:
         return 'Processando...';
     }
   };
 
-  const columns: Column<GuiaUnimed>[] = [
+  const columns: Column<GuiaProcessada>[] = [
     {
       key: 'numero_guia',
       label: 'Número da Guia',
@@ -157,8 +223,8 @@ export default function UnimedPage() {
       label: 'Carteira',
     },
     {
-      key: 'nome_paciente',
-      label: 'Paciente',
+      key: 'nome_beneficiario',
+      label: 'Beneficiário',
     },
     {
       key: 'data_execucao',
@@ -170,16 +236,14 @@ export default function UnimedPage() {
       label: 'Profissional',
     },
     {
-      key: 'status',
-      label: 'Status',
+      key: 'biometria',
+      label: 'Biometria',
       render: (value) => (
         <span className={cn(
           "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-          value === 'Pendente' && "bg-yellow-100 text-yellow-800",
-          value === 'Enviado' && "bg-green-100 text-green-800",
-          value === 'Erro' && "bg-red-100 text-red-800"
+          value ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
         )}>
-          {value}
+          {value ? 'Com Biometria' : 'Sem Biometria'}
         </span>
       ),
     },
@@ -191,7 +255,7 @@ export default function UnimedPage() {
     return (
       guia.numero_guia.toLowerCase().includes(searchTermLower) ||
       guia.carteira.toLowerCase().includes(searchTermLower) ||
-      guia.nome_paciente.toLowerCase().includes(searchTermLower) ||
+      guia.nome_beneficiario.toLowerCase().includes(searchTermLower) ||
       guia.nome_profissional.toLowerCase().includes(searchTermLower)
     );
   });
@@ -276,43 +340,66 @@ export default function UnimedPage() {
         </Button>
       </div>
 
-      {isLoading && (
+      {/* Status do processamento do Supabase */}
+      {isLoading && processingStatus && (
         <div className="space-y-4">
           <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
-            <p className="font-medium">{scrapingStatus ? getStatusMessage(scrapingStatus) : 'Iniciando processo...'}</p>
-            
-            {scrapingStatus?.status === 'enviando' && (
+            <p className="font-medium">{getStatusMessage(processingStatus)}</p>
+
+            {processingStatus.status === 'processing' && (
               <div className="mt-4 space-y-2">
                 <div className="w-full bg-blue-200 rounded-full h-2.5">
                   <div
                     className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
                     style={{
-                      width: `${(scrapingStatus.processed_guides! / scrapingStatus.total_guides!) * 100}%`
+                      width: `${(processingStatus.processed_guides / processingStatus.total_guides) * 100}%`
                     }}
                   ></div>
                 </div>
                 <p className="text-sm text-blue-600">
-                  {scrapingStatus.processed_guides} de {scrapingStatus.total_guides} guias processadas
+                  {processingStatus.processed_guides} de {processingStatus.total_guides} guias processadas
                 </p>
               </div>
             )}
 
-            {scrapingStatus?.status === 'failed' && (
+            {processingStatus.status === 'failed' && (
               <div className="mt-2 text-red-600">
-                <p className="text-sm">{scrapingStatus.error}</p>
+                <p className="text-sm">{processingStatus.error}</p>
               </div>
             )}
 
-            {scrapingStatus?.status === 'completed' && (
+            {processingStatus.status === 'completed' && (
               <div className="mt-2 text-green-600">
-                <p className="text-sm">Total de guias processadas: {scrapingStatus.result?.total_guides}</p>
+                <p className="text-sm">Total de guias processadas: {processingStatus.total_guides}</p>
               </div>
             )}
           </div>
         </div>
       )}
 
-      <div className="relative">
+      {/* Status da captura do novo endpoint */}
+      {isLoading && captureStatus && (
+        <div className="space-y-4">
+          <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
+            <p className="font-medium">Capturando guias...</p>
+            <div className="mt-4 space-y-2">
+              <div className="w-full bg-blue-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(captureStatus.processed_guides / captureStatus.total_guides) * 100}%`
+                  }}
+                ></div>
+              </div>
+              <p className="text-sm text-blue-600">
+                {captureStatus.processed_guides} de {captureStatus.total_guides} guias processadas
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="relative mb-4">
         <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar guias..."
