@@ -146,7 +146,7 @@ class Carteirinha(BaseModel):
 
 
 # Rotas para Pacientes
-@app.get("/pacientes/")
+@app.get("/pacientes")
 def listar_pacientes_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
@@ -1718,7 +1718,6 @@ async def conferir_sessao(sessao_id: str):
 
 
 @app.delete("/sessoes/{sessao_id}")
-
 # Rotas para Carteirinhas
 @app.get("/carteirinhas/")
 def listar_carteirinhas_route(
@@ -2021,6 +2020,7 @@ class Guia(BaseModel):
     }
 
 
+# Rota para listar procedimentos
 @app.get("/procedimentos/")
 def listar_procedimentos_route():
     try:
@@ -2033,7 +2033,8 @@ def listar_procedimentos_route():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/guias/")
+# Rota para listar guias
+@app.get("/guias")
 def listar_guias_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),

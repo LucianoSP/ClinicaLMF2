@@ -18,6 +18,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 // Interfaces
 interface GuiaProcessada {
@@ -34,12 +38,15 @@ interface GuiaProcessada {
 }
 
 interface ProcessingStatus {
-  id: number;
-  status: string;
-  error: string | null;
-  processed_guides: number;
+  id: string;
+  task_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   total_guides: number;
-  last_update: string;
+  processed_guides: number;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
 }
 
 interface CaptureStatus {
@@ -48,6 +55,24 @@ interface CaptureStatus {
   processed_guides: number;
   error: string | null;
   updated_at: string;
+}
+
+interface ExecutionHistory {
+  task_id: string;
+  status: string;
+  total_guides: number;
+  processed_guides: number;
+  created_at: string;
+  completed_at: string | null;
+  duration_seconds: number | null;
+}
+
+interface HourlyMetrics {
+  hour: number;
+  total_executions: number;
+  total_guides: number;
+  processed_guides: number;
+  errors: number;
 }
 
 export default function UnimedPage() {
@@ -59,9 +84,77 @@ export default function UnimedPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [taskId, setTaskId] = useState<string>();
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
+  const [executionHistory, setExecutionHistory] = useState<ExecutionHistory[]>([]);
+  const [hourlyMetrics, setHourlyMetrics] = useState<HourlyMetrics[]>([]);
   const [captureStatus, setCaptureStatus] = useState<CaptureStatus | null>(null);
 
   useEffect(() => {
+    const fetchData = async () => {
+      // Buscar último status
+      const { data: lastStatus } = await supabase
+        .from('processing_status')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (lastStatus) {
+        setProcessingStatus(lastStatus);
+      }
+
+      // Buscar histórico de execuções das últimas 24h
+      const { data: history } = await supabase
+        .from('processing_status')
+        .select('*')
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false });
+
+      if (history) {
+        const processedHistory = history.map(item => ({
+          ...item,
+          duration_seconds: item.completed_at 
+            ? (new Date(item.completed_at).getTime() - new Date(item.created_at).getTime()) / 1000
+            : null
+        }));
+        setExecutionHistory(processedHistory);
+
+        // Processar métricas por hora
+        const hourlyData = history.reduce((acc, curr) => {
+          const hourDate = new Date(curr.created_at);
+          const hour = hourDate.setMinutes(0, 0, 0);
+          
+          const existing = acc.find(x => x.hour === hour);
+          
+          if (existing) {
+            existing.total_executions += 1;
+            existing.total_guides += curr.total_guides || 0;
+            existing.processed_guides += curr.processed_guides || 0;
+            existing.errors += (curr.status === 'error' || curr.status === 'failed') ? 1 : 0;
+          } else {
+            acc.push({
+              hour,
+              total_executions: 1,
+              total_guides: curr.total_guides || 0,
+              processed_guides: curr.processed_guides || 0,
+              errors: (curr.status === 'error' || curr.status === 'failed') ? 1 : 0
+            });
+          }
+          return acc;
+        }, [] as HourlyMetrics[]);
+
+        // Ordenar por hora
+        hourlyData.sort((a, b) => a.hour - b.hour);
+        
+        setHourlyMetrics(hourlyData);
+      }
+    };
+
+    // Buscar dados iniciais
+    fetchData();
+
+    // Configurar intervalo para atualização
+    const interval = setInterval(fetchData, 30000);
+
     // Configurar subscription para atualizações de status
     const channel = supabase
       .channel('scraping_updates')
@@ -75,25 +168,285 @@ export default function UnimedPage() {
         (payload) => {
           console.log('Status atualizado:', payload.new);
           setProcessingStatus(payload.new as ProcessingStatus);
-
-          // Se o processo foi concluído ou falhou, atualizar estado
-          if (['completed', 'failed'].includes(payload.new.status)) {
-            setIsLoading(false);
-            setTaskId(undefined);
-            fetchGuias(); // Recarregar guias
-          }
+          fetchData(); // Atualizar todas as métricas
         }
       )
       .subscribe();
 
-    // Carregar dados iniciais
-    fetchInitialData();
-
-    // Cleanup
     return () => {
+      clearInterval(interval);
       channel.unsubscribe();
     };
   }, []);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-500';
+      case 'processing':
+        return 'bg-blue-500';
+      case 'completed':
+        return 'bg-green-500';
+      case 'failed':
+      case 'error':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'medium'
+    });
+  };
+
+  const formatDuration = (seconds: number) => {
+    if (!seconds) return '-';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  const LastExecutionCard = () => {
+    if (!processingStatus) return null;
+
+    const progress = processingStatus.total_guides > 0
+      ? (processingStatus.processed_guides / processingStatus.total_guides) * 100
+      : 0;
+
+    return (
+      <Card className="col-span-2">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Status Atual</CardTitle>
+            <Badge className={cn("capitalize", getStatusColor(processingStatus.status))}>
+              {processingStatus.status}
+            </Badge>
+          </div>
+          <CardDescription>
+            Task ID: {processingStatus.task_id}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <div className="text-2xl font-bold mb-2">
+                {processingStatus.processed_guides} / {processingStatus.total_guides}
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Início</p>
+                <p className="text-sm font-medium">{formatDate(processingStatus.created_at)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Duração</p>
+                <p className="text-sm font-medium">
+                  {processingStatus.completed_at
+                    ? formatDuration((new Date(processingStatus.completed_at).getTime() - new Date(processingStatus.created_at).getTime()) / 1000)
+                    : 'Em andamento'}
+                </p>
+              </div>
+            </div>
+
+            {processingStatus.error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{processingStatus.error}</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const ExecutionHistoryCard = () => {
+    if (!executionHistory.length) return null;
+
+    return (
+      <Card className="col-span-3">
+        <CardHeader>
+          <CardTitle>Histórico de Execuções (24h)</CardTitle>
+          <CardDescription>
+            Últimas {executionHistory.length} execuções
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="relative overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Task ID</th>
+                  <th className="text-left py-2">Status</th>
+                  <th className="text-right py-2">Guias</th>
+                  <th className="text-right py-2">Duração</th>
+                  <th className="text-left py-2">Início</th>
+                </tr>
+              </thead>
+              <tbody>
+                {executionHistory.map((execution) => (
+                  <tr key={execution.task_id} className="border-b">
+                    <td className="py-2">{execution.task_id}</td>
+                    <td className="py-2">
+                      <Badge className={cn("capitalize", getStatusColor(execution.status))}>
+                        {execution.status}
+                      </Badge>
+                    </td>
+                    <td className="text-right py-2">
+                      {execution.processed_guides}/{execution.total_guides}
+                    </td>
+                    <td className="text-right py-2">
+                      {formatDuration(execution.duration_seconds || 0)}
+                    </td>
+                    <td className="py-2">{formatDate(execution.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const MetricsCard = () => {
+    const calculateSuccessRate = () => {
+      if (!executionHistory.length) return 0;
+      const total = executionHistory.length;
+      const errors = executionHistory.filter(
+        exec => exec.status === 'error' || exec.status === 'failed'
+      ).length;
+      return Math.round(((total - errors) / total) * 100);
+    };
+
+    const calculateTotalExecutions = () => {
+      return executionHistory.length;
+    };
+
+    const calculateAverageGuides = () => {
+      if (!executionHistory.length) return 0;
+      const totalGuides = executionHistory.reduce((acc, curr) => acc + (curr.total_guides || 0), 0);
+      return Math.round(totalGuides / executionHistory.length);
+    };
+
+    return (
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Taxa de Sucesso</CardTitle>
+            <CardDescription>Últimas 24 horas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {`${calculateSuccessRate()}%`}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Total de Execuções</CardTitle>
+            <CardDescription>Últimas 24 horas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {calculateTotalExecutions()}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Média de Guias</CardTitle>
+            <CardDescription>Por execução</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {calculateAverageGuides()}
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    );
+  };
+
+  const ChartCard = () => {
+    if (!hourlyMetrics.length) return null;
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Execuções por Hora</CardTitle>
+          <CardDescription>
+            Últimas 24 horas
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="h-[400px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={hourlyMetrics}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="hour"
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return `${date.getHours().toString().padStart(2, '0')}:00`;
+                }}
+              />
+              <YAxis />
+              <Tooltip
+                labelFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+                }}
+                formatter={(value, name) => {
+                  switch (name) {
+                    case 'total_executions':
+                      return [value, 'Execuções'];
+                    case 'total_guides':
+                      return [value, 'Guias'];
+                    case 'errors':
+                      return [value, 'Erros'];
+                    default:
+                      return [value, name];
+                  }
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="total_executions"
+                stroke="#8884d8"
+                name="Execuções"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="total_guides"
+                stroke="#82ca9d"
+                name="Guias"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="errors"
+                stroke="#ff7300"
+                name="Erros"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -140,10 +493,10 @@ export default function UnimedPage() {
       if (!response.ok) {
         throw new Error('Erro ao buscar status da captura');
       }
-      
+
       const status = await response.json();
       setCaptureStatus(status);
-      
+
       // Continua monitorando se ainda estiver em progresso
       if (status.status === 'processing') {
         setTimeout(() => monitorCaptureProgress(taskId), 2000);
@@ -170,7 +523,7 @@ export default function UnimedPage() {
 
     setIsLoading(true);
     setCaptureStatus(null);
-    
+
     try {
       const response = await fetch('http://147.93.70.96/capture-guides', {
         method: 'POST',
@@ -261,161 +614,190 @@ export default function UnimedPage() {
   });
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Guias Unimed</h1>
-      </div>
-
-      <div className="flex flex-col space-y-4 mb-8">
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dataInicial && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dataInicial ? format(dataInicial, "PPP", { locale: ptBR }) : <span>Data Inicial</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dataInicial}
-                  onSelect={setDataInicial}
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="flex-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dataFinal && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dataFinal ? format(dataFinal, "PPP", { locale: ptBR }) : <span>Data Final</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dataFinal}
-                  onSelect={setDataFinal}
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="flex-1">
-            <Input
-              type="number"
-              placeholder="Quantidade máxima de guias"
-              value={maxGuias || ''}
-              onChange={(e) => setMaxGuias(e.target.value ? parseInt(e.target.value) : undefined)}
-              className="w-full"
-            />
-          </div>
+    <div className="container mx-auto py-6">
+      <Tabs defaultValue="dashboard" className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Processamento Unimed</h1>
+          <TabsList>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="guias">Guias</TabsTrigger>
+          </TabsList>
         </div>
 
-        <Button
-          onClick={iniciarScraping}
-          disabled={!dataInicial || !dataFinal || isLoading}
-          className="mt-auto"
-        >
-          {isLoading ? "Processando..." : "Iniciar Scraping"}
-        </Button>
-      </div>
+        <TabsContent value="dashboard" className="space-y-6">
+          <div className="grid grid-cols-5 gap-4">
+            <LastExecutionCard />
+            <ExecutionHistoryCard />
+          </div>
 
-      {/* Status do processamento do Supabase */}
-      {isLoading && processingStatus && (
-        <div className="space-y-4">
-          <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
-            <p className="font-medium">{getStatusMessage(processingStatus)}</p>
+          <div className="grid grid-cols-1 gap-4">
+            <ChartCard />
+          </div>
 
-            {processingStatus.status === 'processing' && (
-              <div className="mt-4 space-y-2">
-                <div className="w-full bg-blue-200 rounded-full h-2.5">
-                  <div
-                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${(processingStatus.processed_guides / processingStatus.total_guides) * 100}%`
-                    }}
-                  ></div>
+          <div className="grid grid-cols-3 gap-4">
+            <MetricsCard />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="guias">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">Guias Unimed</h1>
+            </div>
+
+            <div className="flex flex-col space-y-4 mb-8">
+              <div className="flex space-x-4">
+                <div className="flex-1">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dataInicial && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataInicial ? format(dataInicial, "PPP", { locale: ptBR }) : <span>Data Inicial</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataInicial}
+                        onSelect={setDataInicial}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <p className="text-sm text-blue-600">
-                  {processingStatus.processed_guides} de {processingStatus.total_guides} guias processadas
-                </p>
+
+                <div className="flex-1">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dataFinal && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataFinal ? format(dataFinal, "PPP", { locale: ptBR }) : <span>Data Final</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataFinal}
+                        onSelect={setDataFinal}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="flex-1">
+                  <Input
+                    type="number"
+                    placeholder="Quantidade máxima de guias"
+                    value={maxGuias || ''}
+                    onChange={(e) => setMaxGuias(e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={iniciarScraping}
+                disabled={!dataInicial || !dataFinal || isLoading}
+                className="mt-auto"
+              >
+                {isLoading ? "Processando..." : "Iniciar Scraping"}
+              </Button>
+            </div>
+
+            {/* Status do processamento do Supabase */}
+            {isLoading && processingStatus && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
+                  <p className="font-medium">{getStatusMessage(processingStatus)}</p>
+
+                  {processingStatus.status === 'processing' && (
+                    <div className="mt-4 space-y-2">
+                      <div className="w-full bg-blue-200 rounded-full h-2.5">
+                        <div
+                          className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                          style={{
+                            width: `${(processingStatus.processed_guides / processingStatus.total_guides) * 100}%`
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-sm text-blue-600">
+                        {processingStatus.processed_guides} de {processingStatus.total_guides} guias processadas
+                      </p>
+                    </div>
+                  )}
+
+                  {processingStatus.status === 'failed' && (
+                    <div className="mt-2 text-red-600">
+                      <p className="text-sm">{processingStatus.error}</p>
+                    </div>
+                  )}
+
+                  {processingStatus.status === 'completed' && (
+                    <div className="mt-2 text-green-600">
+                      <p className="text-sm">Total de guias processadas: {processingStatus.total_guides}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {processingStatus.status === 'failed' && (
-              <div className="mt-2 text-red-600">
-                <p className="text-sm">{processingStatus.error}</p>
+            {/* Status da captura do novo endpoint */}
+            {isLoading && captureStatus && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
+                  <p className="font-medium">Capturando guias...</p>
+                  <div className="mt-4 space-y-2">
+                    <div className="w-full bg-blue-200 rounded-full h-2.5">
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${(captureStatus.processed_guides / captureStatus.total_guides) * 100}%`
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-sm text-blue-600">
+                      {captureStatus.processed_guides} de {captureStatus.total_guides} guias processadas
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
-            {processingStatus.status === 'completed' && (
-              <div className="mt-2 text-green-600">
-                <p className="text-sm">Total de guias processadas: {processingStatus.total_guides}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            <div className="relative mb-4">
+              <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar guias..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
 
-      {/* Status da captura do novo endpoint */}
-      {isLoading && captureStatus && (
-        <div className="space-y-4">
-          <div className="bg-blue-50 text-blue-700 p-4 rounded-md">
-            <p className="font-medium">Capturando guias...</p>
-            <div className="mt-4 space-y-2">
-              <div className="w-full bg-blue-200 rounded-full h-2.5">
-                <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${(captureStatus.processed_guides / captureStatus.total_guides) * 100}%`
-                  }}
-                ></div>
-              </div>
-              <p className="text-sm text-blue-600">
-                {captureStatus.processed_guides} de {captureStatus.total_guides} guias processadas
-              </p>
+            <div className="rounded-md border">
+              <SortableTable
+                data={filteredGuias}
+                columns={columns}
+                loading={false}
+              />
             </div>
           </div>
-        </div>
-      )}
-
-      <div className="relative mb-4">
-        <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar guias..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-8"
-        />
-      </div>
-
-      <div className="rounded-md border">
-        <SortableTable
-          data={filteredGuias}
-          columns={columns}
-          loading={false}
-        />
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
