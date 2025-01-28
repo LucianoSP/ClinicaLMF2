@@ -2032,3 +2032,75 @@ def get_unimed_guides(
     except Exception as e:
         logging.error(f"Error getting Unimed guides: {str(e)}")
         return {"guides": [], "total": 0, "pages": 0}
+
+
+def listar_fichas_presenca(
+    limit: int = 100,
+    offset: int = 0,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    order: Optional[str] = None,
+) -> Dict:
+    """
+    Retorna todas as fichas de presença com suporte a paginação e busca.
+    """
+    try:
+        # First get count of all records
+        count_query = supabase.table("fichas_presenca").select("*", count="exact")
+
+        if search:
+            count_query = count_query.or_(
+                f"paciente_nome.ilike.%{search}%,"
+                f"codigo_ficha.ilike.%{search}%,"
+                f"numero_guia.ilike.%{search}%"
+            )
+
+        if status and status != "todas":
+            count_query = count_query.eq("status", status)
+
+        count_response = count_query.execute()
+        total = count_response.count if hasattr(count_response, "count") else 0
+
+        # Then get paginated data with relations
+        data_query = supabase.table("fichas_presenca").select(
+            """
+            *,
+            sessoes!fichas_presenca_sessoes_fkey (
+                *,
+                procedimento:procedimentos!sessoes_procedimento_id_fkey (
+                    id,
+                    nome,
+                    codigo
+                )
+            )
+            """
+        )
+
+        if search:
+            data_query = data_query.or_(
+                f"paciente_nome.ilike.%{search}%,"
+                f"codigo_ficha.ilike.%{search}%,"
+                f"numero_guia.ilike.%{search}%"
+            )
+
+        if status and status != "todas":
+            data_query = data_query.eq("status", status)
+
+        data_query = data_query.order("created_at", desc=True)
+        if limit > 0:
+            data_query = data_query.range(offset, offset + limit - 1)
+
+        response = data_query.execute()
+
+        if not response.data:
+            return {"items": [], "total": 0, "pages": 0}
+
+        return {
+            "items": response.data,
+            "total": total,
+            "pages": ceil(total / limit) if limit > 0 else 1,
+        }
+
+    except Exception as e:
+        logging.error(f"Erro ao listar fichas de presença: {str(e)}")
+        return {"items": [], "total": 0, "pages": 0}

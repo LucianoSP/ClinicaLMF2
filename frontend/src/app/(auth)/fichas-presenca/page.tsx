@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { listarFichasPresenca } from '@/services/fichaPresencaService';
 
 // Interfaces e Tipos
 interface Procedimento {
@@ -136,46 +137,21 @@ export default function FichasPresencaPage() {
   const fetchFichas = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('fichas_presenca')
-        .select(`
-          *,
-          sessoes (
-            *,
-            procedimento:procedimentos (
-              id,
-              nome,
-              codigo
-            )
-          )
-        `)
-        .eq('status', statusFilter)
-        .ilike('paciente_nome', `%${debouncedSearchTerm}%`)
-        .order('created_at', { ascending: false })
-        .range((page - 1) * perPage, page * perPage - 1);
+      const response = await listarFichasPresenca(
+        page,
+        perPage,
+        debouncedSearchTerm,
+        statusFilter
+      );
 
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      const fichasFormatadas = data?.map((ficha: any) => ({
-        ...ficha,
-        created_at: formatDate(ficha.created_at),
-        sessoes: ficha.sessoes?.map((sessao: any) => ({
-          ...sessao,
-          procedimento_nome: sessao.procedimento?.nome || '-'
-        }))
-      })) || [];
-
-      setFichas(fichasFormatadas);
-      setTotalPages(Math.ceil((count || 0) / perPage));
-      setTotalRecords(count || 0);
-
+      setFichas(response.items);
+      setTotalRecords(response.total);
+      setTotalPages(response.pages);
     } catch (error) {
-      console.error('Erro ao buscar fichas:', error);
+      console.error('Erro ao carregar fichas:', error);
       toast({
         title: "Erro",
-        description: "Falha ao carregar fichas",
+        description: "Erro ao carregar fichas de presença",
         variant: "destructive",
       });
     } finally {

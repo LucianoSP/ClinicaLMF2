@@ -1622,7 +1622,8 @@ def listar_tipos_divergencia_route():
         return {"tipos": tipos}
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Erro ao listar tipos de divergência: {str(e)}"
+            status_code=500,
+            detail=f"Erro ao listar tipos de divergência: {str(e)}",
         )
 
 
@@ -2177,3 +2178,24 @@ def atualizar_guia_route(guia_id: str, guia: Guia, request: Request):
     except Exception as e:
         logging.error(f"Erro ao atualizar guia: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/fichas-presenca")
+async def listar_fichas_presenca_route(
+    limit: int = Query(10, ge=1),
+    offset: int = Query(0, ge=0),
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+):
+    """
+    Lista todas as fichas de presença com suporte a paginação e busca.
+    """
+    try:
+        return database_supabase.listar_fichas_presenca(
+            limit=limit, offset=offset, search=search, status=status
+        )
+    except Exception as e:
+        logging.error(f"Erro ao listar fichas de presença: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao listar fichas de presença: {str(e)}"
+        )
