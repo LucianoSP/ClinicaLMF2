@@ -553,3 +553,52 @@ COMMENT ON FUNCTION update_sessoes_conferidas() IS 'Mantém atualizada a contage
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+
+------------------------------ GUIAS UNIMED ------------------------------
+
+-- Tabela de status do processamento
+CREATE TABLE IF NOT EXISTS processing_status (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    status text NOT NULL,
+    error text,
+    processed_guides integer DEFAULT 0,
+    total_guides integer DEFAULT 0,
+    task_id text UNIQUE NOT NULL,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+);
+
+-- Tabela de fila de guias
+CREATE TABLE IF NOT EXISTS guias_queue (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    numero_guia text NOT NULL,
+    data_execucao text NOT NULL,
+    status text DEFAULT 'pending',
+    error text,
+    task_id text,  -- Referência ao process_status
+    attempts integer DEFAULT 0,
+    created_at timestamptz DEFAULT now(),
+    processed_at timestamptz,
+    updated_at timestamptz DEFAULT now(),
+    FOREIGN KEY (task_id) REFERENCES processing_status(task_id)
+);
+
+-- Função para atualizar timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Triggers para atualizar updated_at
+CREATE TRIGGER update_processing_status_updated_at
+    BEFORE UPDATE ON processing_status
+    FOR EACH ROW
+    EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_guias_queue_updated_at
+    BEFORE UPDATE ON guias_queue
+    FOR EACH ROW
+    EXECUTE PROCEDURE update_updated_at_column();
