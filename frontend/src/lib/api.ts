@@ -10,12 +10,20 @@ export const api = axios.create({
   withCredentials: false // Desabilitando withCredentials já que o backend está com CORS totalmente permissivo
 });
 
+// Interceptor para normalizar URLs (remover barras finais)
+api.interceptors.request.use((config) => {
+  // Remover barras finais da URL, exceto se for apenas "/"
+  if (config.url && config.url !== "/" && config.url.endsWith("/")) {
+    config.url = config.url.slice(0, -1);
+  }
+  return config;
+});
+
 // Interceptor para tratar erros
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Aqui podemos adicionar lógica para tratar erros específicos
-    // Por exemplo, redirecionar para login se receber 401
+    console.error('API Error:', error);
     return Promise.reject(error);
   }
 );

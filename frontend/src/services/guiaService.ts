@@ -77,7 +77,7 @@ export async function listarGuias(page = 1, limit = 10, search?: string) {
         params.append('search', search);
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias/?${params}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias?${params}`, {
         headers: {
             'user-id': supabase.auth.getUser()?.data?.user?.id || '',
         }

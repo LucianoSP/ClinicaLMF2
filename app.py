@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Query, Body
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import database_supabase
 from auditoria import realizar_auditoria, realizar_auditoria_fichas_execucoes
@@ -76,6 +77,13 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Middleware para normalizar URLs (remover barras finais)
+@app.middleware("http")
+async def remove_trailing_slashes(request: Request, call_next):
+    if request.url.path != "/" and request.url.path.endswith("/"):
+        return RedirectResponse(request.url.path.rstrip("/"))
+    return await call_next(request)
 
 # Debug: Verificar variáveis do Supabase
 from config import SUPABASE_URL, SUPABASE_KEY
@@ -304,6 +312,7 @@ def formatar_data(data):
             if data.isdigit() and len(data) == 8:
                 # Tenta interpretar como DDMMYYYY
                 try:
+                    # Formata a data para o formato correto
                     data_obj = datetime.strptime(data, "%d%m%Y")
                     if data_obj.year >= 2000 and data_obj.year <= 2100:
                         return data_obj.strftime("%d/%m/%Y")
@@ -539,7 +548,7 @@ async def extract_info_from_pdf(pdf_path: str):
             "erro": str(e),
             "status_validacao": "falha",
             "resposta_raw": (
-                response.content[0].text if "response" in locals() else None
+                response.content[0].text if "response" in locals() else None,
             ),
         }
     except Exception as e:
@@ -1719,7 +1728,7 @@ async def conferir_sessao(sessao_id: str):
 
 @app.delete("/sessoes/{sessao_id}")
 # Rotas para Carteirinhas
-@app.get("/carteirinhas/")
+@app.get("/carteirinhas")
 def listar_carteirinhas_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
@@ -1777,6 +1786,18 @@ def criar_carteirinha_route(carteirinha: Carteirinha, request: Request):
         user_id = request.headers.get("user-id")
         if not user_id:
             raise HTTPException(status_code=401, detail="User ID não fornecido")
+
+        # Busca o ID do usuário na tabela usuarios
+        usuario = (
+            supabase.table("usuarios")
+            .select("id")
+            .eq("auth_user_id", user_id)
+            .execute()
+        )
+        if not usuario.data:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+        user_id = usuario.data[0]["id"]
 
         # Prepara os dados para inserção
         carteirinha_data = carteirinha.model_dump(exclude_unset=True)
@@ -2020,111 +2041,34 @@ class Guia(BaseModel):
     }
 
 
-# Rota para listar procedimentos
-@app.get("/procedimentos/")
-def listar_procedimentos_route():
-    try:
-        response = (
-            supabase.table("procedimentos").select("*").eq("ativo", True).execute()
-        )
-        return response.data
-    except Exception as e:
-        logging.error(f"Erro ao listar procedimentos: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # Rota para listar guias
-@app.get("/guias")
+@app.get("/guias", response_model=Dict)
 def listar_guias_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(
-        None, description="Buscar por número da guia ou nome do paciente"
-    ),
+    search: str = Query(None, description="Buscar por número da guia ou nome do paciente"),
 ):
     try:
-        # Inicia a query base
-        query = supabase.table("guias").select("*")
-
-        # Adiciona busca se fornecida
-        if search:
-            query = query.or_(f"numero_guia.ilike.%{search}%")
-
-        # Conta total de registros
-        count_response = query.execute()
-        total_count = len(count_response.data)
-
-        # Adiciona paginação
-        query = query.limit(limit).offset(offset)
-
-        # Executa a query
-        response = query.execute()
-
-        if not response.data:
-            return {"items": [], "total": 0, "pages": 0}
-
-        # Para cada guia, busca os dados relacionados
-        guias_completas = []
-        for guia in response.data:
-            # Busca dados da carteirinha
-            if guia.get("carteirinha_id"):
-                carteirinha = (
-                    supabase.table("carteirinhas")
-                    .select("*")
-                    .eq("id", guia["carteirinha_id"])
-                    .execute()
-                )
-                if carteirinha.data:
-                    guia["carteirinha"] = carteirinha.data[0]
-
-            # Busca dados do paciente
-            if guia.get("paciente_id"):
-                paciente = (
-                    supabase.table("pacientes")
-                    .select("*")
-                    .eq("id", guia["paciente_id"])
-                    .execute()
-                )
-                if paciente.data:
-                    guia["paciente"] = paciente.data[0]
-
-            # Busca dados do procedimento
-            if guia.get("procedimento_id"):
-                procedimento = (
-                    supabase.table("procedimentos")
-                    .select("*")
-                    .eq("id", guia["procedimento_id"])
-                    .execute()
-                )
-                if procedimento.data:
-                    guia["procedimento"] = procedimento.data[0]
-
-            guias_completas.append(guia)
-
-        return {
-            "items": guias_completas,
-            "total": total_count,
-            "pages": ceil(total_count / limit),
-        }
-
+        return database_supabase.listar_guias(limit=limit, offset=offset, search=search)
     except Exception as e:
         logging.error(f"Erro ao listar guias: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/guias/")
-def criar_guia_route(guia: Guia, request: Request):
+# Rota para criar guia
+@app.post("/guias", response_model=Dict)
+async def criar_guia_route(guia: Guia, request: Request):
     try:
         # Pega o usuário da requisição
-        auth_user_id = request.headers.get("user-id")
-        if not auth_user_id:
+        user_id = request.headers.get("user-id")
+        if not user_id:
             raise HTTPException(status_code=401, detail="User ID não fornecido")
 
         # Busca o ID do usuário na tabela usuarios
         usuario = (
             supabase.table("usuarios")
             .select("id")
-            .eq("auth_user_id", auth_user_id)
+            .eq("auth_user_id", user_id)
             .execute()
         )
         if not usuario.data:

@@ -87,7 +87,7 @@ export async function listarCarteirinhas(
   search?: string
 ): Promise<CarteirinhaResponse> {
   const offset = (page - 1) * limit;
-  const response = await api.get("/carteirinhas/", {
+  const response = await api.get("/carteirinhas", {
     params: { limit, offset, search },
   });
 
@@ -101,7 +101,7 @@ export async function listarCarteirinhas(
 export async function listarCarteirinhasPorPaciente(
   pacienteId: string
 ): Promise<Carteirinha[]> {
-  const response = await api.get("/carteirinhas/", {
+  const response = await api.get("/carteirinhas", {
     params: { paciente_id: pacienteId },
   });
 
@@ -112,7 +112,7 @@ export async function criarCarteirinha(
   carteirinha: Partial<Carteirinha>
 ): Promise<Carteirinha> {
   const response = await api.post(
-    "/carteirinhas/",
+    "/carteirinhas",
     toBackendFormat(carteirinha)
   );
   return toFrontendFormat(response.data);
@@ -123,14 +123,14 @@ export async function atualizarCarteirinha(
   carteirinha: Partial<Carteirinha>
 ): Promise<Carteirinha> {
   const response = await api.put(
-    `/carteirinhas/${id}/`,
+    `/carteirinhas/${id}`,
     toBackendFormat(carteirinha)
   );
   return toFrontendFormat(response.data);
 }
 
 export async function excluirCarteirinha(id: string): Promise<void> {
-  await api.delete(`/carteirinhas/${id}/`);
+  await api.delete(`/carteirinhas/${id}`);
 }
 
 interface CarteirinhaResponse {

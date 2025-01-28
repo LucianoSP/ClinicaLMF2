@@ -340,36 +340,39 @@ def listar_guias(
     Retorna todas as guias com suporte a paginação e busca.
     """
     try:
-        query = supabase.table("guias").select(
-            "id, numero_guia, data_emissao, data_validade, tipo, status, "
-            + "paciente_carteirinha, paciente_nome, quantidade_autorizada, quantidade_executada, "
-            + "procedimento_codigo, procedimento_nome, profissional_solicitante, profissional_executante, "
-            + "observacoes, created_at, updated_at",
-            count="exact",
+        # First get count of all records
+        count_query = supabase.table("guias").select("*", count="exact")
+        if search:
+            count_query = count_query.or_(f"numero_guia.ilike.%{search}%")
+        count_response = count_query.execute()
+        total = count_response.count if hasattr(count_response, "count") else 0
+
+        # Then get paginated data with relations
+        data_query = supabase.table("guias").select(
+            "*, carteirinhas!guias_carteirinha_id_fkey(*), pacientes!guias_paciente_id_fkey(*), procedimentos!guias_procedimento_id_fkey(*)"
         )
 
         if search:
-            query = query.or_(
-                f"numero_guia.ilike.%{search}%,paciente_nome.ilike.%{search}%"
-            )
+            data_query = data_query.or_(f"numero_guia.ilike.%{search}%")
 
-        # Primeiro, pegamos o total de registros
-        total = query.execute().count
+        data_query = data_query.order("created_at", desc=True)
+        if limit > 0:
+            data_query = data_query.range(offset, offset + limit - 1)
 
-        # Depois, aplicamos a paginação
-        query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
+        response = data_query.execute()
 
-        response = query.execute()
+        if not response.data:
+            return {"items": [], "total": 0, "pages": 0}
 
         return {
             "items": response.data,
             "total": total,
-            "pages": ceil(total / limit) if total > 0 else 0,
+            "pages": ceil(total / limit) if limit > 0 else 1,
         }
 
     except Exception as e:
         logging.error(f"Erro ao listar guias: {str(e)}")
-        raise Exception(f"Erro ao listar guias: {str(e)}")
+        return {"items": [], "total": 0, "pages": 0}
 
 
 def criar_guia(dados: Dict):
@@ -1267,7 +1270,10 @@ def verificar_formatos_data_banco():
 
         # Verifica fichas_presenca
         fichas = (
-            supabase.table("fichas_presenca").select("id,data_atendimento").limit(5).execute()
+            supabase.table("fichas_presenca")
+            .select("id,data_atendimento")
+            .limit(5)
+            .execute()
         )
         amostras["fichas_presenca"] = [
             (f["id"], f["data_atendimento"]) for f in fichas.data
