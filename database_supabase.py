@@ -349,7 +349,7 @@ def listar_guias(
 
         # Then get paginated data with relations
         data_query = supabase.table("guias").select(
-            "*, carteirinhas!guias_carteirinha_id_fkey(*), pacientes!guias_paciente_id_fkey(*), procedimentos!guias_procedimento_id_fkey(*)"
+            "*, carteirinha:carteirinhas!guias_carteirinha_id_fkey(*), paciente:pacientes!guias_paciente_id_fkey(*), procedimento:procedimentos!guias_procedimento_id_fkey(*)"
         )
 
         if search:
@@ -1842,6 +1842,7 @@ def listar_pacientes(
             "total": total,
             "pages": ceil(total / limit) if total > 0 else 0,
         }
+
     except Exception as e:
         logging.error(f"Erro ao listar pacientes: {e}")
         raise e

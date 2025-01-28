@@ -2124,7 +2124,7 @@ async def criar_guia_route(guia: Guia, request: Request):
             if procedimento.data:
                 procedimento_data = procedimento.data[0]
 
-        # Remove campos que não existem na tabela
+        # Remove campos que não existem na tabela ""
         campos_para_remover = ["carteirinha", "paciente", "procedimento"]
         for campo in campos_para_remover:
             if campo in guia_data:

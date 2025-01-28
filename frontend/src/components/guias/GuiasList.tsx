@@ -159,8 +159,8 @@ export function GuiasList() {
               {data.items.map((guia) => (
                 <TableRow key={guia.id}>
                   <TableCell>{guia.numero_guia}</TableCell>
-                  <TableCell>{guia.paciente?.nome}</TableCell>
-                  <TableCell>{guia.carteirinha?.numero_carteirinha}</TableCell>
+                  <TableCell>{guia.paciente?.nome || 'N/A'}</TableCell>
+                  <TableCell>{guia.carteirinha?.numero_carteirinha || 'N/A'}</TableCell>
                   <TableCell>{guia.tipo}</TableCell>
                   <TableCell>{guia.quantidade_autorizada}</TableCell>
                   <TableCell>{guia.quantidade_executada}</TableCell>

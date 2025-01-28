@@ -33,9 +33,27 @@ export interface Guia {
     updated_at?: string;
     created_by?: string;
     updated_by?: string;
-    carteirinha?: any;
-    paciente?: any;
-    procedimento?: Procedimento;
+    carteirinha?: {
+        id: string;
+        numero_carteirinha: string;
+        status: string;
+        data_validade?: string;
+        plano_saude_id: string;
+    };
+    paciente?: {
+        id: string;
+        nome: string;
+        cpf?: string;
+        data_nascimento?: string;
+        nome_responsavel?: string;
+    };
+    procedimento?: {
+        id: string;
+        codigo: string;
+        nome: string;
+        descricao?: string;
+        ativo: boolean;
+    };
 }
 
 export interface GuiaFormData {
