@@ -78,12 +78,14 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
 # Middleware para normalizar URLs (remover barras finais)
 @app.middleware("http")
 async def remove_trailing_slashes(request: Request, call_next):
     if request.url.path != "/" and request.url.path.endswith("/"):
         return RedirectResponse(request.url.path.rstrip("/"))
     return await call_next(request)
+
 
 # Debug: Verificar variáveis do Supabase
 from config import SUPABASE_URL, SUPABASE_KEY
@@ -2046,7 +2048,9 @@ class Guia(BaseModel):
 def listar_guias_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(None, description="Buscar por número da guia ou nome do paciente"),
+    search: str = Query(
+        None, description="Buscar por número da guia ou nome do paciente"
+    ),
 ):
     try:
         return database_supabase.listar_guias(limit=limit, offset=offset, search=search)
