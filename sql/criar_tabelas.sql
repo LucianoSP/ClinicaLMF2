@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS sessoes (
     updated_by uuid REFERENCES usuarios(id)
 );
 
--- Execuções
+-- Criar tabela execucoes
 CREATE TABLE IF NOT EXISTS execucoes (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     guia_id uuid REFERENCES guias(id) ON DELETE CASCADE,
@@ -228,12 +228,19 @@ CREATE TABLE IF NOT EXISTS execucoes (
     usuario_executante uuid REFERENCES usuarios(id),
     origem text DEFAULT 'manual',
     ip_origem inet,
+    status_biometria status_biometria DEFAULT 'nao_verificado',
     dados_adicionais jsonb,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
     created_by uuid REFERENCES usuarios(id),
     updated_by uuid REFERENCES usuarios(id)
 );
+
+-- Criar índices
+CREATE INDEX IF NOT EXISTS idx_execucoes_guia_id ON execucoes(guia_id);
+CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia ON execucoes(numero_guia);
+CREATE INDEX IF NOT EXISTS idx_execucoes_data_execucao ON execucoes(data_execucao);
+CREATE INDEX IF NOT EXISTS idx_execucoes_status_biometria ON execucoes(status_biometria);
 
 -- Divergências
 CREATE TABLE IF NOT EXISTS divergencias (
