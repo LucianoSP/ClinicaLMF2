@@ -1346,7 +1346,7 @@ async def delete_files(files: list[str]):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/storage-files/")
+@app.get("/storage-files")
 async def list_storage_files_endpoint():
     """
     Lista todos os arquivos no storage.
