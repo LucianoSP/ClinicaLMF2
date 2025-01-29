@@ -215,32 +215,48 @@ CREATE TABLE IF NOT EXISTS sessoes (
     updated_by uuid REFERENCES usuarios(id)
 );
 
+
 -- Criar tabela execucoes
 CREATE TABLE IF NOT EXISTS execucoes (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     guia_id uuid REFERENCES guias(id) ON DELETE CASCADE,
     sessao_id uuid REFERENCES sessoes(id) ON DELETE CASCADE,
     data_execucao date NOT NULL,
+    data_atendimento date,
     paciente_nome text NOT NULL,
     paciente_carteirinha text NOT NULL,
     numero_guia text NOT NULL,
     codigo_ficha text NOT NULL,
+    codigo_ficha_temp boolean DEFAULT false,
     usuario_executante uuid REFERENCES usuarios(id),
     origem text DEFAULT 'manual',
     ip_origem inet,
     status_biometria status_biometria DEFAULT 'nao_verificado',
-    dados_adicionais jsonb,
+    -- Novos campos que estavam em dados_adicionais
+    conselho_profissional text,
+    numero_conselho text,
+    uf_conselho text,
+    codigo_cbo text,
+    profissional_executante text,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
     created_by uuid REFERENCES usuarios(id),
     updated_by uuid REFERENCES usuarios(id)
 );
 
--- Criar índices
+-- Criar índices existentes
 CREATE INDEX IF NOT EXISTS idx_execucoes_guia_id ON execucoes(guia_id);
 CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia ON execucoes(numero_guia);
 CREATE INDEX IF NOT EXISTS idx_execucoes_data_execucao ON execucoes(data_execucao);
 CREATE INDEX IF NOT EXISTS idx_execucoes_status_biometria ON execucoes(status_biometria);
+CREATE INDEX IF NOT EXISTS idx_execucoes_data_atendimento ON execucoes(data_atendimento);
+CREATE INDEX IF NOT EXISTS idx_execucoes_conselho_profissional ON execucoes(conselho_profissional);
+CREATE INDEX IF NOT EXISTS idx_execucoes_numero_conselho ON execucoes(numero_conselho);
+CREATE INDEX IF NOT EXISTS idx_execucoes_codigo_cbo ON execucoes(codigo_cbo);
+CREATE INDEX IF NOT EXISTS idx_execucoes_profissional_executante ON execucoes(profissional_executante);
+
+
+
 
 -- Divergências
 CREATE TABLE IF NOT EXISTS divergencias (

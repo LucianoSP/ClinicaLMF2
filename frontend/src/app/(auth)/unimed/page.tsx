@@ -1,5 +1,5 @@
 'use client';
-
+import { UnimedDashboard } from "@/components/unimed/UnimedDashboard";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';  // Usando a instância existente do Supabase
 import SortableTable, { Column } from '@/components/SortableTable';
@@ -112,7 +112,7 @@ export default function UnimedPage() {
       if (history) {
         const processedHistory = history.map(item => ({
           ...item,
-          duration_seconds: item.completed_at 
+          duration_seconds: item.completed_at
             ? (new Date(item.completed_at).getTime() - new Date(item.created_at).getTime()) / 1000
             : null
         }));
@@ -122,9 +122,9 @@ export default function UnimedPage() {
         const hourlyData = history.reduce((acc, curr) => {
           const hourDate = new Date(curr.created_at);
           const hour = hourDate.setMinutes(0, 0, 0);
-          
+
           const existing = acc.find(x => x.hour === hour);
-          
+
           if (existing) {
             existing.total_executions += 1;
             existing.total_guides += curr.total_guides || 0;
@@ -144,7 +144,7 @@ export default function UnimedPage() {
 
         // Ordenar por hora
         hourlyData.sort((a, b) => a.hour - b.hour);
-        
+
         setHourlyMetrics(hourlyData);
       }
     };
@@ -203,17 +203,24 @@ export default function UnimedPage() {
   };
 
   const formatDuration = (seconds: number) => {
-    if (!seconds) return '-';
-    const minutes = Math.floor(seconds / 60);
+    if (!seconds) return 'Em andamento';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}m ${remainingSeconds}s`;
+
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
+
+    return parts.join(' ');
   };
 
   const LastExecutionCard = () => {
     if (!processingStatus) return null;
 
     const progress = processingStatus.total_guides > 0
-      ? (processingStatus.processed_guides / processingStatus.total_guides) * 100
+      ? Math.round((processingStatus.processed_guides / processingStatus.total_guides) * 100)
       : 0;
 
     return (
@@ -298,6 +305,9 @@ export default function UnimedPage() {
                     </td>
                     <td className="text-right py-2">
                       {execution.processed_guides}/{execution.total_guides}
+                      <div className="text-xs text-muted-foreground">
+                        {Math.round((execution.processed_guides / execution.total_guides) * 100)}%
+                      </div>
                     </td>
                     <td className="text-right py-2">
                       {formatDuration(execution.duration_seconds || 0)}
@@ -439,6 +449,13 @@ export default function UnimedPage() {
                 dataKey="errors"
                 stroke="#ff7300"
                 name="Erros"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="processed_guides"
+                stroke="#82ca9d"
+                name="Guias Processadas"
                 strokeWidth={2}
               />
             </LineChart>
