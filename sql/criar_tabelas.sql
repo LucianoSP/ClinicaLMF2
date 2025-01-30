@@ -249,12 +249,13 @@ CREATE INDEX IF NOT EXISTS idx_execucoes_guia_id ON execucoes(guia_id);
 CREATE INDEX IF NOT EXISTS idx_execucoes_numero_guia ON execucoes(numero_guia);
 CREATE INDEX IF NOT EXISTS idx_execucoes_data_execucao ON execucoes(data_execucao);
 CREATE INDEX IF NOT EXISTS idx_execucoes_status_biometria ON execucoes(status_biometria);
+
+-- Novos índices para os campos adicionados
 CREATE INDEX IF NOT EXISTS idx_execucoes_data_atendimento ON execucoes(data_atendimento);
 CREATE INDEX IF NOT EXISTS idx_execucoes_conselho_profissional ON execucoes(conselho_profissional);
 CREATE INDEX IF NOT EXISTS idx_execucoes_numero_conselho ON execucoes(numero_conselho);
 CREATE INDEX IF NOT EXISTS idx_execucoes_codigo_cbo ON execucoes(codigo_cbo);
 CREATE INDEX IF NOT EXISTS idx_execucoes_profissional_executante ON execucoes(profissional_executante);
-
 
 
 

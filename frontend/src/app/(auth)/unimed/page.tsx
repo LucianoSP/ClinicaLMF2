@@ -47,6 +47,7 @@ interface ProcessingStatus {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  started_at: string;
 }
 
 interface CaptureStatus {
@@ -180,30 +181,60 @@ export default function UnimedPage() {
   }, []);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'pending':
-        return 'bg-yellow-500';
+      case 'iniciado':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'processing':
-        return 'bg-blue-500';
+      case 'processando':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
       case 'completed':
-        return 'bg-green-500';
+      case 'finalizado':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
       case 'failed':
       case 'error':
-        return 'bg-red-500';
+      case 'erro':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
       default:
-        return 'bg-gray-500';
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+      case 'iniciado':
+        return 'Iniciado';
+      case 'processing':
+      case 'processando':
+        return 'Processando';
+      case 'completed':
+      case 'finalizado':
+        return 'Finalizado';
+      case 'failed':
+      case 'error':
+      case 'erro':
+        return 'Erro';
+      default:
+        return status;
     }
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('pt-BR', {
-      dateStyle: 'short',
-      timeStyle: 'medium'
-    });
+    const date = new Date(dateStr);
+    return format(date, "dd/MM/yyyy HH:mm", { locale: ptBR });
   };
 
-  const formatDuration = (seconds: number) => {
-    if (!seconds) return 'Em andamento';
+  const formatGuias = (processed: number, total: number) => {
+    if (total === 0) return '-';
+    return `${processed}/${total}`;
+  };
+
+  const formatDuration = (startDate: string, endDate: string | null) => {
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : new Date();
+    const seconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = Math.floor(seconds % 60);
@@ -211,60 +242,73 @@ export default function UnimedPage() {
     const parts = [];
     if (hours > 0) parts.push(`${hours}h`);
     if (minutes > 0) parts.push(`${minutes}m`);
-    if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
+    if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds}s`);
 
     return parts.join(' ');
+  };
+
+  const calculateSuccessRate = () => {
+    if (!executionHistory.length) return 0;
+    const total = executionHistory.length;
+    const errors = executionHistory.filter(
+      exec => exec.status === 'error' || exec.status === 'failed'
+    ).length;
+    return Math.round(((total - errors) / total) * 100);
+  };
+
+  const calculateTotalExecutions = () => {
+    return executionHistory.length;
+  };
+
+  const calculateAverageGuides = () => {
+    if (!executionHistory.length) return 0;
+    const totalGuides = executionHistory.reduce((acc, curr) => acc + (curr.total_guides || 0), 0);
+    return Math.round(totalGuides / executionHistory.length);
+  };
+
+  const calculateProgress = (processed: number, total: number) => {
+    if (total === 0) return 0;
+    return Math.round((processed / total) * 100);
   };
 
   const LastExecutionCard = () => {
     if (!processingStatus) return null;
 
-    const progress = processingStatus.total_guides > 0
-      ? Math.round((processingStatus.processed_guides / processingStatus.total_guides) * 100)
-      : 0;
+    const isRunning = ['processing', 'processando'].includes(processingStatus.status.toLowerCase());
+    const progress = calculateProgress(processingStatus.processed_guides, processingStatus.total_guides);
 
     return (
       <Card className="col-span-2">
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Status Atual</CardTitle>
-            <Badge className={cn("capitalize", getStatusColor(processingStatus.status))}>
-              {processingStatus.status}
+            <Badge variant="secondary" className={cn("capitalize", getStatusColor(processingStatus.status))}>
+              {getStatusText(processingStatus.status)}
             </Badge>
           </div>
           <CardDescription>
-            Task ID: {processingStatus.task_id}
+            {isRunning ? 'Em execução' : 'Última execução'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div>
-              <div className="text-2xl font-bold mb-2">
-                {processingStatus.processed_guides} / {processingStatus.total_guides}
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex gap-2 items-center">
+                <span>Progresso:</span>
+                <span className="font-medium">{progress}%</span>
               </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Início</p>
-                <p className="text-sm font-medium">{formatDate(processingStatus.created_at)}</p>
+              <div className="flex gap-2 items-center">
+                <span>Guias:</span>
+                <span className="font-medium">{processingStatus.processed_guides}/{processingStatus.total_guides}</span>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Duração</p>
-                <p className="text-sm font-medium">
-                  {processingStatus.completed_at
-                    ? formatDuration((new Date(processingStatus.completed_at).getTime() - new Date(processingStatus.created_at).getTime()) / 1000)
-                    : 'Em andamento'}
-                </p>
+              <div className="flex gap-2 items-center">
+                <span>Duração:</span>
+                <span className="font-medium">
+                  {formatDuration(processingStatus.started_at, processingStatus.completed_at)}
+                </span>
               </div>
             </div>
-
-            {processingStatus.error && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600">{processingStatus.error}</p>
-              </div>
-            )}
+            <Progress value={progress} className="h-2" />
           </div>
         </CardContent>
       </Card>
@@ -282,41 +326,46 @@ export default function UnimedPage() {
             Últimas {executionHistory.length} execuções
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="relative overflow-x-auto">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2">Task ID</th>
-                  <th className="text-left py-2">Status</th>
-                  <th className="text-right py-2">Guias</th>
-                  <th className="text-right py-2">Duração</th>
-                  <th className="text-left py-2">Início</th>
+                  <th className="py-2 pl-6 pr-4 text-left w-1/4">Data</th>
+                  <th className="py-2 px-3 text-left w-1/4">Duração</th>
+                  <th className="py-2 px-3 text-right w-1/4">Guias</th>
+                  <th className="py-2 pl-8 text-left w-1/4">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {executionHistory.map((execution) => (
-                  <tr key={execution.task_id} className="border-b">
-                    <td className="py-2">{execution.task_id}</td>
-                    <td className="py-2">
-                      <Badge className={cn("capitalize", getStatusColor(execution.status))}>
-                        {execution.status}
-                      </Badge>
+                  <tr
+                    key={execution.task_id}
+                    className="hover:bg-muted/50 group relative"
+                    title={`Task ID: ${execution.task_id}`}
+                  >
+                    <td className="py-1.5 pl-6 pr-4 whitespace-nowrap">
+                      {formatDate(execution.created_at)}
                     </td>
-                    <td className="text-right py-2">
-                      {execution.processed_guides}/{execution.total_guides}
-                      <div className="text-xs text-muted-foreground">
-                        {Math.round((execution.processed_guides / execution.total_guides) * 100)}%
+                    <td className="py-1.5 px-3">
+                      {formatDuration(execution.started_at, execution.completed_at)}
+                    </td>
+                    <td className="py-1.5 px-3 text-right">
+                      {formatGuias(execution.processed_guides, execution.total_guides)}
+                    </td>
+                    <td className="py-1.5 pl-8">
+                      <Badge variant="secondary" className={cn("capitalize", getStatusColor(execution.status))}>
+                        {getStatusText(execution.status)}
+                      </Badge>
+                      <div className="hidden group-hover:block absolute left-0 top-full bg-popover text-popover-foreground p-2 rounded-md shadow-md z-10">
+                        <span className="font-mono text-xs">ID: {execution.task_id}</span>
                       </div>
                     </td>
-                    <td className="text-right py-2">
-                      {formatDuration(execution.duration_seconds || 0)}
-                    </td>
-                    <td className="py-2">{formatDate(execution.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <div className="h-4"></div>
           </div>
         </CardContent>
       </Card>
@@ -324,25 +373,6 @@ export default function UnimedPage() {
   };
 
   const MetricsCard = () => {
-    const calculateSuccessRate = () => {
-      if (!executionHistory.length) return 0;
-      const total = executionHistory.length;
-      const errors = executionHistory.filter(
-        exec => exec.status === 'error' || exec.status === 'failed'
-      ).length;
-      return Math.round(((total - errors) / total) * 100);
-    };
-
-    const calculateTotalExecutions = () => {
-      return executionHistory.length;
-    };
-
-    const calculateAverageGuides = () => {
-      if (!executionHistory.length) return 0;
-      const totalGuides = executionHistory.reduce((acc, curr) => acc + (curr.total_guides || 0), 0);
-      return Math.round(totalGuides / executionHistory.length);
-    };
-
     return (
       <>
         <Card>
@@ -642,6 +672,44 @@ export default function UnimedPage() {
         </div>
 
         <TabsContent value="dashboard" className="space-y-6">
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Taxa de Sucesso</CardTitle>
+                <CardDescription>Últimas 24 horas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {`${calculateSuccessRate()}%`}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Total de Execuções</CardTitle>
+                <CardDescription>Últimas 24 horas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {calculateTotalExecutions()}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Média de Guias</CardTitle>
+                <CardDescription>Por execução</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {calculateAverageGuides()}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-5 gap-4">
             <LastExecutionCard />
             <ExecutionHistoryCard />
@@ -649,10 +717,6 @@ export default function UnimedPage() {
 
           <div className="grid grid-cols-1 gap-4">
             <ChartCard />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <MetricsCard />
           </div>
         </TabsContent>
 
