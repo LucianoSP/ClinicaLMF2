@@ -103,7 +103,7 @@ export default function SortableTable<T>({
               <th
                 key={String(column.key)}
                 onClick={() => handleSort(column.key)}
-                className={`h-12 px-4 py-3.0 text-left align-middle text-base font-medium hover:bg-gray-100/80 transition-colors [&:has([role=checkbox])]:pr-0 border-b ${
+                className={`h-12 px-4 py-3.0 text-left align-middle text-sm font-medium hover:bg-gray-100/80 transition-colors [&:has([role=checkbox])]:pr-0 border-b ${
                   column.className?.includes('text-center') ? 'text-center' : ''
                 } ${column.className || ''}`}
                 style={{ whiteSpace: 'nowrap', ...column.style }}
@@ -125,7 +125,7 @@ export default function SortableTable<T>({
               </th>
             ))}
             {(onEdit || onDelete || onSave || actions) && (
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[100px] border-b">
+              <th className="h-12 px-4 text-left align-middle text-sm font-medium text-muted-foreground w-[100px] border-b">
                 <div className="text-center">Ações</div>
               </th>
             )}
@@ -137,7 +137,7 @@ export default function SortableTable<T>({
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className={`px-4 py-2 border-b ${column.className || ''}`}
+                  className={`px-4 py-2 border-b text-sm ${column.className || ''}`}
                   style={column.style}
                 >
                   {column.editable && editingId === (item as any).codigo_ficha ? (
