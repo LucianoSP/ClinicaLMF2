@@ -218,6 +218,10 @@ export default function AuditoriaPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    await buscarDivergencias();
+  };
+
   useEffect(() => {
     buscarDivergencias();
   }, [statusFiltro, tipoDivergencia, prioridade, page, perPage]);
@@ -293,6 +297,9 @@ export default function AuditoriaPage() {
               disabled={page === 1 || loading}
             >
               Anterior
+            </Button>
+            <Button onClick={handleRefresh} variant="default">
+              Atualizar
             </Button>
             <span className="text-sm text-muted-foreground">
               Página {page} de {totalPages}

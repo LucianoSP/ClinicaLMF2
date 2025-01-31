@@ -154,7 +154,7 @@ export function PacientesList() {
             className="w-[300px]"
           />
         </div>
-        <Button onClick={() => setOpen(true)}>
+        <Button variant="default" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Paciente
         </Button>

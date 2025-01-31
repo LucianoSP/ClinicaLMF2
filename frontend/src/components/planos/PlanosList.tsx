@@ -116,7 +116,7 @@ export function PlanosList() {
             className="w-[300px]"
           />
         </div>
-        <Button onClick={() => setOpen(true)}>
+        <Button onClick={() => setOpen(true)} variant="default">
           <Plus className="h-4 w-4 mr-2" />
           Novo Plano
         </Button>

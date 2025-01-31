@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Loader2, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
@@ -159,7 +159,10 @@ export function GuiasList() {
           />
           <MagnifyingGlassIcon className="h-4 w-4 text-muted-foreground" />
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>Nova Guia</Button>
+        <Button onClick={() => setIsModalOpen(true)} variant="default">
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Guia
+        </Button>
       </div>
 
       {data.isLoading ? (
