@@ -1,23 +1,17 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import SortableTable, { Column } from '@/components/SortableTable';
 import { Plano } from '@/types/plano';
 import { PlanoDialog } from './PlanoDialog';
 import { listarPlanos } from '@/services/planoService';
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { TableActions } from '@/components/ui/table-actions';
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export function PlanosList() {
   const [open, setOpen] = useState(false);
@@ -27,12 +21,13 @@ export function PlanosList() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const carregarPlanos = useCallback(async () => {
+  const carregarPlanos = async (search?: string) => {
     try {
       setIsLoading(true);
-      const data = await listarPlanos(searchTerm);
+      const data = await listarPlanos(search);
       setPlanos(data);
     } catch (error) {
+      console.error('Erro ao carregar planos:', error);
       toast({
         title: "Erro",
         description: "Erro ao carregar planos",
@@ -41,40 +36,27 @@ export function PlanosList() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchTerm, toast]);
+  };
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      carregarPlanos();
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, carregarPlanos]);
+    carregarPlanos(searchTerm);
+  }, [searchTerm]);
 
   const handleEdit = (plano: Plano) => {
     setPlanoParaEditar(plano);
     setOpen(true);
   };
 
-  const handleSuccess = () => {
-    carregarPlanos();
-    setOpen(false);
-    toast({
-      title: "Sucesso",
-      description: "Operação realizada com sucesso",
-    });
-  };
-
-  const handleDelete = async (plano: Plano) => {
+  const handleDelete = async (id: number) => {
     try {
       // TODO: Implementar chamada de API para deletar plano
-      // await deletarPlano(plano.id);
       await carregarPlanos();
       toast({
         title: "Sucesso",
         description: "Plano excluído com sucesso",
       });
     } catch (error) {
+      console.error('Erro ao excluir plano:', error);
       toast({
         title: "Erro",
         description: "Erro ao excluir plano",
@@ -83,10 +65,48 @@ export function PlanosList() {
     }
   };
 
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
+  const handleSuccess = () => {
+    carregarPlanos();
+    setOpen(false);
+    setPlanoParaEditar(null);
+  };
 
+  const columns: Column<Plano>[] = [
+    { 
+      key: 'nome', 
+      label: 'Nome',
+      style: { paddingLeft: '1rem' }
+    },
+    { 
+      key: 'codigo', 
+      label: 'Código',
+      style: { paddingLeft: '1rem' }
+    },
+    { 
+      key: 'status', 
+      label: 'Status',
+      style: { paddingLeft: '1rem' },
+      render: (_, plano) => (
+        <StatusBadge status={plano.ativo ? "ativo" : "inativo"} />
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Ações',
+      style: { paddingRight: '1rem' },
+      className: 'text-right',
+      render: (_, plano) => (
+        <TableActions
+          onEdit={() => handleEdit(plano)}
+          onDelete={() => handleDelete(plano.id)}
+        />
+      )
+    }
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Input
             type="text"
@@ -95,60 +115,22 @@ export function PlanosList() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-[300px]"
           />
-          <MagnifyingGlassIcon className="h-4 w-4 text-muted-foreground" />
         </div>
-        <Button onClick={() => {
-          setPlanoParaEditar(null);
-          setOpen(true);
-        }}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
           Novo Plano
         </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Código</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right pr-8">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {planos.map((plano) => (
-              <TableRow key={plano.id}>
-                <TableCell>{plano.nome}</TableCell>
-                <TableCell>{plano.codigo}</TableCell>
-                <TableCell>
-                  <StatusBadge status={plano.ativo ? "ativo" : "inativo"} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(plano)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(plano)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <SortableTable
+        data={planos}
+        columns={columns}
+        loading={isLoading}
+      />
 
       <PlanoDialog
-        open={open}
-        onOpenChange={setOpen}
+        isOpen={open}
+        onClose={() => setOpen(false)}
         plano={planoParaEditar}
         onSuccess={handleSuccess}
       />

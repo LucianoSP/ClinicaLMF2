@@ -1,8 +1,12 @@
 import { api } from "@/lib/api";
 import { Plano } from "@/types/plano";
 
-export async function listarPlanos(): Promise<Plano[]> {
-  const response = await api.get("/planos");
+export async function listarPlanos(search?: string): Promise<Plano[]> {
+  const response = await api.get("/planos", {
+    params: {
+      search
+    }
+  });
   return response.data;
 }
 

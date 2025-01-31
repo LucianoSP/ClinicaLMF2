@@ -24,12 +24,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { CarteirinhaModal } from './CarteirinhaModal';
-import { 
+import {
   Carteirinha,
   listarCarteirinhas,
   criarCarteirinha,
   atualizarCarteirinha,
-  excluirCarteirinha as deleteCarteirinha 
+  excluirCarteirinha as deleteCarteirinha
 } from '@/services/carteirinhaService';
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -147,7 +147,7 @@ export function CarteirinhasList() {
               <TableHead>Número</TableHead>
               <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-left">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -179,7 +179,7 @@ export function CarteirinhasList() {
                   <TableCell>
                     <StatusBadge status={carteirinha.status} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <TableActions
                       onEdit={() => handleEdit(carteirinha)}
                       onDelete={() => handleDelete(carteirinha.id)}
