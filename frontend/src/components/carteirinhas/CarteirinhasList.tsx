@@ -36,6 +36,8 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import SortableTable, { Column } from '@/components/SortableTable';
+import { Plus } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -120,6 +122,55 @@ export function CarteirinhasList() {
     setIsModalOpen(true);
   };
 
+  const columns: Column<Carteirinha>[] = [
+    {
+      key: 'paciente',
+      label: 'Paciente',
+      style: { paddingLeft: '1rem' },
+      render: (_, carteirinha) => carteirinha.paciente?.nome
+    },
+    {
+      key: 'plano',
+      label: 'Plano',
+      style: { paddingLeft: '1rem' },
+      render: (_, carteirinha) => carteirinha.plano_saude?.nome
+    },
+    {
+      key: 'numero',
+      label: 'Número',
+      style: { paddingLeft: '1rem' },
+      render: (_, carteirinha) => carteirinha.numero_carteirinha
+    },
+    {
+      key: 'validade',
+      label: 'Validade',
+      style: { paddingLeft: '1rem' },
+      render: (_, carteirinha) => carteirinha.data_validade
+        ? format(parseISO(carteirinha.data_validade), 'dd/MM/yyyy', { locale: ptBR })
+        : 'N/A'
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      style: { paddingLeft: '1rem' },
+      render: (_, carteirinha) => (
+        <StatusBadge status={carteirinha.status} />
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Ações',
+      style: { paddingRight: '1rem' },
+      className: 'text-right',
+      render: (_, carteirinha) => (
+        <TableActions
+          onEdit={() => handleEdit(carteirinha)}
+          onDelete={() => handleDelete(carteirinha.id)}
+        />
+      )
+    }
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -134,63 +185,16 @@ export function CarteirinhasList() {
           <MagnifyingGlassIcon className="h-4 w-4 text-muted-foreground" />
         </div>
         <Button onClick={handleAddNew}>
-          + Nova Carteirinha
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Carteirinha
         </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Paciente</TableHead>
-              <TableHead>Plano</TableHead>
-              <TableHead>Número</TableHead>
-              <TableHead>Validade</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-left">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-10">
-                  <div className="flex justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : data.items.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-10">
-                  Nenhuma carteirinha encontrada
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.items.map((carteirinha) => (
-                <TableRow key={carteirinha.id}>
-                  <TableCell>{carteirinha.paciente?.nome}</TableCell>
-                  <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
-                  <TableCell>{carteirinha.numero_carteirinha}</TableCell>
-                  <TableCell>
-                    {carteirinha.data_validade
-                      ? format(parseISO(carteirinha.data_validade), 'dd/MM/yyyy', { locale: ptBR })
-                      : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={carteirinha.status} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <TableActions
-                      onEdit={() => handleEdit(carteirinha)}
-                      onDelete={() => handleDelete(carteirinha.id)}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <SortableTable
+        data={data.items}
+        columns={columns}
+        loading={data.isLoading}
+      />
 
       {data.pages > 1 && (
         <div className="flex justify-center">
@@ -199,7 +203,7 @@ export function CarteirinhasList() {
               <PaginationItem>
                 <PaginationPrevious
                   onClick={() => handlePageChange(Math.max(1, data.currentPage - 1))}
-                  disabled={data.currentPage === 1}
+                  className={data.currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
               {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
@@ -215,7 +219,7 @@ export function CarteirinhasList() {
               <PaginationItem>
                 <PaginationNext
                   onClick={() => handlePageChange(Math.min(data.pages, data.currentPage + 1))}
-                  disabled={data.currentPage === data.pages}
+                  className={data.currentPage === data.pages ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
             </PaginationContent>
@@ -225,7 +229,7 @@ export function CarteirinhasList() {
 
       <CarteirinhaModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         carteirinha={selectedCarteirinha}
         onSuccess={() => {
           setIsModalOpen(false);

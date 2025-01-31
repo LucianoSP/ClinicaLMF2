@@ -171,7 +171,7 @@ export function GuiasList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Número da Guia</TableHead>
+                <TableHead>Número</TableHead>
                 <TableHead>Paciente</TableHead>
                 <TableHead>Carteirinha</TableHead>
                 <TableHead>Tipo</TableHead>

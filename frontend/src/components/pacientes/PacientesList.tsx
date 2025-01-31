@@ -126,7 +126,7 @@ export function PacientesList() {
   const columns: Column<Paciente>[] = [
     { key: 'nome', label: 'Nome' },
     { key: 'cpf', label: 'CPF' },
-    { key: 'dataNascimento', label: 'Data de Nascimento', render: (value) => value ? format(parseISO(value as string), 'dd/MM/yyyy', { locale: ptBR }) : '-' },
+    { key: 'dataNascimento', label: 'Dt. Nascimento', render: (value) => value ? format(parseISO(value as string), 'dd/MM/yyyy', { locale: ptBR }) : '-' },
     { key: 'telefone', label: 'Telefone' },
     { key: 'email', label: 'Email' },
     {
