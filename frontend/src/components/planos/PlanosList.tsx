@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import {
   Table,
   TableBody,
@@ -21,11 +23,14 @@ export function PlanosList() {
   const [open, setOpen] = useState(false);
   const [planoParaEditar, setPlanoParaEditar] = useState<Plano | null>(null);
   const [planos, setPlanos] = useState<Plano[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const carregarPlanos = async () => {
+  const carregarPlanos = useCallback(async () => {
     try {
-      const data = await listarPlanos();
+      setIsLoading(true);
+      const data = await listarPlanos(searchTerm);
       setPlanos(data);
     } catch (error) {
       toast({
@@ -33,12 +38,18 @@ export function PlanosList() {
         description: "Erro ao carregar planos",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [searchTerm, toast]);
 
   useEffect(() => {
-    carregarPlanos();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      carregarPlanos();
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, carregarPlanos]);
 
   const handleEdit = (plano: Plano) => {
     setPlanoParaEditar(plano);
@@ -75,7 +86,17 @@ export function PlanosList() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Lista de Planos</h2>
+
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            placeholder="Buscar planos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-[300px]"
+          />
+          <MagnifyingGlassIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
         <Button onClick={() => {
           setPlanoParaEditar(null);
           setOpen(true);

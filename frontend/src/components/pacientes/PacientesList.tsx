@@ -24,10 +24,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { TableActions } from "@/components/ui/table-actions";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 export function PacientesList() {
   const [open, setOpen] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openDetalhes, setOpenDetalhes] = useState(false);
   const [pacienteParaExcluir, setPacienteParaExcluir] = useState<string | null>(null);
   const [pacienteParaEditar, setPacienteParaEditar] = useState<Paciente | null>(null);
   const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
@@ -102,6 +107,7 @@ export function PacientesList() {
     try {
       const estatisticas = await buscarEstatisticasPaciente(paciente.id);
       setPacienteSelecionado({ ...paciente, estatisticas });
+      setOpenDetalhes(true);
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
       toast({
@@ -114,6 +120,7 @@ export function PacientesList() {
 
   const handleView = (paciente: Paciente) => {
     setPacienteSelecionado(paciente);
+    setOpenDetalhes(true);
   };
 
   const columns: Column<Paciente>[] = [
@@ -161,14 +168,23 @@ export function PacientesList() {
         />
       </div>
 
-      {open && (
-        <PacienteDialog
-          open={open}
-          onOpenChange={setOpen}
-          paciente={pacienteParaEditar}
-          onSuccess={handleSuccess}
-        />
-      )}
+      <Dialog open={openDetalhes} onOpenChange={setOpenDetalhes}>
+        <DialogContent className="max-w-4xl">
+          {pacienteSelecionado && (
+            <PacienteDetalhes
+              paciente={pacienteSelecionado}
+              onClose={() => setOpenDetalhes(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <PacienteDialog
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        paciente={pacienteParaEditar}
+        onSuccess={handleSuccess}
+      />
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent>
@@ -184,13 +200,6 @@ export function PacientesList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {pacienteSelecionado && (
-        <PacienteDetalhes
-          paciente={pacienteSelecionado}
-          onClose={() => setPacienteSelecionado(null)}
-        />
-      )}
     </div>
   );
 }

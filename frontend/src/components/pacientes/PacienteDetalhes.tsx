@@ -43,47 +43,47 @@ interface PacienteDetalhesProps {
 export function PacienteDetalhes({ paciente, onClose }: PacienteDetalhesProps) {
   return (
     <div className="space-y-6">
-      <Card className="p-6 relative">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="absolute right-2 top-2"
-          onClick={onClose}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center gap-4">
+        <Avatar className="h-16 w-16">
+          <AvatarFallback>
+            {paciente.nome.split(' ').map(n => n[0]).join('').toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h2 className="text-2xl font-bold">{paciente.nome}</h2>
+          <p className="text-muted-foreground">
+            Cadastrado em {paciente.created_at ? format(new Date(paciente.created_at), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A'}
+          </p>
+        </div>
+      </div>
 
-        <div className="flex gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarFallback>{paciente.nome.substring(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold">{paciente.nome}</h2>
-            <div className="text-sm text-muted-foreground">
-              <p>Nome do Responsável: {paciente.nome_responsavel}</p>
-              {paciente.tipo_responsavel && (
-                <p>Tipo do Responsável: {paciente.tipo_responsavel}</p>
-              )}
-              {paciente.data_nascimento && (
-                <p>Data de Nascimento: {format(new Date(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR })}</p>
-              )}
-              {paciente.cpf && <p>CPF: {paciente.cpf}</p>}
-              {paciente.telefone && <p>Telefone: {paciente.telefone}</p>}
-              {paciente.email && <p>Email: {paciente.email}</p>}
-              {paciente.status && <p>Status: {paciente.status}</p>}
-              {paciente.created_at && (
-                <p>Data de Cadastro: {format(new Date(paciente.created_at), 'dd/MM/yyyy', { locale: ptBR })}</p>
-              )}
-            </div>
-          </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground">
+            Nome do Responsável: {paciente.nome_responsavel}
+          </p>
+          {paciente.tipo_responsavel && (
+            <p className="text-sm text-muted-foreground">
+              Tipo do Responsável: {paciente.tipo_responsavel}
+            </p>
+          )}
+          {paciente.data_nascimento && (
+            <p className="text-sm text-muted-foreground">
+              Data de Nascimento: {format(new Date(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR })}
+            </p>
+          )}
+          {paciente.cpf && <p className="text-sm text-muted-foreground">CPF: {paciente.cpf}</p>}
+          {paciente.telefone && <p className="text-sm text-muted-foreground">Telefone: {paciente.telefone}</p>}
+          {paciente.email && <p className="text-sm text-muted-foreground">Email: {paciente.email}</p>}
+          {paciente.status && <p className="text-sm text-muted-foreground">Status: {paciente.status}</p>}
         </div>
         {paciente.observacoes_clinicas && (
-          <div className="mt-4">
+          <div>
             <h3 className="font-semibold">Observações Clínicas</h3>
             <p className="text-sm text-muted-foreground">{paciente.observacoes_clinicas}</p>
           </div>
         )}
-      </Card>
+      </div>
 
       {paciente.estatisticas && (
         <Card className="p-6">

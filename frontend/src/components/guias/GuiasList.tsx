@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import {
   Table,
   TableBody,
@@ -39,39 +41,49 @@ interface PaginatedData {
   total: number;
   pages: number;
   isLoading: boolean;
+  currentPage: number;
 }
 
 export function GuiasList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedGuia, setSelectedGuia] = useState<Guia>();
+  const [selectedGuia, setSelectedGuia] = useState<Guia | undefined>();
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState<PaginatedData>({
     items: [],
     total: 0,
     pages: 0,
-    isLoading: true
+    isLoading: true,
+    currentPage: 1
   });
 
-  const fetchGuias = async (page: number) => {
+  const fetchGuias = useCallback(async (page: number = 1, limit: number = ITEMS_PER_PAGE) => {
     try {
-      setData(prev => ({ ...prev, isLoading: true }));
-      const response = await listarGuias(page, ITEMS_PER_PAGE);
+      setLoading(true);
+      const response = await listarGuias(page, limit, searchTerm);
       setData({
         items: response.items,
         total: response.total,
-        pages: response.pages,
+        pages: Math.ceil(response.total / limit),
+        currentPage: page,
         isLoading: false
       });
     } catch (error) {
-      console.error('Erro ao carregar guias:', error);
-      toast.error('Erro ao carregar guias');
-      setData(prev => ({ ...prev, isLoading: false }));
+      console.error("Erro ao buscar guias:", error);
+      toast.error("Erro ao carregar guias");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [searchTerm]);
 
   useEffect(() => {
-    fetchGuias(currentPage);
-  }, [currentPage]);
+    const delayDebounceFn = setTimeout(() => {
+      fetchGuias(data.currentPage);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, data.currentPage, fetchGuias]);
 
   const handleCreate = async (data: GuiaFormData) => {
     try {
@@ -130,10 +142,23 @@ export function GuiasList() {
     return format(parseISO(dateString), 'dd/MM/yyyy', { locale: ptBR });
   };
 
+  const handlePageChange = (page: number) => {
+    setData(prev => ({ ...prev, currentPage: page }));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Guias</h2>
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            placeholder="Buscar guias..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-[300px]"
+          />
+          <MagnifyingGlassIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
         <Button onClick={() => setIsModalOpen(true)}>Nova Guia</Button>
       </div>
 
@@ -194,7 +219,7 @@ export function GuiasList() {
                 {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
                   <PaginationItem key={page}>
                     <PaginationLink
-                      onClick={() => setCurrentPage(page)}
+                      onClick={() => handlePageChange(page)}
                       isActive={currentPage === page}
                     >
                       {page}

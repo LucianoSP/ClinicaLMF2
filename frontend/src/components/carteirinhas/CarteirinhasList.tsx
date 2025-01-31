@@ -34,6 +34,8 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Input } from "@/components/ui/input";
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -49,6 +51,7 @@ export function CarteirinhasList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCarteirinha, setSelectedCarteirinha] = useState<Carteirinha | undefined>();
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [data, setData] = useState<PaginatedData>({
     items: [],
     total: 0,
@@ -57,28 +60,39 @@ export function CarteirinhasList() {
     isLoading: true
   });
 
-  const fetchCarteirinhas = useCallback(async (page: number = 1, limit: number = ITEMS_PER_PAGE) => {
+  const fetchCarteirinhas = useCallback(async (page: number = 1) => {
     try {
-      setLoading(true);
-      const response = await listarCarteirinhas(page, limit);
+      setData(prev => ({ ...prev, isLoading: true }));
+      const response = await listarCarteirinhas(page, ITEMS_PER_PAGE, searchTerm);
       setData({
         items: response.items,
         total: response.total,
-        pages: Math.ceil(response.total / limit),
+        pages: Math.ceil(response.total / ITEMS_PER_PAGE),
         currentPage: page,
         isLoading: false
       });
     } catch (error) {
       console.error("Erro ao buscar carteirinhas:", error);
       toast.error("Erro ao carregar carteirinhas");
-    } finally {
-      setLoading(false);
+      setData(prev => ({ ...prev, isLoading: false }));
     }
-  }, []);
+  }, [searchTerm]);
 
   useEffect(() => {
-    fetchCarteirinhas();
-  }, [fetchCarteirinhas]);
+    const delayDebounceFn = setTimeout(() => {
+      fetchCarteirinhas(data.currentPage);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, data.currentPage, fetchCarteirinhas]);
+
+  const handlePageChange = (page: number) => {
+    setData(prev => ({ ...prev, currentPage: page }));
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
   const handleEdit = (carteirinha: Carteirinha) => {
     setSelectedCarteirinha(carteirinha);
@@ -106,144 +120,116 @@ export function CarteirinhasList() {
     setIsModalOpen(true);
   };
 
-  const handlePageChange = (page: number) => {
-    fetchCarteirinhas(page, ITEMS_PER_PAGE);
-  };
-
-  const renderPagination = () => {
-    if (data.pages <= 1) return null;
-
-    return (
-      <Pagination>
-        <PaginationContent>
-          <PaginationItem>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => data.currentPage > 1 && handlePageChange(data.currentPage - 1)}
-              className={`${data.currentPage === 1 ? 'pointer-events-none opacity-50' : ''}`}
-            >
-              Anterior
-            </Button>
-          </PaginationItem>
-
-          {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
-            <PaginationItem key={page}>
-              <PaginationLink
-                onClick={() => handlePageChange(page)}
-                isActive={data.currentPage === page}
-              >
-                {page}
-              </PaginationLink>
-            </PaginationItem>
-          ))}
-
-          <PaginationItem>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => data.currentPage < data.pages && handlePageChange(data.currentPage + 1)}
-              className={`${data.currentPage >= data.pages ? 'pointer-events-none opacity-50' : ''}`}
-            >
-              Próximo
-            </Button>
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="flex h-[150px] w-full items-center justify-center rounded-md border border-dashed">
-        <p className="text-sm text-muted-foreground">
-          Carregando carteirinhas...
-        </p>
-      </div>
-    );
-  }
-
-  if (data.items.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold tracking-tight">Lista de Carteirinhas</h2>
-          <Button onClick={handleAddNew}>
-            + Nova Carteirinha
-          </Button>
-        </div>
-        <div className="flex h-[150px] w-full items-center justify-center rounded-md border border-dashed">
-          <p className="text-sm text-muted-foreground">
-            Nenhuma carteirinha encontrada
-          </p>
-        </div>
-        <CarteirinhaModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          carteirinha={selectedCarteirinha}
-          onSuccess={() => {
-            handleCloseModal();
-            fetchCarteirinhas();
-          }}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">Lista de Carteirinhas</h2>
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            placeholder="Buscar carteirinhas..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="w-[300px]"
+          />
+          <MagnifyingGlassIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
         <Button onClick={handleAddNew}>
           + Nova Carteirinha
         </Button>
       </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Número</TableHead>
               <TableHead>Paciente</TableHead>
-              <TableHead>Plano de Saúde</TableHead>
-              <TableHead>Data de Validade</TableHead>
+              <TableHead>Plano</TableHead>
+              <TableHead>Número</TableHead>
+              <TableHead>Validade</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.items.map((carteirinha) => (
-              <TableRow key={carteirinha.id}>
-                <TableCell>{carteirinha.numero_carteirinha}</TableCell>
-                <TableCell>{carteirinha.paciente?.nome}</TableCell>
-                <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
-                <TableCell>
-                  {carteirinha.data_validade
-                    ? format(parseISO(carteirinha.data_validade), 'dd/MM/yyyy', { locale: ptBR })
-                    : 'N/A'}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={carteirinha.status} />
-                </TableCell>
-                <TableCell>
-                  <TableActions
-                    onEdit={() => handleEdit(carteirinha)}
-                    onDelete={() => handleDelete(carteirinha.id)}
-                  />
+            {data.isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10">
+                  <div className="flex justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : data.items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10">
+                  Nenhuma carteirinha encontrada
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.items.map((carteirinha) => (
+                <TableRow key={carteirinha.id}>
+                  <TableCell>{carteirinha.paciente?.nome}</TableCell>
+                  <TableCell>{carteirinha.plano_saude?.nome}</TableCell>
+                  <TableCell>{carteirinha.numero_carteirinha}</TableCell>
+                  <TableCell>
+                    {carteirinha.data_validade
+                      ? format(parseISO(carteirinha.data_validade), 'dd/MM/yyyy', { locale: ptBR })
+                      : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={carteirinha.status} />
+                  </TableCell>
+                  <TableCell>
+                    <TableActions
+                      onEdit={() => handleEdit(carteirinha)}
+                      onDelete={() => handleDelete(carteirinha.id)}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
-      {renderPagination()}
+
+      {data.pages > 1 && (
+        <div className="flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => handlePageChange(Math.max(1, data.currentPage - 1))}
+                  disabled={data.currentPage === 1}
+                />
+              </PaginationItem>
+              {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    onClick={() => handlePageChange(page)}
+                    isActive={data.currentPage === page}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => handlePageChange(Math.min(data.pages, data.currentPage + 1))}
+                  disabled={data.currentPage === data.pages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       <CarteirinhaModal
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        onClose={() => setIsModalOpen(false)}
         carteirinha={selectedCarteirinha}
         onSuccess={() => {
-          handleCloseModal();
-          fetchCarteirinhas();
+          setIsModalOpen(false);
+          fetchCarteirinhas(data.currentPage);
         }}
       />
     </div>
