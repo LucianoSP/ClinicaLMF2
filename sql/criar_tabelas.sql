@@ -231,6 +231,7 @@ CREATE TABLE IF NOT EXISTS execucoes (
     usuario_executante uuid REFERENCES usuarios(id),
     origem text DEFAULT 'manual',
     ip_origem inet,
+    ordem_execucao INTEGER,
     status_biometria status_biometria DEFAULT 'nao_verificado',
     -- Novos campos que estavam em dados_adicionais
     conselho_profissional text,

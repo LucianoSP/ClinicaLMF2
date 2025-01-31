@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableActions } from '@/components/ui/table-actions';
 import {
   Pagination,
   PaginationContent,
@@ -165,21 +166,11 @@ export function GuiasList() {
                   <TableCell>{guia.quantidade_autorizada}</TableCell>
                   <TableCell>{guia.quantidade_executada}</TableCell>
                   <TableCell>{guia.status}</TableCell>
-                  <TableCell className="space-x-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleEdit(guia)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleDelete(guia.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <TableCell>
+                    <TableActions
+                      onEdit={() => handleEdit(guia)}
+                      onDelete={() => handleDelete(guia.id)}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

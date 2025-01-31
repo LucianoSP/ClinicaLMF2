@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { listarFichasPresenca } from '@/services/fichaPresencaService';
+import { TableActions } from '@/components/ui/table-actions';
 
 // Interfaces e Tipos
 interface Procedimento {
@@ -577,46 +578,23 @@ export default function FichasPresencaPage() {
       className: 'w-[100px] text-center',
       type: 'text',
       render: (_, item) => (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSelectedFicha(item);
-              setShowSessoesDialog(true);
-            }}
-            title="Ver Sessões"
-          >
-            <FiEye className="w-4 h-4 text-blue-600" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedFicha(item);
-              setEditedFicha({ ...item });
-              setShowEditDialog(true);
-            }}
-            title="Editar Ficha"
-          >
-            <FiEdit className="w-4 h-4 text-[#b49d6b]" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedFicha(item);
-              setShowDeleteDialog(true);
-            }}
-            title="Excluir"
-          >
-            <FiTrash2 className="w-4 h-4 text-red-500" />
-          </Button>
-        </div>
+        <TableActions
+          onView={() => {
+            setSelectedFicha(item);
+            setShowSessoesDialog(true);
+          }}
+          onEdit={() => {
+            setSelectedFicha(item);
+            setEditedFicha({ ...item });
+            setShowEditDialog(true);
+          }}
+          onDelete={() => {
+            setSelectedFicha(item);
+            setShowDeleteDialog(true);
+          }}
+        />
       )
-    }
+    },
   ];
 
   return (

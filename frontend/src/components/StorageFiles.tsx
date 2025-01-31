@@ -8,6 +8,7 @@ import { API_URL } from '../config/api';
 import { formatFileSize } from '../utils/format';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { TableActions } from './ui/table-actions';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface StorageFile {
@@ -33,7 +34,7 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
   const fetchFiles = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/storage-files/`);
+      const response = await fetch(`${API_URL}/storage-files`);
       if (!response.ok) {
         throw new Error('Falha ao carregar arquivos');
       }
@@ -72,6 +73,24 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
     }
   };
 
+  const handleDownload = async (url: string, fileName: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Erro ao baixar arquivo');
+    }
+  };
+
   const columns: Column<StorageFile>[] = [
     {
       key: 'nome',
@@ -86,6 +105,16 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
       key: 'created_at',
       label: 'Data de Criação',
       render: (value) => new Date(value).toLocaleString()
+    },
+    {
+      key: 'actions',
+      label: 'Ações',
+      render: (_, item) => (
+        <TableActions
+          onView={() => handleDownload(item.url, item.nome)}
+          onDelete={() => handleDelete(item.nome)}
+        />
+      )
     }
   ];
 
@@ -145,26 +174,6 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
         <SortableTable
           data={filteredFiles}
           columns={columns}
-          actions={(item) => (
-            <div className="flex gap-2">
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#b49d6b] hover:text-[#a08b5f] transition-colors duration-200"
-                title="Download"
-              >
-                <FiDownload className="w-4 h-4" />
-              </a>
-              <button
-                onClick={() => handleDelete(item.nome)}
-                className="text-red-500 hover:text-red-700 transition-colors duration-200"
-                title="Excluir"
-              >
-                <FiTrash2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         />
       </div>
     </div>

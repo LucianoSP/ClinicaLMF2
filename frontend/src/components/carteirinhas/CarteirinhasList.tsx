@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableActions } from '@/components/ui/table-actions';
 import {
   Pagination,
   PaginationContent,
@@ -223,21 +224,11 @@ export function CarteirinhasList() {
                 <TableCell>
                   <StatusBadge status={carteirinha.status} />
                 </TableCell>
-                <TableCell className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleEdit(carteirinha)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleDelete(carteirinha.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <TableCell>
+                  <TableActions
+                    onEdit={() => handleEdit(carteirinha)}
+                    onDelete={() => handleDelete(carteirinha.id)}
+                  />
                 </TableCell>
               </TableRow>
             ))}

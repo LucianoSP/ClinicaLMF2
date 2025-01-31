@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { TableActions } from "@/components/ui/table-actions";
 
 export function PacientesList() {
   const [open, setOpen] = useState(false);
@@ -111,35 +112,26 @@ export function PacientesList() {
     }
   };
 
+  const handleView = (paciente: Paciente) => {
+    setPacienteSelecionado(paciente);
+  };
+
   const columns: Column<Paciente>[] = [
+    { key: 'nome', label: 'Nome' },
+    { key: 'cpf', label: 'CPF' },
+    { key: 'dataNascimento', label: 'Data de Nascimento', render: (value) => value ? format(parseISO(value as string), 'dd/MM/yyyy', { locale: ptBR }) : '-' },
+    { key: 'telefone', label: 'Telefone' },
+    { key: 'email', label: 'Email' },
     {
-      key: 'nome',
-      label: 'Nome',
-      render: (value, item) => (
-        <button
-          onClick={() => setPacienteSelecionado(item)}
-          className="hover:underline text-left w-full"
-        >
-          {value}
-        </button>
+      key: 'actions',
+      label: 'Ações',
+      render: (_, item) => (
+        <TableActions
+          onView={() => handleView(item)}
+          onEdit={() => handleEdit(item)}
+          onDelete={() => handleDelete(item.id)}
+        />
       )
-    },
-    {
-      key: 'data_nascimento',
-      label: 'Data de Nascimento',
-      render: (value) => value ? format(parseISO(value), 'dd/MM/yyyy', { locale: ptBR }) : '-'
-    },
-    {
-      key: 'cpf',
-      label: 'CPF'
-    },
-    {
-      key: 'telefone',
-      label: 'Telefone'
-    },
-    {
-      key: 'email',
-      label: 'Email'
     }
   ];
 
@@ -166,24 +158,6 @@ export function PacientesList() {
           data={pacientes}
           columns={columns}
           loading={isLoading}
-          actions={(paciente) => (
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEdit(paciente)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(paciente.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
         />
       </div>
 
