@@ -40,7 +40,7 @@ export default function CadastrosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Cadastros</h1>
+        <h1 className="page-title">Cadastros</h1>
         <p className="text-muted-foreground">
           Gerencie os cadastros do sistema
         </p>
@@ -53,7 +53,7 @@ export default function CadastrosPage() {
               <div className="flex flex-col items-start gap-4">
                 <module.icon className="h-6 w-6 text-muted-foreground" />
                 <div>
-                  <h3 className="font-semibold">{module.title}</h3>
+                  <h3 className="card-title-cadastro">{module.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     {module.description}
                   </p>

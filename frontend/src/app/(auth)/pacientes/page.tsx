@@ -200,7 +200,7 @@ export default function PatientsPage() {
           {/* Header com título */}
           <div>
             <h1 className="page-title">
-              Gerenciamento de Pacientes
+              Pacientes
             </h1>
           </div>
 

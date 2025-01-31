@@ -661,10 +661,10 @@ export default function UnimedPage() {
   });
 
   return (
-    <div className="container mx-auto py-6">
+    <div >
       <Tabs defaultValue="dashboard" className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Processamento Unimed</h1>
+          <h1 className="page-title">Processamento Unimed</h1>
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="guias">Guias</TabsTrigger>

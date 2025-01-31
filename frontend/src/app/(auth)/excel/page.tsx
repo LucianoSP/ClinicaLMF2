@@ -259,7 +259,7 @@ export default function ExcelPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="page-title">Dados Importados do Excel</h1>
+        <h1 className="page-title">Execuções (Excel)</h1>
       </div>
 
       <div className="flex justify-between items-center">

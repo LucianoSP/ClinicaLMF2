@@ -117,7 +117,7 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
     setIsLoading(true)
 
     try {
-      const url = guia 
+      const url = guia
         ? `${API_URL}/pacientes/${pacienteId}/guias/${guia.id}`
         : `${API_URL}/pacientes/${pacienteId}/guias`
 
@@ -202,7 +202,7 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
               </Label>
               <Select
                 value={formData.tipo}
-                onValueChange={(value: 'sp_sadt' | 'consulta' | 'internacao') => 
+                onValueChange={(value: 'sp_sadt' | 'consulta' | 'internacao') =>
                   setFormData({ ...formData, tipo: value })
                 }
               >

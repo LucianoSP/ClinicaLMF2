@@ -66,7 +66,7 @@
 
   /* Título principal da página */
   h1, .page-title {
-    font-size: 1.5rem; /* text-2xl */
+    font-size: 1.7rem; /* text-2xl */
     font-weight: 500;  /* font-semibold */
     margin-bottom: 1rem;
     line-height: 1.0;
@@ -93,6 +93,7 @@
     font-style: normal;
     font-variant: normal;
     font-stretch: 100%;
+    padding-bottom: 0.2rem;
     @apply text-zinc-900;
   }
 
@@ -108,12 +109,24 @@
     @apply text-zinc-900;
   }
 
+  /* Ajuste para o título dos cards de cadastro */
+  .card-title-cadastro {
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 32px;
+    font-family: 'Outfit', sans-serif;
+    font-style: normal;
+    font-variant: normal;
+    font-stretch: 100%;
+    @apply text-zinc-900;
+  }
+
   /* Títulos de seção */
 .section-title {
-  font-size: 1.2rem;      /* text-lg */
+  font-size: 1.3rem;      /* text-lg */
   font-weight: 400;         /* font-semibold */
   line-height: 1.75rem;     /* leading-7 */
-  margin-bottom: 0.75rem; 
+  margin-bottom: 0.70rem; 
   margin-top: 0.9rem;  /* mb-3 */
   color: rgb(24 24 27);     /* text-zinc-900 */
 }

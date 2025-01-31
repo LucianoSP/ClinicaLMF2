@@ -37,7 +37,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="page-title">Dashboard</h1>
         <div className="flex gap-2">
           <Button
             variant={timeRange === '7d' ? 'default' : 'outline'}

@@ -601,7 +601,7 @@ export default function FichasPresencaPage() {
     <div className="flex flex-col gap-6">
       {/* Header e Filtros */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight mb-4">Fichas de Presença</h1>
+        <h1 className="page-title">Fichas de Presença</h1>
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">

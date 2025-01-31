@@ -377,7 +377,7 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
                   <h2 className="patient-name">{patient.nome}</h2>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Convênio:</span>
+                      <span className="text-sm text-muted-foreground">Plano de Saúde:</span>
                       <span className="text-sm">{carteirinha?.plano_saude?.nome || 'Não informado'}</span>
                     </div>
                     <div className="flex items-center gap-2">
