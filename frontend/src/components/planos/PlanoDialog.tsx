@@ -35,13 +35,13 @@ const formSchema = z.object({
 type PlanoFormValues = z.infer<typeof formSchema>;
 
 interface PlanoDialogProps {
-  plano?: Plano | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  plano: Plano | null;
+  onSuccess: () => void;
 }
 
-export function PlanoDialog({ plano, open, onOpenChange, onSuccess }: PlanoDialogProps) {
+export function PlanoDialog({ open, onOpenChange, plano, onSuccess }: PlanoDialogProps) {
   const { toast } = useToast();
   const form = useForm<PlanoFormValues>({
     resolver: zodResolver(formSchema),
@@ -89,7 +89,7 @@ export function PlanoDialog({ plano, open, onOpenChange, onSuccess }: PlanoDialo
           ? "O plano foi atualizado com sucesso."
           : "O plano foi criado com sucesso.",
       });
-      onSuccess?.();
+      onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao salvar plano:", error);

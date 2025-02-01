@@ -47,7 +47,7 @@ export function PlanosList() {
     setOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       // TODO: Implementar chamada de API para deletar plano
       await carregarPlanos();
@@ -98,7 +98,7 @@ export function PlanosList() {
       render: (_, plano) => (
         <TableActions
           onEdit={() => handleEdit(plano)}
-          onDelete={() => handleDelete(plano.id)}
+          onDelete={() => handleDelete(plano.id as string)}
         />
       )
     }
@@ -129,8 +129,8 @@ export function PlanosList() {
       />
 
       <PlanoDialog
-        isOpen={open}
-        onClose={() => setOpen(false)}
+        open={open}
+        onOpenChange={setOpen}
         plano={planoParaEditar}
         onSuccess={handleSuccess}
       />
