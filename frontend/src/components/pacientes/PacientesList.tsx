@@ -188,7 +188,7 @@ export function PacientesList() {
 
       <PacienteDialog
         open={open}
-        onClose={() => setOpen(false)}
+        onOpenChange={setOpen}
         paciente={pacienteParaEditar}
         onSuccess={handleSuccess}
       />

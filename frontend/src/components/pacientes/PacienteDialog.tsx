@@ -24,12 +24,13 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface PacienteDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  paciente?: Paciente | null;
+  onClose: () => void;
+  onOpenChange?: (open: boolean) => void;
+  paciente: Paciente | null;
   onSuccess: () => void;
 }
 
-export function PacienteDialog({ open, onOpenChange, paciente, onSuccess }: PacienteDialogProps) {
+export function PacienteDialog({ open, onClose, onOpenChange, paciente, onSuccess }: PacienteDialogProps) {
   const { toast } = useToast();
   const form = useForm<Paciente>({
     defaultValues: {
@@ -191,7 +192,7 @@ export function PacienteDialog({ open, onOpenChange, paciente, onSuccess }: Paci
             />
 
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange?.(false)}>
                 Cancelar
               </Button>
               <Button type="submit">Salvar</Button>
