@@ -124,25 +124,25 @@ export function CarteirinhasList() {
 
   const columns: Column<Carteirinha>[] = [
     {
-      key: 'paciente',
+      key: 'paciente' as keyof Carteirinha,
       label: 'Paciente',
       style: { paddingLeft: '1rem' },
       render: (_, carteirinha) => carteirinha.paciente?.nome
     },
     {
-      key: 'plano',
+      key: 'plano_saude' as keyof Carteirinha,
       label: 'Plano',
       style: { paddingLeft: '1rem' },
       render: (_, carteirinha) => carteirinha.plano_saude?.nome
     },
     {
-      key: 'numero',
+      key: 'numero_carteirinha' as keyof Carteirinha,
       label: 'Número',
       style: { paddingLeft: '1rem' },
       render: (_, carteirinha) => carteirinha.numero_carteirinha
     },
     {
-      key: 'validade',
+      key: 'data_validade' as keyof Carteirinha,
       label: 'Validade',
       style: { paddingLeft: '1rem' },
       render: (_, carteirinha) => carteirinha.data_validade
@@ -150,7 +150,7 @@ export function CarteirinhasList() {
         : 'N/A'
     },
     {
-      key: 'status',
+      key: 'status' as keyof Carteirinha,
       label: 'Status',
       style: { paddingLeft: '1rem' },
       render: (_, carteirinha) => (
@@ -158,7 +158,7 @@ export function CarteirinhasList() {
       )
     },
     {
-      key: 'actions',
+      key: 'actions' as keyof Carteirinha,
       label: 'Ações',
       style: { paddingRight: '1rem' },
       className: 'text-right',

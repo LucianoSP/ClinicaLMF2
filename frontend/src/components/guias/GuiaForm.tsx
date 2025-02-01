@@ -45,12 +45,13 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
     tipo: 'sp_sadt' | 'consulta' | 'internacao';
     status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada';
     carteirinha_id: string;
-    paciente_carteirinha: string;
-    paciente_nome: string;
+    procedimento_id: string;
+    procedimento: {
+      codigo: string;
+      nome: string;
+    };
     quantidade_autorizada: number;
     quantidade_executada: number;
-    procedimento_codigo: string;
-    procedimento_nome: string;
     profissional_solicitante: string;
     profissional_executante: string;
     observacoes: string;
@@ -61,12 +62,13 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
     tipo: 'sp_sadt',
     status: 'pendente',
     carteirinha_id: carteirinha || '',
-    paciente_carteirinha: '',
-    paciente_nome: '',
+    procedimento_id: '',
+    procedimento: {
+      codigo: '',
+      nome: ''
+    },
     quantidade_autorizada: 0,
     quantidade_executada: 0,
-    procedimento_codigo: '',
-    procedimento_nome: '',
     profissional_solicitante: '',
     profissional_executante: '',
     observacoes: ''
@@ -78,15 +80,13 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
         numero_guia: guia.numero_guia,
         data_emissao: formatarDataParaInput(guia.data_emissao),
         data_validade: formatarDataParaInput(guia.data_validade),
-        tipo: guia.tipo,
-        status: guia.status,
+        tipo: guia.tipo as 'sp_sadt' | 'consulta' | 'internacao',
+        status: guia.status as 'pendente' | 'em_andamento' | 'concluida' | 'cancelada',
         carteirinha_id: guia.carteirinha_id,
-        paciente_carteirinha: guia.paciente_carteirinha,
-        paciente_nome: guia.paciente_nome,
+        procedimento_id: guia.procedimento_id,
+        procedimento: guia.procedimento || { codigo: '', nome: '' },
         quantidade_autorizada: guia.quantidade_autorizada,
         quantidade_executada: guia.quantidade_executada,
-        procedimento_codigo: guia.procedimento_codigo,
-        procedimento_nome: guia.procedimento_nome,
         profissional_solicitante: guia.profissional_solicitante,
         profissional_executante: guia.profissional_executante,
         observacoes: guia.observacoes
@@ -99,12 +99,13 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
         tipo: 'sp_sadt',
         status: 'pendente',
         carteirinha_id: carteirinha || '',
-        paciente_carteirinha: '',
-        paciente_nome: '',
+        procedimento_id: '',
+        procedimento: {
+          codigo: '',
+          nome: ''
+        },
         quantidade_autorizada: 0,
         quantidade_executada: 0,
-        procedimento_codigo: '',
-        procedimento_nome: '',
         profissional_solicitante: '',
         profissional_executante: '',
         observacoes: ''
@@ -237,8 +238,11 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
               </Label>
               <Input
                 id="procedimento_codigo"
-                value={formData.procedimento_codigo}
-                onChange={(e) => setFormData({ ...formData, procedimento_codigo: e.target.value })}
+                value={formData.procedimento.codigo}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  procedimento: { ...formData.procedimento, codigo: e.target.value }
+                })}
                 className="col-span-3"
                 required
               />
@@ -250,8 +254,11 @@ export function GuiaForm({ isOpen, onClose, onSuccess, pacienteId, carteirinha, 
               </Label>
               <Input
                 id="procedimento_nome"
-                value={formData.procedimento_nome}
-                onChange={(e) => setFormData({ ...formData, procedimento_nome: e.target.value })}
+                value={formData.procedimento.nome}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  procedimento: { ...formData.procedimento, nome: e.target.value }
+                })}
                 className="col-span-3"
                 required
               />
