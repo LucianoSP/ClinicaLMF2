@@ -83,7 +83,7 @@ export function PlanosList() {
       style: { paddingLeft: '1rem' }
     },
     { 
-      key: 'status', 
+      key: 'ativo' as keyof Plano,
       label: 'Status',
       style: { paddingLeft: '1rem' },
       render: (_, plano) => (
@@ -91,7 +91,7 @@ export function PlanosList() {
       )
     },
     {
-      key: 'actions',
+      key: 'id' as keyof Plano,
       label: 'Ações',
       style: { paddingRight: '1rem' },
       className: 'text-right',
