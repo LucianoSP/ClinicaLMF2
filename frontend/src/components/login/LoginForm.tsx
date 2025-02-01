@@ -23,14 +23,14 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-gray-300">
+        <Label htmlFor="email" className="text-gray-700">
           Email
         </Label>
         <Input
           id="email"
           placeholder="seu.email@exemplo.com"
           type="email"
-          className="bg-gray-800 border-gray-600 text-white focus:border-blue-400"
+          className="bg-white border-gray-200 text-gray-800 focus:border-blue-400"
           autoCapitalize="none"
           autoComplete="email"
           autoCorrect="off"
@@ -40,14 +40,14 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-gray-300">
+        <Label htmlFor="password" className="text-gray-700">
           Senha
         </Label>
         <Input
           id="password"
           type="password"
           placeholder="••••••••"
-          className="bg-gray-800 border-gray-600 text-white focus:border-blue-400"
+          className="bg-white border-gray-200 text-gray-800 focus:border-blue-400"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
@@ -56,14 +56,14 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
       <div className="flex items-center justify-between">
         <Link
           href="/recuperar-senha"
-          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          className="text-sm text-blue-500 hover:text-blue-600 transition-colors"
         >
           Esqueceu sua senha?
         </Link>
       </div>
       <Button
         type="submit"
-        className="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium"
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium"
         disabled={isLoading}
       >
         {isLoading ? "Entrando..." : "Entrar"}
