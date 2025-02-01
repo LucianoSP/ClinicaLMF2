@@ -31,7 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Guia, GuiaFormData } from '@/services/guiaService';
 import { Paciente } from '@/types/paciente';
 import { Procedimento } from '@/types/procedimento';
-import { Carteirinha } from '@/types/carteirinha';
+import { Carteirinha } from '@/types/Carteirinha';
 import { listarPacientes } from '@/services/pacienteService';
 import { listarCarteirinhasPorPaciente } from '@/services/carteirinhaService';
 import { listarProcedimentos } from '@/services/procedimentoService';
@@ -53,6 +53,8 @@ const guiaFormSchema = z.object({
   profissional_executante: z.string().optional(),
   observacoes: z.string().optional(),
 });
+
+type GuiaFormData = z.infer<typeof guiaFormSchema>;
 
 interface GuiaModalProps {
   isOpen: boolean;

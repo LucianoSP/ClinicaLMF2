@@ -20,7 +20,7 @@ export interface Guia {
     data_emissao?: string;
     data_validade?: string;
     tipo: string;
-    status: string;
+    status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada';
     carteirinha_id: string;
     paciente_id: string;
     quantidade_autorizada: number;
@@ -61,6 +61,7 @@ export interface GuiaFormData {
     data_emissao?: string;
     data_validade?: string;
     tipo: string;
+    status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada';
     carteirinha_id: string;
     paciente_id: string;
     quantidade_autorizada: number;
@@ -75,6 +76,7 @@ export const guiaSchema = z.object({
     data_emissao: z.string().optional(),
     data_validade: z.string().optional(),
     tipo: z.string().min(1, 'Tipo é obrigatório'),
+    status: z.enum(['pendente', 'em_andamento', 'concluida', 'cancelada']).default('pendente'),
     carteirinha_id: z.string().min(1, 'Carteirinha é obrigatória'),
     paciente_id: z.string().min(1, 'Paciente é obrigatório'),
     quantidade_autorizada: z.number().min(1, 'Quantidade autorizada é obrigatória'),
