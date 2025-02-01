@@ -64,6 +64,7 @@ interface ExecutionHistory {
   total_guides: number;
   processed_guides: number;
   created_at: string;
+  started_at: string;
   completed_at: string | null;
   duration_seconds: number | null;
 }
@@ -79,8 +80,8 @@ interface HourlyMetrics {
 export default function UnimedPage() {
   const [guias, setGuias] = useState<GuiaProcessada[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dataInicial, setDataInicial] = useState<Date>();
-  const [dataFinal, setDataFinal] = useState<Date>();
+  const [dataInicial, setDataInicial] = useState<Date | undefined>(undefined);
+  const [dataFinal, setDataFinal] = useState<Date | undefined>(undefined);
   const [maxGuias, setMaxGuias] = useState<number>();
   const [isLoading, setIsLoading] = useState(false);
   const [taskId, setTaskId] = useState<string>();
@@ -744,11 +745,8 @@ export default function UnimedPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        mode="single"
                         selected={dataInicial}
-                        onSelect={setDataInicial}
-                        initialFocus
-                        locale={ptBR}
+                        onSelect={(date: Date | undefined) => setDataInicial(date)}
                       />
                     </PopoverContent>
                   </Popover>
@@ -770,11 +768,8 @@ export default function UnimedPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        mode="single"
                         selected={dataFinal}
-                        onSelect={setDataFinal}
-                        initialFocus
-                        locale={ptBR}
+                        onSelect={(date: Date | undefined) => setDataFinal(date)}
                       />
                     </PopoverContent>
                   </Popover>

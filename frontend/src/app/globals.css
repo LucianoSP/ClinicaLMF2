@@ -66,7 +66,7 @@
 
   /* Título principal da página */
   h1, .page-title {
-    font-size: 1.7rem; /* text-2xl */
+    font-size: 1.5rem; /* text-2xl */
     font-weight: 500;  /* font-semibold */
     margin-bottom: 1rem;
     line-height: 1.0;
