@@ -58,9 +58,12 @@ export async function listarFichasPresenca(
     params.append('status', status);
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || '';
+
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca?${params}`, {
     headers: {
-      'user-id': supabase.auth.getUser()?.data?.user?.id || '',
+      'user-id': userId,
     }
   });
 
