@@ -126,11 +126,18 @@ export function PacientesList() {
   const columns: Column<Paciente>[] = [
     { key: 'nome', label: 'Nome' },
     { key: 'cpf', label: 'CPF' },
-    { key: 'dataNascimento', label: 'Dt. Nascimento', render: (value) => value ? format(parseISO(value as string), 'dd/MM/yyyy', { locale: ptBR }) : '-' },
-    { key: 'telefone', label: 'Telefone' },
+    {
+      key: 'data_nascimento' as keyof Paciente,
+      label: 'Data de Nascimento',
+      style: { paddingLeft: '1rem' },
+      render: (_, paciente) => paciente.data_nascimento
+        ? format(parseISO(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR })
+        : 'N/A'
+    },
+    { key: 'telefone', label: 'Email' },
     { key: 'email', label: 'Email' },
     {
-      key: 'actions',
+      key: 'id' as keyof Paciente,
       label: 'Ações',
       render: (_, item) => (
         <TableActions
@@ -180,7 +187,7 @@ export function PacientesList() {
       </Dialog>
 
       <PacienteDialog
-        isOpen={open}
+        open={open}
         onClose={() => setOpen(false)}
         paciente={pacienteParaEditar}
         onSuccess={handleSuccess}

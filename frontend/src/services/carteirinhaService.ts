@@ -1,33 +1,8 @@
 import { api } from "@/lib/api";
+import { Carteirinha as CarteirinhaType } from '@/types/Carteirinha';
 
-export interface Carteirinha {
-  id: string;
-  paciente_id: string;
-  plano_saude_id: string;
-  numero_carteirinha: string;
-  numero?: string; // Campo auxiliar para compatibilidade
-  data_emissao?: string;
-  data_validade?: string;
-  dataValidade?: string; // Campo auxiliar para o frontend
-  status: "ativa" | "vencida" | "cancelada" | "suspensa" | "em_analise";
-  motivo_inativacao?: string;
-  created_at?: string;
-  updated_at?: string;
-  paciente?: {
-    id: string;
-    nome: string;
-    cpf: string;
-    email: string | null;
-    telefone: string;
-    data_nascimento: string;
-    nome_responsavel: string;
-  };
-  plano_saude?: {
-    id: string;
-    nome: string;
-    ativo: boolean;
-    codigo: string;
-  };
+export interface Carteirinha extends CarteirinhaType {
+  numero?: string;  // Campo auxiliar para compatibilidade
 }
 
 // Função auxiliar para converter do formato do frontend para o backend
@@ -63,13 +38,14 @@ export function toFrontendFormat(data: any): Carteirinha {
   console.log("Dados brutos do backend:", data);
   const formatted = {
     id: data.id || "",
-    paciente_id: data.paciente_id || "",
-    plano_saude_id: data.plano_saude_id || "",
     numero_carteirinha: data.numero_carteirinha || "",
-    numero: data.numero_carteirinha || "", // Campo auxiliar para compatibilidade
-    data_emissao: data.data_emissao,
+    numeroCarteirinha: data.numero_carteirinha || "",  // Mapeando para ambos os campos
     data_validade: data.data_validade,
-    dataValidade: data.data_validade, // Campo auxiliar para o frontend
+    dataValidade: data.data_validade,  // Mapeando para ambos os campos
+    paciente_id: data.paciente_id || "",
+    pacienteId: data.paciente_id || "",  // Mapeando para ambos os campos
+    plano_saude_id: data.plano_saude_id || "",
+    planoSaudeId: data.plano_saude_id || "",  // Mapeando para ambos os campos
     status: data.status || "ativa",
     motivo_inativacao: data.motivo_inativacao,
     created_at: data.created_at || "",

@@ -28,33 +28,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Guia, GuiaFormData } from '@/services/guiaService';
+import { Guia, GuiaFormData, guiaSchema } from '@/services/guiaService';
 import { Paciente } from '@/types/paciente';
 import { Procedimento } from '@/types/procedimento';
-import { Carteirinha } from '@/types/Carteirinha';
+import { Carteirinha, listarCarteirinhasPorPaciente } from '@/services/carteirinhaService';
 import { listarPacientes } from '@/services/pacienteService';
-import { listarCarteirinhasPorPaciente } from '@/services/carteirinhaService';
 import { listarProcedimentos } from '@/services/procedimentoService';
 import { toast } from '@/components/ui/use-toast';
 
-const guiaFormSchema = z.object({
-  numero_guia: z.string().min(1, 'Número da guia é obrigatório'),
-  data_emissao: z.string().optional(),
-  data_validade: z.string().optional(),
-  tipo: z.enum(['sp_sadt', 'consulta', 'internacao'], {
-    required_error: 'Tipo é obrigatório',
-  }),
-  status: z.enum(['pendente', 'em_andamento', 'concluida', 'cancelada']).default('pendente'),
-  paciente_id: z.string().min(1, 'Paciente é obrigatório'),
-  carteirinha_id: z.string().min(1, 'Carteirinha é obrigatória'),
-  procedimento_id: z.string().min(1, 'Procedimento é obrigatório'),
-  quantidade_autorizada: z.number().min(1, 'Quantidade autorizada é obrigatória'),
-  profissional_solicitante: z.string().optional(),
-  profissional_executante: z.string().optional(),
-  observacoes: z.string().optional(),
-});
-
-type GuiaFormData = z.infer<typeof guiaFormSchema>;
+const guiaFormSchema = guiaSchema;
 
 interface GuiaModalProps {
   isOpen: boolean;
@@ -98,7 +80,11 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
           setProcedimentos(procedimentosData || []);
         } catch (error) {
           console.error('Erro ao carregar dados:', error);
-          toast.error('Erro ao carregar dados');
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Erro ao carregar dados"
+          });
         }
       };
       fetchData();
@@ -114,7 +100,11 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
           setCarteirinhas(data || []);
         } catch (error) {
           console.error('Erro ao carregar carteirinhas:', error);
-          toast.error('Erro ao carregar carteirinhas');
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Erro ao carregar carteirinhas"
+          });
         }
       };
       fetchCarteirinhas();
@@ -147,10 +137,17 @@ export function GuiaModal({ isOpen, onClose, onSubmit, guia }: GuiaModalProps) {
       await onSubmit(data);
       form.reset();
       onClose();
-      toast.success(guia ? 'Guia atualizada com sucesso!' : 'Guia criada com sucesso!');
+      toast({
+        title: guia ? "Guia atualizada" : "Guia criada",
+        description: guia ? "Guia atualizada com sucesso!" : "Guia criada com sucesso!"
+      });
     } catch (error) {
       console.error('Erro ao salvar guia:', error);
-      toast.error('Erro ao salvar guia');
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao salvar guia"
+      });
     }
   };
 
