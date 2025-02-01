@@ -264,19 +264,19 @@ export function PatientDetails({ patient, stats, onGuideCreated }: PatientDetail
     },
     {
       key: 'numero_guia',
-      label: 'Guia'
-    },
-    {
-      key: 'sessoes',
-      label: 'Sessões Executadas',
-      render: (_, item) => {
+      label: 'Guia',
+      render: (value, item) => {
         const guia = patient.guias?.find(g => g.numero_guia === item.numero_guia);
-        if (!guia) return null;
         return (
-          <ProgressBar
-            value={guia.quantidade_executada}
-            max={guia.quantidade_autorizada}
-          />
+          <div className="space-y-1">
+            <div>{value as string}</div>
+            {guia && (
+              <ProgressBar
+                value={guia.quantidade_executada}
+                max={guia.quantidade_autorizada}
+              />
+            )}
+          </div>
         );
       }
     },
