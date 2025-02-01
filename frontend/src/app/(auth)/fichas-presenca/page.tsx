@@ -336,17 +336,18 @@ export default function FichasPresencaPage() {
         formData.append('files', file);
       });
 
-      const { data, error } = await supabase.storage
-        .from('pdfs')
-        .upload('uploads/', formData, {
-          upsert: true,
-        });
+      const response = await fetch('https://fde1cb19-4f63-43d4-a9b7-a3d808e8d2b7-00-3cdk7z76k6er0.kirk.replit.dev/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Falha no upload');
+
+      const data = await response.json();
 
       toast({
         title: "Sucesso",
-        description: `${data.length} arquivo(s) enviado(s) e processado(s) com sucesso`,
+        description: "Arquivo enviado e processado com sucesso",
       });
 
       fetchFichas();
