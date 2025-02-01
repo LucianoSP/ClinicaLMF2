@@ -73,16 +73,16 @@ const EstatisticasCards = ({ resultadoAuditoria }: EstatisticasCardsProps) => {
 
   return (
     <div className="grid gap-6">
-      {/* Cards de Status */}
+      {/* Cards Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total de Execuções */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200">
+        <Card className="group hover:shadow-lg transition-all duration-300 bg-white border border-gray-200">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">Total de Execuções</h3>
-                <p className="text-2xl font-bold mt-1 text-blue-700">{total_execucoes}</p>
-                <p className="text-xs text-blue-600/80 mt-0.5">Execuções analisadas</p>
+                <h3 className="text-sm font-medium text-gray-600">Total de Execuções</h3>
+                <p className="text-2xl font-bold mt-1 text-blue-600">{total_execucoes}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Execuções analisadas</p>
               </div>
               <Files className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -90,170 +90,83 @@ const EstatisticasCards = ({ resultadoAuditoria }: EstatisticasCardsProps) => {
         </Card>
 
         {/* Total de Fichas */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200">
+        <Card className="group hover:shadow-lg transition-all duration-300 bg-white border border-gray-200">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">Total de Fichas</h3>
-                <p className="text-2xl font-bold mt-1 text-green-700">{total_fichas}</p>
-                <p className="text-xs text-green-600/80 mt-0.5">Fichas verificadas</p>
+                <h3 className="text-sm font-medium text-gray-600">Total de Fichas</h3>
+                <p className="text-2xl font-bold mt-1 text-blue-600">{total_fichas}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Fichas verificadas</p>
               </div>
-              <FileCheck2 className="text-green-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+              <FileCheck2 className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Resolvidas */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200">
+        {/* Divergências e Status */}
+        <Card className="group hover:shadow-lg transition-all duration-300 bg-white border border-gray-200">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">Resolvidas</h3>
-                <p className="text-2xl font-bold mt-1 text-purple-700">
-                  {total_divergencias > 0
-                    ? Math.round((total_resolvidas / total_divergencias) * 100)
-                    : 0}%
-                </p>
-                <p className="text-xs text-purple-600/80 mt-0.5">Divergências resolvidas</p>
+                <h3 className="text-sm font-medium text-gray-600">Divergências</h3>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold mt-1 text-blue-600">{total_divergencias}</p>
+                  <p className="text-sm text-blue-500">
+                    ({total_divergencias > 0
+                      ? Math.round((total_resolvidas / total_divergencias) * 100)
+                      : 0}% resolvidas)
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">Total de divergências encontradas</p>
               </div>
-              <CheckCircle2 className="text-purple-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+              <AlertTriangle className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
 
         {/* Última Execução */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200">
+        <Card className="group hover:shadow-lg transition-all duration-300 bg-white border border-gray-200">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">Última Execução</h3>
-                <p className="text-2xl font-bold mt-1 text-amber-700">
+                <h3 className="text-sm font-medium text-gray-600">Última Execução</h3>
+                <p className="text-2xl font-bold mt-1 text-blue-600">
                   {data_execucao ? format(new Date(data_execucao), "dd/MM/yyyy") : "-"}
                 </p>
-                <p className="text-xs text-amber-600/80 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {tempo_execucao ? `Há ${tempo_execucao}` : ""}
                 </p>
               </div>
-              <Clock className="text-amber-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+              <Clock className="text-blue-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Cards de Divergências */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Divergências */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Divergências</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{total_divergencias}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Total de divergências encontradas</p>
+      {/* Tabela de Divergências */}
+      <Card className="bg-white border border-gray-200">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium text-gray-700 mb-4">Detalhamento das Divergências</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { label: 'Sessões sem Assinatura', value: sessao_sem_assinatura, icon: FileSignature },
+              { label: 'Execuções sem Ficha', value: execucao_sem_sessao, icon: FileWarning },
+              { label: 'Fichas sem Execução', value: sessao_sem_execucao, icon: FileX },
+              { label: 'Datas Divergentes', value: data_divergente, icon: Calendar },
+              { label: 'Guias Vencidas', value: guia_vencida, icon: AlertCircle },
+              { label: 'Duplicidades', value: duplicidade, icon: Copy }
+            ].map((item, index) => (
+              <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                <item.icon className="text-blue-500 h-5 w-5" />
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{item.label}</p>
+                  <p className="text-lg font-semibold text-blue-600">{item.value}</p>
+                </div>
               </div>
-              <AlertTriangle className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sessões sem Assinatura */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Sessões sem Assinatura</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{sessao_sem_assinatura}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Sessões executadas sem assinatura</p>
-              </div>
-              <FileSignature className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Execuções sem Ficha */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Execuções sem Ficha</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{execucao_sem_sessao}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Execuções sem sessão correspondente</p>
-              </div>
-              <FileWarning className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Fichas sem Execução */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Fichas sem Execução</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{sessao_sem_execucao}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Execuções não encontradas</p>
-              </div>
-              <FileX className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Datas Divergentes */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Datas Divergentes</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{data_divergente}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Datas não correspondem</p>
-              </div>
-              <Calendar className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Guias Vencidas */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Guias Vencidas</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{guia_vencida}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Guias expiradas</p>
-              </div>
-              <AlertCircle className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Qtd. Excedida */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Qtd. Excedida</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{quantidade_excedida}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Quantidade excedida na guia</p>
-              </div>
-              <ClipboardList className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Duplicidades */}
-        <Card className="group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Duplicidades</h3>
-                <p className="text-2xl font-bold mt-1 text-red-700">{duplicidade}</p>
-                <p className="text-xs text-red-600/80 mt-0.5">Execuções duplicadas detectadas</p>
-              </div>
-              <Copy className="text-red-500 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
