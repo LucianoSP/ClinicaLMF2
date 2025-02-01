@@ -107,7 +107,7 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
       render: (value) => new Date(value).toLocaleString()
     },
     {
-      key: 'actions',
+      key: 'url' as keyof StorageFile,
       label: 'Ações',
       render: (_, item) => (
         <TableActions
