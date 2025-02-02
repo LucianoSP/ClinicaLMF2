@@ -91,7 +91,8 @@ async def remove_trailing_slashes(request: Request, call_next):
 from config import SUPABASE_URL, SUPABASE_KEY
 
 print("DEBUG - SUPABASE_URL:", SUPABASE_URL)
-print("DEBUG - SUPABASE_KEY:", SUPABASE_KEY[:10] + "..." if SUPABASE_KEY else None)
+print("DEBUG - SUPABASE_KEY:",
+      SUPABASE_KEY[:10] + "..." if SUPABASE_KEY else None)
 
 # Criar diretório para arquivos temporários se não existir
 TEMP_DIR = "temp"
@@ -160,19 +161,20 @@ class Carteirinha(BaseModel):
 def listar_pacientes_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(None, description="Buscar por nome do paciente ou responsável"),
+    search: str = Query(
+        None, description="Buscar por nome do paciente ou responsável"),
 ):
     try:
-        return database_supabase.listar_pacientes(
-            limit=limit, offset=offset, search=search
-        )
+        return database_supabase.listar_pacientes(limit=limit,
+                                                  offset=offset,
+                                                  search=search)
     except Exception as e:
         logging.error(f"Erro ao listar pacientes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/pacientes/")
-def criar_paciente_route(paciente: Paciente):
+@app.post("/pacientes")
+async def criar_paciente_route(paciente: Paciente):
     try:
         return criar_paciente(paciente.model_dump(exclude_unset=True))
     except Exception as e:
@@ -184,7 +186,8 @@ def buscar_paciente_route(paciente_id: str):
     try:
         paciente = buscar_paciente(paciente_id)
         if not paciente:
-            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+            raise HTTPException(status_code=404,
+                                detail="Paciente não encontrado")
         return paciente
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -195,9 +198,11 @@ def atualizar_paciente_route(paciente_id: str, paciente: Paciente):
     try:
         paciente_atual = buscar_paciente(paciente_id)
         if not paciente_atual:
-            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+            raise HTTPException(status_code=404,
+                                detail="Paciente não encontrado")
 
-        return atualizar_paciente(paciente_id, paciente.model_dump(exclude_unset=True))
+        return atualizar_paciente(paciente_id,
+                                  paciente.model_dump(exclude_unset=True))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -207,7 +212,8 @@ def deletar_paciente_route(paciente_id: str):
     try:
         paciente = buscar_paciente(paciente_id)
         if not paciente:
-            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+            raise HTTPException(status_code=404,
+                                detail="Paciente não encontrado")
 
         deletar_paciente(paciente_id)
         return {"message": "Paciente excluído com sucesso"}
@@ -229,7 +235,9 @@ class Plano(BaseModel):
 @app.get("/planos", response_model=List[Plano])
 async def listar_planos_route():
     try:
-        return database_supabase.listar_planos()
+        response = database_supabase.listar_planos()
+        # Extract just the data array from the response
+        return response.get('data', [])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -237,7 +245,11 @@ async def listar_planos_route():
 @app.post("/planos", response_model=Plano)
 async def criar_plano_route(plano: Plano):
     try:
-        data = {"nome": plano.nome, "codigo": plano.codigo, "ativo": plano.ativo}
+        data = {
+            "nome": plano.nome,
+            "codigo": plano.codigo,
+            "ativo": plano.ativo
+        }
         result = criar_plano(data)
         if not result:
             raise HTTPException(status_code=400, detail="Erro ao criar plano")
@@ -247,9 +259,14 @@ async def criar_plano_route(plano: Plano):
 
 
 @app.put("/planos/{plano_id}", response_model=Plano)
-async def atualizar_plano_route(plano_id: str, plano: Plano):  # Mudado para str
+async def atualizar_plano_route(plano_id: str,
+                                plano: Plano):  # Mudado para str
     try:
-        data = {"nome": plano.nome, "codigo": plano.codigo, "ativo": plano.ativo}
+        data = {
+            "nome": plano.nome,
+            "codigo": plano.codigo,
+            "ativo": plano.ativo
+        }
         return database_supabase.atualizar_plano(plano_id, data)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -345,8 +362,7 @@ def formatar_data(data):
                 # Se parece ser DD/MM/YYYY mas é inválida, tenta MM/DD/YYYY
                 try:
                     data_obj = datetime.strptime(
-                        f"{partes[1]}/{partes[0]}/{partes[2]}", "%d/%m/%Y"
-                    )
+                        f"{partes[1]}/{partes[0]}/{partes[2]}", "%d/%m/%Y")
                     if data_obj.year >= 2000 and data_obj.year <= 2100:
                         return data_obj.strftime("%d/%m/%Y")
                 except ValueError:
@@ -461,10 +477,12 @@ async def extract_info_from_pdf(pdf_path: str):
         with open(pdf_path, "rb") as pdf_file:
             pdf_data = base64.b64encode(pdf_file.read()).decode("utf-8")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao ler PDF: {str(e)}")
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao ler PDF: {str(e)}")
 
     if not pdf_data:
-        raise HTTPException(status_code=500, detail="Erro ao ler PDF: arquivo vazio")
+        raise HTTPException(status_code=500,
+                            detail="Erro ao ler PDF: arquivo vazio")
 
     client = anthropic.Anthropic(api_key=claude_api_key)
 
@@ -473,21 +491,23 @@ async def extract_info_from_pdf(pdf_path: str):
             model="claude-3-5-sonnet-20241022",
             betas=["pdfs-2024-09-25"],
             max_tokens=4096,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "document",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "application/pdf",
-                                "data": pdf_data,
-                            },
+            messages=[{
+                "role":
+                "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": pdf_data,
                         },
-                        {
-                            "type": "text",
-                            "text": """
+                    },
+                    {
+                        "type":
+                        "text",
+                        "text":
+                        """
                         Analise este documento PDF e extraia as seguintes informações em JSON válido:
 
                         {
@@ -512,10 +532,9 @@ async def extract_info_from_pdf(pdf_path: str):
                         6. Assinale se houver assinaturas válidas. Para considerar uma linha com assinatura válida, basta verificar um pequeno quadrado no final da linha. Caso este quadrado esteja marcado ou pintado, é um campo que deveria ter uma assinatura na linha à esquerda. 
                         7. Retorne APENAS o JSON, sem texto adicional
                     """,
-                        },
-                    ],
-                }
-            ],
+                    },
+                ],
+            }],
         )
 
         # Parse a resposta JSON
@@ -523,13 +542,15 @@ async def extract_info_from_pdf(pdf_path: str):
 
         # Garantir que todas as datas estejam no formato correto
         for registro in dados_extraidos["registros"]:
-            registro["data_execucao"] = formatar_data(registro["data_execucao"])
+            registro["data_execucao"] = formatar_data(
+                registro["data_execucao"])
 
         # Validar usando Pydantic
         dados_validados = DadosGuia(**dados_extraidos)
 
         # Criar DataFrame dos registros
-        df = pd.DataFrame([registro.dict() for registro in dados_validados.registros])
+        df = pd.DataFrame(
+            [registro.dict() for registro in dados_validados.registros])
 
         return {
             "json": dados_validados.dict(),
@@ -539,40 +560,41 @@ async def extract_info_from_pdf(pdf_path: str):
 
     except json.JSONDecodeError as e:
         return {
-            "erro": f"Erro ao processar JSON: {str(e)}",
-            "status_validacao": "falha",
-            "resposta_raw": (
-                response.content[0].text if "response" in locals() else None
-            ),
+            "erro":
+            f"Erro ao processar JSON: {str(e)}",
+            "status_validacao":
+            "falha",
+            "resposta_raw":
+            (response.content[0].text if "response" in locals() else None),
         }
     except ValidationError as e:
         return {
-            "erro": str(e),
-            "status_validacao": "falha",
-            "resposta_raw": (
-                response.content[0].text if "response" in locals() else None,
-            ),
+            "erro":
+            str(e),
+            "status_validacao":
+            "falha",
+            "resposta_raw":
+            (response.content[0].text if "response" in locals() else None, ),
         }
     except Exception as e:
         return {
-            "erro": str(e),
-            "status_validacao": "falha",
-            "resposta_raw": (
-                response.content[0].text if "response" in locals() else None,
-            ),
+            "erro":
+            str(e),
+            "status_validacao":
+            "falha",
+            "resposta_raw":
+            (response.content[0].text if "response" in locals() else None, ),
         }
 
 
 # Configuração de logging detalhado
-logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.DEBUG,
+                    format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 @app.post("/test-pdf-extraction")
-async def test_pdf_extraction(
-    file: UploadFile = File(..., description="Arquivo PDF para teste")
-):
+async def test_pdf_extraction(file: UploadFile = File(
+    ..., description="Arquivo PDF para teste")):
     """
     Endpoint de teste que apenas extrai as informações do PDF usando o Gemini.
     """
@@ -599,14 +621,14 @@ async def test_pdf_extraction(
             )
         except Exception as e:
             logging.error(f"Erro na conversão base64: {str(e)}")
-            raise HTTPException(status_code=500, detail="Erro na conversão do arquivo")
+            raise HTTPException(status_code=500,
+                                detail="Erro na conversão do arquivo")
 
         # Verificar API key
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise HTTPException(
-                status_code=500, detail="GOOGLE_API_KEY não configurada"
-            )
+            raise HTTPException(status_code=500,
+                                detail="GOOGLE_API_KEY não configurada")
 
         # Inicializar cliente Gemini com tratamento de erro
         try:
@@ -614,9 +636,8 @@ async def test_pdf_extraction(
             logging.info("Cliente Gemini inicializado com sucesso")
         except Exception as e:
             logging.error(f"Erro ao inicializar cliente Gemini: {str(e)}")
-            raise HTTPException(
-                status_code=500, detail="Erro ao inicializar Gemini API"
-            )
+            raise HTTPException(status_code=500,
+                                detail="Erro ao inicializar Gemini API")
 
         # Preparar o prompt
         prompt = """
@@ -646,19 +667,19 @@ async def test_pdf_extraction(
         try:
             # Criar a mensagem para o modelo
             message = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": prompt},
-                            {
-                                "inline_data": {
-                                    "mime_type": "application/pdf",
-                                    "data": pdf_data,
-                                }
-                            },
-                        ]
-                    }
-                ]
+                "contents": [{
+                    "parts": [
+                        {
+                            "text": prompt
+                        },
+                        {
+                            "inline_data": {
+                                "mime_type": "application/pdf",
+                                "data": pdf_data,
+                            }
+                        },
+                    ]
+                }]
             }
 
             # Configuração do modelo
@@ -758,10 +779,12 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
         with open(pdf_path, "rb") as pdf_file:
             pdf_data = base64.b64encode(pdf_file.read()).decode("utf-8")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao ler PDF: {str(e)}")
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao ler PDF: {str(e)}")
 
     if not pdf_data:
-        raise HTTPException(status_code=500, detail="Erro ao ler PDF: arquivo vazio")
+        raise HTTPException(status_code=500,
+                            detail="Erro ao ler PDF: arquivo vazio")
 
     try:
         # Inicializa o cliente do Gemini
@@ -796,16 +819,19 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
         # Configuração para garantir resposta em JSON
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
-            temperature=0.1,  # Baixa temperatura para respostas mais consistentes
+            temperature=
+            0.1,  # Baixa temperatura para respostas mais consistentes
             candidate_count=1,
             max_output_tokens=2048,  # Limite máximo de tokens para a resposta
         )
 
         # Faz a requisição ao Gemini
         response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",  # Usando o modelo mais rápido do Gemini
+            model=
+            "gemini-2.0-flash-exp",  # Usando o modelo mais rápido do Gemini
             contents=[
-                types.Part.from_data(mime_type="application/pdf", data=pdf_data),
+                types.Part.from_data(mime_type="application/pdf",
+                                     data=pdf_data),
                 types.Part.from_text(prompt),
             ],
             config=config,
@@ -816,13 +842,15 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
 
         # Garantir que todas as datas estejam no formato correto
         for registro in dados_extraidos["registros"]:
-            registro["data_execucao"] = formatar_data(registro["data_execucao"])
+            registro["data_execucao"] = formatar_data(
+                registro["data_execucao"])
 
         # Validar usando Pydantic
         dados_validados = DadosGuia(**dados_extraidos)
 
         # Criar DataFrame dos registros
-        df = pd.DataFrame([registro.dict() for registro in dados_validados.registros])
+        df = pd.DataFrame(
+            [registro.dict() for registro in dados_validados.registros])
 
         return {
             "json": dados_validados.dict(),
@@ -850,10 +878,11 @@ async def extract_info_from_pdf_gemini(pdf_path: str):
         }
 
 
+@app.post("/upload")
 @app.post("/upload-pdf")
 async def upload_pdf(
-    files: list[UploadFile] = File(description="Múltiplos arquivos PDF"),
-):
+        files: list[UploadFile] = File(
+            description="Múltiplos arquivos PDF"), ):
     """Processa PDFs de fichas de presença e cria registros com sessões"""
     if not files:
         raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
@@ -863,13 +892,11 @@ async def upload_pdf(
 
     for file in files:
         if not file.filename.endswith(".pdf"):
-            results.append(
-                {
-                    "status": "error",
-                    "filename": file.filename,
-                    "message": "Apenas arquivos PDF são permitidos",
-                }
-            )
+            results.append({
+                "status": "error",
+                "filename": file.filename,
+                "message": "Apenas arquivos PDF são permitidos",
+            })
             continue
 
         if file.filename in processed_files:
@@ -889,7 +916,8 @@ async def upload_pdf(
             info = await extract_info_from_pdf(temp_pdf_path)
 
             if info.get("status_validacao") == "falha":
-                raise Exception(info.get("erro", "Erro desconhecido ao processar PDF"))
+                raise Exception(
+                    info.get("erro", "Erro desconhecido ao processar PDF"))
 
             result = {
                 "status": "success",
@@ -907,9 +935,8 @@ async def upload_pdf(
             primeira_linha = dados_guia["registros"][0]
             data_formatada = primeira_linha["data_execucao"].replace("/", "-")
             nome_paciente = primeira_linha["paciente_nome"].strip()
-            nome_paciente = "".join(
-                c for c in nome_paciente if c.isalnum() or c.isspace()
-            )
+            nome_paciente = "".join(c for c in nome_paciente
+                                    if c.isalnum() or c.isspace())
             nome_paciente = nome_paciente.replace(" ", "-")
 
             novo_nome = (
@@ -918,7 +945,10 @@ async def upload_pdf(
             arquivo_url = storage.upload_file(temp_pdf_path, novo_nome)
 
             if arquivo_url:
-                result["uploaded_file"] = {"nome": novo_nome, "url": arquivo_url}
+                result["uploaded_file"] = {
+                    "nome": novo_nome,
+                    "url": arquivo_url
+                }
 
             # Preparar dados da ficha e sessões
             ficha_data = {
@@ -935,8 +965,7 @@ async def upload_pdf(
             # Criar sessões para cada registro
             for registro in dados_guia["registros"]:
                 data_sessao = datetime.strptime(
-                    registro["data_execucao"], "%d/%m/%Y"
-                ).strftime("%Y-%m-%d")
+                    registro["data_execucao"], "%d/%m/%Y").strftime("%Y-%m-%d")
 
                 sessao = {
                     "data_sessao": data_sessao,
@@ -960,14 +989,13 @@ async def upload_pdf(
             results.append(result)
 
         except Exception as e:
-            logger.error(f"Erro ao processar arquivo {file.filename}: {str(e)}")
-            results.append(
-                {
-                    "status": "error",
-                    "filename": file.filename,
-                    "message": str(e),
-                }
-            )
+            logger.error(
+                f"Erro ao processar arquivo {file.filename}: {str(e)}")
+            results.append({
+                "status": "error",
+                "filename": file.filename,
+                "message": str(e),
+            })
         finally:
             # Limpar arquivo temporário
             if os.path.exists(temp_pdf_path):
@@ -982,13 +1010,13 @@ async def upload_excel(file: UploadFile = File(...)):
     try:
         if not file.filename.endswith((".xlsx", ".xls")):
             raise HTTPException(
-                status_code=400, detail="Arquivo deve ser um Excel (.xlsx ou .xls)"
-            )
+                status_code=400,
+                detail="Arquivo deve ser um Excel (.xlsx ou .xls)")
 
         # Salva o arquivo temporariamente
-        with tempfile.NamedTemporaryFile(
-            delete=False, suffix=Path(file.filename).suffix
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(delete=False,
+                                         suffix=Path(
+                                             file.filename).suffix) as tmp:
             shutil.copyfileobj(file.file, tmp)
             tmp_path = Path(tmp.name)
 
@@ -1010,7 +1038,8 @@ async def upload_excel(file: UploadFile = File(...)):
             if colunas_faltantes:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Colunas faltantes no arquivo: {', '.join(colunas_faltantes)}",
+                    detail=
+                    f"Colunas faltantes no arquivo: {', '.join(colunas_faltantes)}",
                 )
 
             # Prepara os dados para salvar
@@ -1023,9 +1052,11 @@ async def upload_excel(file: UploadFile = File(...)):
                     # Mapeamento dos campos do Excel para os campos padronizados do banco
                     registro = {
                         "guia_id": str(row["idGuia"]).strip(),
-                        "paciente_nome": str(row["nomePaciente"]).strip().upper(),
+                        "paciente_nome":
+                        str(row["nomePaciente"]).strip().upper(),
                         "data_execucao": data_execucao,
-                        "paciente_carteirinha": str(row["Carteirinha"]).strip(),
+                        "paciente_carteirinha":
+                        str(row["Carteirinha"]).strip(),
                         "paciente_id": str(row["Id_Paciente"]).strip(),
                     }
                     registros.append(registro)
@@ -1036,18 +1067,19 @@ async def upload_excel(file: UploadFile = File(...)):
             # Salva os dados no banco
             if not registros:
                 raise HTTPException(
-                    status_code=400, detail="Nenhum registro válido encontrado no Excel"
-                )
+                    status_code=400,
+                    detail="Nenhum registro válido encontrado no Excel")
 
             if salvar_dados_excel(registros):
                 return {
-                    "success": True,
-                    "message": f"Arquivo processado com sucesso. {len(registros)} registros importados.",
+                    "success":
+                    True,
+                    "message":
+                    f"Arquivo processado com sucesso. {len(registros)} registros importados.",
                 }
             else:
-                raise HTTPException(
-                    status_code=500, detail="Erro ao salvar dados no banco"
-                )
+                raise HTTPException(status_code=500,
+                                    detail="Erro ao salvar dados no banco")
 
         finally:
             # Remove o arquivo temporário
@@ -1062,7 +1094,8 @@ async def upload_excel(file: UploadFile = File(...)):
 async def list_execucoes(
     page: int = Query(1, ge=1, description="Página atual"),
     per_page: int = Query(10, ge=1, le=100, description="Itens por página"),
-    paciente_nome: str = Query(None, description="Filtrar por nome do paciente"),
+    paciente_nome: str = Query(None,
+                               description="Filtrar por nome do paciente"),
 ):
     """Lista todos os execucaos com suporte a paginação e filtro"""
     try:
@@ -1070,9 +1103,9 @@ async def list_execucoes(
             f"Buscando execucaos com: page={page}, per_page={per_page}, paciente_nome={paciente_nome}"
         )
         offset = (page - 1) * per_page
-        resultado = listar_guias(
-            limit=per_page, offset=offset, paciente_nome=paciente_nome
-        )
+        resultado = listar_guias(limit=per_page,
+                                 offset=offset,
+                                 paciente_nome=paciente_nome)
 
         return {
             "success": True,
@@ -1104,7 +1137,8 @@ async def get_guia(numero_guia: str):
 async def list_excel(
     page: int = Query(1, description="Página atual"),
     per_page: int = Query(10, description="Itens por página"),
-    paciente_nome: str = Query(None, description="Filtrar por nome do beneficiário"),
+    paciente_nome: str = Query(None,
+                               description="Filtrar por nome do beneficiário"),
 ):
     """Lista os dados importados do Excel com suporte a paginação e filtro"""
     try:
@@ -1112,15 +1146,14 @@ async def list_excel(
         offset = (page - 1) * per_page
 
         # Busca os dados no banco
-        resultado = listar_dados_excel(
-            limit=per_page, offset=offset, paciente_nome=paciente_nome
-        )
+        resultado = listar_dados_excel(limit=per_page,
+                                       offset=offset,
+                                       paciente_nome=paciente_nome)
 
         # Verifica se a busca foi bem sucedida
         if not resultado["success"]:
-            raise HTTPException(
-                status_code=500, detail="Erro ao buscar dados das execuções"
-            )
+            raise HTTPException(status_code=500,
+                                detail="Erro ao buscar dados das execuções")
 
         return resultado
 
@@ -1159,19 +1192,24 @@ async def clear_execucoes():
 
         if success:
             logger.info("Dados de execuções limpos com sucesso")
-            return {"success": True, "message": "Dados de execuções limpos com sucesso"}
+            return {
+                "success": True,
+                "message": "Dados de execuções limpos com sucesso"
+            }
         else:
-            logger.error("Erro ao limpar dados de execuções: operação retornou False")
+            logger.error(
+                "Erro ao limpar dados de execuções: operação retornou False")
             raise HTTPException(
                 status_code=500,
-                detail="Erro ao limpar dados de execuções: operação não foi concluída com sucesso",
+                detail=
+                "Erro ao limpar dados de execuções: operação não foi concluída com sucesso",
             )
     except Exception as e:
         logger.error(f"Erro ao limpar dados de execuções: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao limpar dados de execuções: {str(e)}"
-        )
+            status_code=500,
+            detail=f"Erro ao limpar dados de execuções: {str(e)}")
 
 
 @app.post("/auditoria/iniciar")
@@ -1186,7 +1224,8 @@ async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
         data_final = request.data_fim
 
         # Realizar a auditoria com as datas no formato do banco
-        resultado = realizar_auditoria_fichas_execucoes(data_inicial, data_final)
+        resultado = realizar_auditoria_fichas_execucoes(
+            data_inicial, data_final)
 
         if not resultado.get("success"):
             raise HTTPException(
@@ -1212,14 +1251,16 @@ async def iniciar_auditoria(request: AuditoriaRequest = Body(...)):
 
 @app.post("/auditoria/fichas")
 async def iniciar_auditoria_fichas(
-    data_inicial: str = Query(None, description="Data inicial (DD/MM/YYYY)"),
-    data_final: str = Query(None, description="Data final (DD/MM/YYYY)"),
+        data_inicial: str = Query(None,
+                                  description="Data inicial (DD/MM/YYYY)"),
+        data_final: str = Query(None, description="Data final (DD/MM/YYYY)"),
 ):
     """
     Inicia o processo de auditoria cruzando fichas de presença com execuções
     """
     try:
-        resultado = realizar_auditoria_fichas_execucoes(data_inicial, data_final)
+        resultado = realizar_auditoria_fichas_execucoes(
+            data_inicial, data_final)
         return resultado
     except Exception as e:
         logging.error(f"Erro ao iniciar auditoria: {e}")
@@ -1227,14 +1268,15 @@ async def iniciar_auditoria_fichas(
 
 
 @app.put("/auditoria/divergencia/{divergencia_id}")
-async def atualizar_divergencia(
-    divergencia_id: str, status: str = Body(..., embed=True)
-):
+async def atualizar_divergencia(divergencia_id: str,
+                                status: str = Body(..., embed=True)):
     try:
-        logger.info(f"Atualizando divergência {divergencia_id} para status: {status}")
+        logger.info(
+            f"Atualizando divergência {divergencia_id} para status: {status}")
 
         if not atualizar_status_divergencia(divergencia_id, status):
-            raise HTTPException(status_code=404, detail="Divergência não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Divergência não encontrada")
 
         return {"message": "Status atualizado com sucesso"}
     except Exception as e:
@@ -1243,21 +1285,19 @@ async def atualizar_divergencia(
 
 
 @app.put("/execucao/{codigo_ficha}")
-async def atualizar_execucao_endpoint(codigo_ficha: str, execucao: ExecucaoUpdate):
+async def atualizar_execucao_endpoint(codigo_ficha: str,
+                                      execucao: ExecucaoUpdate):
     try:
         # Validate the data format
-        if not all(
-            [
+        if not all([
                 execucao.data_execucao,
                 execucao.paciente_carteirinha,
                 execucao.paciente_nome,
                 execucao.guia_id,
                 execucao.codigo_ficha,
-            ]
-        ):
-            raise HTTPException(
-                status_code=400, detail="Todos os campos são obrigatórios"
-            )
+        ]):
+            raise HTTPException(status_code=400,
+                                detail="Todos os campos são obrigatórios")
 
         # Validate date format
         try:
@@ -1265,8 +1305,8 @@ async def atualizar_execucao_endpoint(codigo_ficha: str, execucao: ExecucaoUpdat
             datetime.strptime(execucao.data_execucao, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(
-                status_code=400, detail="Data em formato inválido. Use YYYY-MM-DD"
-            )
+                status_code=400,
+                detail="Data em formato inválido. Use YYYY-MM-DD")
 
         # Convert the model to a dictionary
         dados = {
@@ -1284,22 +1324,24 @@ async def atualizar_execucao_endpoint(codigo_ficha: str, execucao: ExecucaoUpdat
 
             success = atualizar_execucao(codigo_ficha, dados)
             if not success:
-                raise HTTPException(status_code=404, detail="execucao não encontrado")
+                raise HTTPException(status_code=404,
+                                    detail="execucao não encontrado")
             return {"message": "execucao atualizado com sucesso"}
         except ValueError as ve:
             raise HTTPException(status_code=400, detail=str(ve))
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Erro ao atualizar execucao no banco de dados: {str(e)}",
+                detail=
+                f"Erro ao atualizar execucao no banco de dados: {str(e)}",
             )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Erro interno ao atualizar execucao: {str(e)}"
-        )
+            status_code=500,
+            detail=f"Erro interno ao atualizar execucao: {str(e)}")
 
 
 @app.delete("/execucao/{codigo_ficha}")
@@ -1314,19 +1356,19 @@ async def excluir_execucao(codigo_ficha: str):
             DELETE FROM execucaos 
             WHERE codigo_ficha = ?
         """,
-            (codigo_ficha,),
+            (codigo_ficha, ),
         )
 
         if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="execucao não encontrado")
+            raise HTTPException(status_code=404,
+                                detail="execucao não encontrado")
 
         conn.commit()
         return {"message": "execucao excluído com sucesso"}
 
     except sqlite3.Error as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao excluir execucao: {str(e)}"
-        )
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao excluir execucao: {str(e)}")
     finally:
         conn.close()
 
@@ -1341,7 +1383,8 @@ async def delete_files(files: list[str]):
         if success:
             return {"message": "Arquivos deletados com sucesso"}
         else:
-            raise HTTPException(status_code=500, detail="Erro ao deletar arquivos")
+            raise HTTPException(status_code=500,
+                                detail="Erro ao deletar arquivos")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1376,9 +1419,8 @@ async def delete_all_storage_files():
         # Deleta todos os arquivos
         success = storage.delete_files(file_names)
         if not success:
-            raise HTTPException(
-                status_code=500, detail="Erro ao deletar alguns arquivos"
-            )
+            raise HTTPException(status_code=500,
+                                detail="Erro ao deletar alguns arquivos")
 
         return {"message": f"{len(file_names)} arquivos deletados com sucesso"}
 
@@ -1395,9 +1437,8 @@ async def delete_storage_file(file_name: str):
     try:
         success = storage.delete_files([file_name])
         if not success:
-            raise HTTPException(
-                status_code=500, detail=f"Erro ao deletar arquivo {file_name}"
-            )
+            raise HTTPException(status_code=500,
+                                detail=f"Erro ao deletar arquivo {file_name}")
         return {"message": f"Arquivo {file_name} deletado com sucesso"}
 
     except Exception as e:
@@ -1415,7 +1456,8 @@ async def download_all_files():
         zip_content = storage.download_all_files_as_zip()
 
         if not zip_content:
-            raise HTTPException(status_code=500, detail="Erro ao gerar arquivo ZIP")
+            raise HTTPException(status_code=500,
+                                detail="Erro ao gerar arquivo ZIP")
 
         # Retornar o arquivo ZIP como resposta
         from fastapi.responses import Response
@@ -1424,7 +1466,8 @@ async def download_all_files():
             content=zip_content,
             media_type="application/zip",
             headers={
-                "Content-Disposition": f'attachment; filename="fichas_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
+                "Content-Disposition":
+                f'attachment; filename="fichas_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
             },
         )
     except Exception as e:
@@ -1438,9 +1481,10 @@ async def listar_fichas(
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
     search: str = Query(None, description="Buscar por nome do paciente"),
     status: str = Query(
-        "pendente", description="Filtrar por status (pendente, conferida, todas)"
-    ),
-    order: str = Query("created_at.desc", description="Ordenação dos resultados"),
+        "pendente",
+        description="Filtrar por status (pendente, conferida, todas)"),
+    order: str = Query("created_at.desc",
+                       description="Ordenação dos resultados"),
 ):
     """Lista todas as fichas de presença com suporte a paginação e filtros"""
     try:
@@ -1454,7 +1498,8 @@ async def listar_fichas(
         return result
     except Exception as e:
         logger.error(f"Erro ao listar fichas: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao listar fichas de presença")
+        raise HTTPException(status_code=500,
+                            detail="Erro ao listar fichas de presença")
 
 
 @app.post("/fichas-presenca")
@@ -1466,24 +1511,25 @@ async def criar_ficha(ficha: FichaPresenca):
 
         # If no sessions provided, create default session
         if not ficha_data.get("sessoes"):
-            ficha_data["sessoes"] = [
-                {
-                    "data_sessao": datetime.now().strftime("%Y-%m-%d"),
-                    "possui_assinatura": False,
-                    "status": "pendente",
-                }
-            ]
+            ficha_data["sessoes"] = [{
+                "data_sessao":
+                datetime.now().strftime("%Y-%m-%d"),
+                "possui_assinatura":
+                False,
+                "status":
+                "pendente",
+            }]
 
         result = salvar_ficha_presenca(ficha_data)
 
         if not result:
-            raise HTTPException(
-                status_code=400, detail="Erro ao criar ficha de presença"
-            )
+            raise HTTPException(status_code=400,
+                                detail="Erro ao criar ficha de presença")
         return {"id": result, "message": "Ficha criada com sucesso"}
     except Exception as e:
         logger.error(f"Erro ao criar ficha: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao criar ficha de presença")
+        raise HTTPException(status_code=500,
+                            detail="Erro ao criar ficha de presença")
 
 
 @app.get("/fichas-presenca/{ficha_id}")
@@ -1496,7 +1542,8 @@ async def buscar_ficha(ficha_id: str):
         return ficha
     except Exception as e:
         logger.error(f"Erro ao buscar ficha: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao buscar ficha de presença")
+        raise HTTPException(status_code=500,
+                            detail="Erro ao buscar ficha de presença")
 
 
 @app.put("/fichas-presenca/{ficha_id}")
@@ -1511,15 +1558,13 @@ async def atualizar_ficha(ficha_id: str, ficha: FichaPresencaUpdate):
         # Atualiza a ficha
         result = salvar_ficha_presenca({**ficha.dict(), "id": ficha_id})
         if not result:
-            raise HTTPException(
-                status_code=400, detail="Erro ao atualizar ficha de presença"
-            )
+            raise HTTPException(status_code=400,
+                                detail="Erro ao atualizar ficha de presença")
         return {"id": result}
     except Exception as e:
         logger.error(f"Erro ao atualizar ficha: {e}")
-        raise HTTPException(
-            status_code=500, detail="Erro ao atualizar ficha de presença"
-        )
+        raise HTTPException(status_code=500,
+                            detail="Erro ao atualizar ficha de presença")
 
 
 @app.delete("/fichas-presenca/{ficha_id}")
@@ -1532,7 +1577,8 @@ async def excluir_ficha(ficha_id: str):
         return {"success": True}
     except Exception as e:
         logger.error(f"Erro ao excluir ficha: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao excluir ficha de presença")
+        raise HTTPException(status_code=500,
+                            detail="Erro ao excluir ficha de presença")
 
 
 @app.get("/auditoria/ultima")
@@ -1540,7 +1586,10 @@ async def obter_ultima_auditoria_endpoint():
     try:
         ultima_auditoria = obter_ultima_auditoria()
         if ultima_auditoria:
-            return {"message": "Última auditoria encontrada", "data": ultima_auditoria}
+            return {
+                "message": "Última auditoria encontrada",
+                "data": ultima_auditoria
+            }
         return {"message": "Nenhuma auditoria encontrada", "data": None}
     except Exception as e:
         logger.error(f"Erro ao obter última auditoria: {e}")
@@ -1571,17 +1620,18 @@ async def limpar_divergencias():
                 "dados": dados_atualizados,
             }
         else:
-            logger.error("Erro ao limpar divergências: operação retornou False")
+            logger.error(
+                "Erro ao limpar divergências: operação retornou False")
             raise HTTPException(
                 status_code=500,
-                detail="Erro ao limpar divergências: operação não foi concluída com sucesso",
+                detail=
+                "Erro ao limpar divergências: operação não foi concluída com sucesso",
             )
     except Exception as e:
         logger.error(f"Erro ao limpar divergências: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao limpar divergências: {str(e)}"
-        )
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao limpar divergências: {str(e)}")
 
 
 @app.post("/fichas_presenca/limpar")
@@ -1592,11 +1642,11 @@ async def clear_fichas_presenca():
         if success:
             return {"success": True, "message": "Registros limpos com sucesso"}
         else:
-            raise HTTPException(status_code=500, detail="Erro ao limpar registros")
+            raise HTTPException(status_code=500,
+                                detail="Erro ao limpar registros")
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao limpar registros: {str(e)}"
-        )
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao limpar registros: {str(e)}")
 
 
 @app.get("/pacientes/{paciente_id}/guias")
@@ -1605,13 +1655,13 @@ async def listar_guias_paciente_endpoint(paciente_id: str):
     try:
         resultado = listar_guias_paciente(paciente_id)
         if not resultado or not resultado["items"]:  # Corrigido aqui: || -> or
-            raise HTTPException(
-                status_code=404, detail="Paciente não encontrado ou sem guias"
-            )
+            raise HTTPException(status_code=404,
+                                detail="Paciente não encontrado ou sem guias")
         return resultado
     except Exception as e:
         logger.error(f"Erro ao buscar guias do paciente: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao buscar guias do paciente")
+        raise HTTPException(status_code=500,
+                            detail="Erro ao buscar guias do paciente")
 
 
 @app.get("/tipos-divergencia")
@@ -1631,11 +1681,13 @@ def listar_tipos_divergencia_route():
 async def conferir_ficha(ficha_id: str):
     """Marca uma ficha como conferida"""
     try:
-        result = database_supabase.atualizar_status_ficha(ficha_id, "conferida")
+        result = database_supabase.atualizar_status_ficha(
+            ficha_id, "conferida")
         if result:
             return {"message": "Ficha marcada como conferida com sucesso"}
         else:
-            raise HTTPException(status_code=400, detail="Falha ao conferir ficha")
+            raise HTTPException(status_code=400,
+                                detail="Falha ao conferir ficha")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1678,65 +1730,68 @@ class SessaoUpdate(BaseModel):
 async def atualizar_sessao(sessao_id: str, sessao: SessaoUpdate):
     """Atualiza os dados de uma sessão específica"""
     try:
-        response = (
-            supabase.table("sessoes")
-            .update(
-                {
-                    "data_sessao": sessao.data_sessao,
-                    "tipo_terapia": sessao.tipo_terapia,
-                    "profissional_executante": sessao.profissional_executante,
-                    "possui_assinatura": sessao.possui_assinatura,
-                    "valor_sessao": sessao.valor_sessao,
-                    "observacoes_sessao": sessao.observacoes_sessao,
-                }
-            )
-            .eq("id", sessao_id)
-            .execute()
-        )
+        response = (supabase.table("sessoes").update({
+            "data_sessao":
+            sessao.data_sessao,
+            "tipo_terapia":
+            sessao.tipo_terapia,
+            "profissional_executante":
+            sessao.profissional_executante,
+            "possui_assinatura":
+            sessao.possui_assinatura,
+            "valor_sessao":
+            sessao.valor_sessao,
+            "observacoes_sessao":
+            sessao.observacoes_sessao,
+        }).eq("id", sessao_id).execute())
 
         if not response.data:
-            raise HTTPException(status_code=404, detail="Sessão não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Sessão não encontrada")
 
-        return {"message": "Sessão atualizada com sucesso", "data": response.data[0]}
+        return {
+            "message": "Sessão atualizada com sucesso",
+            "data": response.data[0]
+        }
 
     except Exception as e:
         logger.error(f"Erro ao atualizar sessão: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao atualizar sessão: {str(e)}"
-        )
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao atualizar sessão: {str(e)}")
 
 
 @app.put("/sessoes/{sessao_id}/conferir")
 async def conferir_sessao(sessao_id: str):
     """Marca uma sessão como conferida"""
     try:
-        response = (
-            supabase.table("sessoes")
-            .update({"status": "conferida"})
-            .eq("id", sessao_id)
-            .execute()
-        )
+        response = (supabase.table("sessoes").update({
+            "status": "conferida"
+        }).eq("id", sessao_id).execute())
 
         if not response.data:
-            raise HTTPException(status_code=404, detail="Sessão não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Sessão não encontrada")
 
-        return {"message": "Sessão conferida com sucesso", "data": response.data[0]}
+        return {
+            "message": "Sessão conferida com sucesso",
+            "data": response.data[0]
+        }
 
     except Exception as e:
         logger.error(f"Erro ao conferir sessão: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao conferir sessão: {str(e)}"
-        )
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao conferir sessão: {str(e)}")
 
 
 @app.delete("/sessoes/{sessao_id}")
 # Rotas para Carteirinhas
 @app.get("/carteirinhas")
 def listar_carteirinhas_route(
-    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
-    offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(None, description="Buscar por número da carteirinha"),
-    paciente_id: str = Query(None, description="Filtrar por paciente"),
+        limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+        offset: int = Query(0, ge=0, description="Número de itens para pular"),
+        search: str = Query(None,
+                            description="Buscar por número da carteirinha"),
+        paciente_id: str = Query(None, description="Filtrar por paciente"),
 ):
     try:
         response = supabase.table("carteirinhas").select(
@@ -1758,25 +1813,26 @@ def listar_carteirinhas_route(
         result = response.execute()
 
         # Format data for frontend
-        formatted_data = [
-            {
-                "id": item["id"],
-                "numero_carteirinha": item["numero_carteirinha"],
-                "data_validade": item["data_validade"],
-                "status": item["status"],
-                "motivo_inativacao": item["motivo_inativacao"],
-                "paciente_id": item["paciente_id"],
-                "plano_saude_id": item["plano_saude_id"],
-                "paciente": item["pacientes"],
-                "plano_saude": item["planos_saude"],
-                "created_by": item.get("created_by"),
-                "created_at": item.get("created_at"),
-                "updated_at": item.get("updated_at"),
-            }
-            for item in result.data
-        ]
+        formatted_data = [{
+            "id": item["id"],
+            "numero_carteirinha": item["numero_carteirinha"],
+            "data_validade": item["data_validade"],
+            "status": item["status"],
+            "motivo_inativacao": item["motivo_inativacao"],
+            "paciente_id": item["paciente_id"],
+            "plano_saude_id": item["plano_saude_id"],
+            "paciente": item["pacientes"],
+            "plano_saude": item["planos_saude"],
+            "created_by": item.get("created_by"),
+            "created_at": item.get("created_at"),
+            "updated_at": item.get("updated_at"),
+        } for item in result.data]
 
-        return {"items": formatted_data, "total": total, "pages": ceil(total / limit)}
+        return {
+            "items": formatted_data,
+            "total": total,
+            "pages": ceil(total / limit)
+        }
     except Exception as e:
         logging.error(f"Erro ao listar carteirinhas: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1788,17 +1844,15 @@ def criar_carteirinha_route(carteirinha: Carteirinha, request: Request):
         # Pega o usuário da requisição
         user_id = request.headers.get("user-id")
         if not user_id:
-            raise HTTPException(status_code=401, detail="User ID não fornecido")
+            raise HTTPException(status_code=401,
+                                detail="User ID não fornecido")
 
         # Busca o ID do usuário na tabela usuarios
-        usuario = (
-            supabase.table("usuarios")
-            .select("id")
-            .eq("auth_user_id", user_id)
-            .execute()
-        )
+        usuario = (supabase.table("usuarios").select("id").eq(
+            "auth_user_id", user_id).execute())
         if not usuario.data:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            raise HTTPException(status_code=404,
+                                detail="Usuário não encontrado")
 
         user_id = usuario.data[0]["id"]
 
@@ -1809,10 +1863,12 @@ def criar_carteirinha_route(carteirinha: Carteirinha, request: Request):
         carteirinha_data["updated_at"] = datetime.now()
 
         # Insere no banco de dados
-        response = supabase.table("carteirinhas").insert(carteirinha_data).execute()
+        response = supabase.table("carteirinhas").insert(
+            carteirinha_data).execute()
 
         if not response.data:
-            raise HTTPException(status_code=500, detail="Erro ao criar carteirinha")
+            raise HTTPException(status_code=500,
+                                detail="Erro ao criar carteirinha")
 
         return response.data[0]
     except Exception as e:
@@ -1823,17 +1879,13 @@ def criar_carteirinha_route(carteirinha: Carteirinha, request: Request):
 @app.get("/carteirinhas/{carteirinha_id}")
 def buscar_carteirinha_route(carteirinha_id: str):
     try:
-        response = (
-            supabase.table("carteirinhas")
-            .select(
-                "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
-            )
-            .eq("id", carteirinha_id)
-            .execute()
-        )
+        response = (supabase.table("carteirinhas").select(
+            "*, pacientes!carteirinhas_paciente_id_fkey(*), planos_saude!carteirinhas_plano_saude_id_fkey(*)"
+        ).eq("id", carteirinha_id).execute())
 
         if not response.data:
-            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Carteirinha não encontrada")
 
         return response.data[0]
     except HTTPException:
@@ -1844,7 +1896,8 @@ def buscar_carteirinha_route(carteirinha_id: str):
 
 
 @app.put("/carteirinhas/{carteirinha_id}")
-async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteirinha):
+async def atualizar_carteirinha_route(carteirinha_id: str,
+                                      carteirinha: Carteirinha):
     try:
         logging.info(f"Atualizando carteirinha ID: {carteirinha_id}")
         logging.info(f"Dados recebidos: {carteirinha.dict()}")
@@ -1858,8 +1911,7 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
             "status": carteirinha.status,
             "motivo_inativacao": carteirinha.motivo_inativacao,
             "updated_at": datetime.now(
-                timezone.utc
-            ).isoformat(),  # Convertendo para string ISO
+                timezone.utc).isoformat(),  # Convertendo para string ISO
         }
 
         # Handle data_validade conversion properly
@@ -1870,23 +1922,16 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
         logging.info(f"Dados formatados para atualização: {data}")
 
         # Check if carteirinha exists
-        existing = (
-            supabase.table("carteirinhas")
-            .select("*")
-            .eq("id", carteirinha_id)
-            .execute()
-        )
+        existing = (supabase.table("carteirinhas").select("*").eq(
+            "id", carteirinha_id).execute())
 
         if not existing.data:
-            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Carteirinha não encontrada")
 
         # Update carteirinha
-        response = (
-            supabase.table("carteirinhas")
-            .update(data)
-            .eq("id", carteirinha_id)
-            .execute()
-        )
+        response = (supabase.table("carteirinhas").update(data).eq(
+            "id", carteirinha_id).execute())
 
         if not response.data:
             raise HTTPException(
@@ -1911,7 +1956,8 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
         logging.error(f"HTTP Exception: {http_ex}")
         raise
     except Exception as e:
-        logging.error(f"Erro ao atualizar carteirinha: {str(e)}", exc_info=True)
+        logging.error(f"Erro ao atualizar carteirinha: {str(e)}",
+                      exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1919,17 +1965,15 @@ async def atualizar_carteirinha_route(carteirinha_id: str, carteirinha: Carteiri
 def deletar_carteirinha_route(carteirinha_id: str):
     try:
         # Check if carteirinha exists
-        existing = (
-            supabase.table("carteirinhas")
-            .select("*")
-            .eq("id", carteirinha_id)
-            .execute()
-        )
+        existing = (supabase.table("carteirinhas").select("*").eq(
+            "id", carteirinha_id).execute())
         if not existing.data:
-            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Carteirinha não encontrada")
 
         # Delete carteirinha
-        supabase.table("carteirinhas").delete().eq("id", carteirinha_id).execute()
+        supabase.table("carteirinhas").delete().eq("id",
+                                                   carteirinha_id).execute()
 
         return {"message": "Carteirinha excluída com sucesso"}
     except HTTPException:
@@ -1943,19 +1987,23 @@ async def deletar_sessao(sessao_id: str):
     """Deleta uma sessão específica e suas execuções relacionadas"""
     try:
         # Primeiro deleta as execuções relacionadas
-        supabase.table("execucoes").delete().eq("sessao_id", sessao_id).execute()
+        supabase.table("execucoes").delete().eq("sessao_id",
+                                                sessao_id).execute()
 
         # Depois deleta a sessão
-        response = supabase.table("sessoes").delete().eq("id", sessao_id).execute()
+        response = supabase.table("sessoes").delete().eq("id",
+                                                         sessao_id).execute()
 
         if not response.data:
-            raise HTTPException(status_code=404, detail="Sessão não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Sessão não encontrada")
 
         return {"message": "Sessão deletada com sucesso"}
 
     except Exception as e:
         logger.error(f"Erro ao deletar sessão: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao deletar sessão: {str(e)}")
+        raise HTTPException(status_code=500,
+                            detail=f"Erro ao deletar sessão: {str(e)}")
 
 
 @app.get("/pacientes/{paciente_id}/estatisticas")
@@ -1969,8 +2017,8 @@ async def get_patient_stats(paciente_id: str):
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas do paciente: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao obter estatísticas do paciente: {str(e)}"
-        )
+            status_code=500,
+            detail=f"Erro ao obter estatísticas do paciente: {str(e)}")
 
 
 @app.post("/pacientes/{paciente_id}/guias")
@@ -1987,16 +2035,17 @@ async def criar_guia_endpoint(paciente_id: str, dados_guia: dict = Body(...)):
 
 
 @app.put("/pacientes/{paciente_id}/guias/{guia_id}")
-async def atualizar_guia_endpoint(
-    paciente_id: str, guia_id: str, dados_guia: dict = Body(...)
-):
+async def atualizar_guia_endpoint(paciente_id: str,
+                                  guia_id: str,
+                                  dados_guia: dict = Body(...)):
     """Atualizar uma guia existente"""
     try:
         resultado = database_supabase.atualizar_guia(guia_id, dados_guia)
         if resultado:
             return {"message": "Guia atualizada com sucesso"}
         else:
-            raise HTTPException(status_code=400, detail="Falha ao atualizar guia")
+            raise HTTPException(status_code=400,
+                                detail="Falha ao atualizar guia")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2050,11 +2099,12 @@ def listar_guias_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
     search: str = Query(
-        None, description="Buscar por número da guia ou nome do paciente"
-    ),
+        None, description="Buscar por número da guia ou nome do paciente"),
 ):
     try:
-        return database_supabase.listar_guias(limit=limit, offset=offset, search=search)
+        return database_supabase.listar_guias(limit=limit,
+                                              offset=offset,
+                                              search=search)
     except Exception as e:
         logging.error(f"Erro ao listar guias: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -2067,17 +2117,15 @@ async def criar_guia_route(guia: Guia, request: Request):
         # Pega o usuário da requisição
         user_id = request.headers.get("user-id")
         if not user_id:
-            raise HTTPException(status_code=401, detail="User ID não fornecido")
+            raise HTTPException(status_code=401,
+                                detail="User ID não fornecido")
 
         # Busca o ID do usuário na tabela usuarios
-        usuario = (
-            supabase.table("usuarios")
-            .select("id")
-            .eq("auth_user_id", user_id)
-            .execute()
-        )
+        usuario = (supabase.table("usuarios").select("id").eq(
+            "auth_user_id", user_id).execute())
         if not usuario.data:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            raise HTTPException(status_code=404,
+                                detail="Usuário não encontrado")
 
         user_id = usuario.data[0]["id"]
 
@@ -2092,36 +2140,26 @@ async def criar_guia_route(guia: Guia, request: Request):
         guia_data["updated_at"] = current_time
 
         # Valida se a carteirinha existe
-        carteirinha = (
-            supabase.table("carteirinhas")
-            .select("*")
-            .eq("id", guia_data["carteirinha_id"])
-            .execute()
-        )
+        carteirinha = (supabase.table("carteirinhas").select("*").eq(
+            "id", guia_data["carteirinha_id"]).execute())
         if not carteirinha.data:
-            raise HTTPException(status_code=404, detail="Carteirinha não encontrada")
+            raise HTTPException(status_code=404,
+                                detail="Carteirinha não encontrada")
         carteirinha_data = carteirinha.data[0]
 
         # Valida se o paciente existe
-        paciente = (
-            supabase.table("pacientes")
-            .select("*")
-            .eq("id", guia_data["paciente_id"])
-            .execute()
-        )
+        paciente = (supabase.table("pacientes").select("*").eq(
+            "id", guia_data["paciente_id"]).execute())
         if not paciente.data:
-            raise HTTPException(status_code=404, detail="Paciente não encontrado")
+            raise HTTPException(status_code=404,
+                                detail="Paciente não encontrado")
         paciente_data = paciente.data[0]
 
         # Busca dados do procedimento se houver
         procedimento_data = None
         if guia_data.get("procedimento_id"):
-            procedimento = (
-                supabase.table("procedimentos")
-                .select("*")
-                .eq("id", guia_data["procedimento_id"])
-                .execute()
-            )
+            procedimento = (supabase.table("procedimentos").select("*").eq(
+                "id", guia_data["procedimento_id"]).execute())
             if procedimento.data:
                 procedimento_data = procedimento.data[0]
 
@@ -2156,7 +2194,8 @@ def atualizar_guia_route(guia_id: str, guia: Guia, request: Request):
         # Pega o usuário da requisição
         user_id = request.headers.get("user-id")
         if not user_id:
-            raise HTTPException(status_code=401, detail="User ID não fornecido")
+            raise HTTPException(status_code=401,
+                                detail="User ID não fornecido")
 
         # Prepara os dados para atualização
         guia_data = guia.model_dump(exclude_unset=True)
@@ -2169,7 +2208,8 @@ def atualizar_guia_route(guia_id: str, guia: Guia, request: Request):
         guia_data.pop("created_by", None)
 
         # Atualiza no banco de dados
-        response = supabase.table("guias").update(guia_data).eq("id", guia_id).execute()
+        response = supabase.table("guias").update(guia_data).eq(
+            "id", guia_id).execute()
 
         if not response.data:
             raise HTTPException(status_code=404, detail="Guia não encontrada")
@@ -2191,11 +2231,12 @@ async def listar_fichas_presenca_route(
     Lista todas as fichas de presença com suporte a paginação e busca.
     """
     try:
-        return database_supabase.listar_fichas_presenca(
-            limit=limit, offset=offset, search=search, status=status
-        )
+        return database_supabase.listar_fichas_presenca(limit=limit,
+                                                        offset=offset,
+                                                        search=search,
+                                                        status=status)
     except Exception as e:
         logging.error(f"Erro ao listar fichas de presença: {str(e)}")
         raise HTTPException(
-            status_code=500, detail=f"Erro ao listar fichas de presença: {str(e)}"
-        )
+            status_code=500,
+            detail=f"Erro ao listar fichas de presença: {str(e)}")
