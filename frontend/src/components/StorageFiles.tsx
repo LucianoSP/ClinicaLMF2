@@ -17,6 +17,7 @@ interface StorageFile {
   size: number;
   created_at: string;
   url: string;
+  [key: string]: any;
 }
 
 interface StorageFilesProps {
@@ -43,11 +44,24 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
         throw new Error('Falha ao carregar arquivos');
       }
       const data = await response.json();
-      setFiles(data.items);
-      setTotalPages(Math.ceil(data.total / itemsPerPage));
+      console.log('Dados recebidos:', data);
+
+      // Normalizar os dados para o formato esperado
+      const normalizedFiles = Array.isArray(data) ? data : data.items || [];
+      const files = normalizedFiles.map(file => ({
+        nome: file.nome || file.name || '',
+        size: typeof file.size === 'number' ? file.size : 0,
+        created_at: file.created_at || file.createdAt || new Date().toISOString(),
+        url: file.url || ''
+      }));
+
+      console.log('Dados normalizados:', files);
+      setFiles(files);
+      setTotalPages(Math.ceil(files.length / itemsPerPage));
     } catch (error) {
       console.error('Error:', error);
       setError('Erro ao carregar arquivos');
+      setFiles([]);
     } finally {
       setIsLoading(false);
     }
@@ -55,131 +69,111 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [currentPage, itemsPerPage, debouncedSearchTerm]);
 
-  const handleDelete = async (fileName: string) => {
-    if (!confirm(`Tem certeza que deseja excluir o arquivo ${fileName}?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/storage-files/${fileName}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao excluir arquivo');
-      }
-
-      fetchFiles();
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Erro ao excluir arquivo');
-    }
-  };
-
-  const handleDownload = async (url: string, fileName: string) => {
+  const handleDownload = async (url: string) => {
     try {
       const response = await fetch(url);
+      if (!response.ok) throw new Error('Falha ao baixar arquivo');
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = fileName;
+      a.download = url.split('/').pop() || 'download';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Error:', error);
-      alert('Erro ao baixar arquivo');
+    }
+  };
+
+  const handleDelete = async (fileName: string) => {
+    try {
+      const response = await fetch(`${API_URL}/delete-file/${fileName}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Falha ao excluir arquivo');
+      fetchFiles();
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
   const columns: Column<StorageFile>[] = [
     {
       key: 'nome',
-      label: 'Nome do Arquivo'
+      label: 'Nome',
+      sortable: true,
+      render: (value) => value || 'Sem nome'
     },
     {
       key: 'size',
       label: 'Tamanho',
-      render: (value) => formatFileSize(value)
+      sortable: true,
+      render: (value) => formatFileSize(value || 0)
     },
     {
       key: 'created_at',
       label: 'Data de Criação',
-      render: (value) => new Date(value).toLocaleString()
+      sortable: true,
+      render: (value) => new Date(value || new Date()).toLocaleString()
     },
     {
-      key: 'url' as keyof StorageFile,
+      key: 'url',
       label: 'Ações',
-      render: (_, item) => (
+      render: (_, file) => (
         <TableActions
-          onView={() => handleDownload(item.url, item.nome)}
-          onDelete={() => handleDelete(item.nome)}
+          onDownload={() => handleDownload(file.url)}
+          onDelete={() => handleDelete(file.nome)}
         />
       )
     }
   ];
 
-  const filteredFiles = files.filter(file =>
-    file.nome.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-  );
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6b342f]"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="relative flex-1 max-w-md">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
           <Input
             type="text"
-            placeholder="Buscar por nome do arquivo..."
+            placeholder="Buscar arquivos..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-[300px]"
           />
-          <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <MagnifyingGlassIcon className="h-4 w-4 text-muted-foreground" />
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2">
           <Button
-            variant="outline"
             onClick={onDownloadAll}
-            disabled={loading}
-            className="gap-2"
+            disabled={loading || !files.length}
           >
-            <FiDownload className="h-4 w-4" />
-            Download Todos
+            <FiDownload className="h-4 w-4 mr-2" />
+            Baixar Todos
           </Button>
           <Button
-            variant="outline"
             onClick={onClearStorage}
-            disabled={loading}
-            className="gap-2"
+            disabled={loading || !files.length}
+            variant="destructive"
           >
-            <FiTrash2 className="h-4 w-4" />
+            <FiTrash2 className="h-4 w-4 mr-2" />
             Limpar Storage
           </Button>
         </div>
       </div>
 
       <div className="rounded-md border">
-        <SortableTable
-          data={filteredFiles}
-          columns={columns}
-        />
+        {error ? (
+          <div className="p-4 text-center text-red-500">{error}</div>
+        ) : (
+          <SortableTable<StorageFile>
+            data={files}
+            columns={columns}
+            loading={isLoading}
+          />
+        )}
       </div>
 
       {totalPages > 0 && (
