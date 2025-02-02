@@ -29,7 +29,7 @@ class EntityAnalysis:
 class ProjectAnalyzer:
     def __init__(self, project_root: str):
         self.project_root = Path(project_root)
-        self.frontend_dir = self.project_root / 'frontend'
+        self.frontend_dir = self.project_root / "frontend"
         self.backend_dir = self.project_root
         self.entities: Dict[str, EntityAnalysis] = {}
 
@@ -60,7 +60,9 @@ class ProjectAnalyzer:
                                     elif isinstance(child.annotation, ast.Subscript):
                                         if isinstance(child.annotation.slice, ast.Name):
                                             field_type = f"{child.annotation.value.id}[{child.annotation.slice.id}]"
-                                        elif isinstance(child.annotation.slice, ast.Constant):
+                                        elif isinstance(
+                                            child.annotation.slice, ast.Constant
+                                        ):
                                             field_type = f"{child.annotation.value.id}[{child.annotation.slice.value}]"
                                         else:
                                             field_type = child.annotation.value.id
@@ -87,7 +89,7 @@ class ProjectAnalyzer:
                                 table_structure={},
                                 related_tables=[],
                                 crud_routes={},
-                                cadastros_structure={}
+                                cadastros_structure={},
                             )
                         else:
                             self.entities[node.name].backend_fields = fields
@@ -95,6 +97,7 @@ class ProjectAnalyzer:
         except Exception as e:
             print(f"Erro ao analisar modelos do backend: {e}")
             import traceback
+
             traceback.print_exc()
 
     def analyze_frontend_interfaces(self):
@@ -140,13 +143,14 @@ class ProjectAnalyzer:
                             table_structure={},
                             related_tables=[],
                             crud_routes={},
-                            cadastros_structure={}
+                            cadastros_structure={},
                         )
                     else:
                         self.entities[name].frontend_interface_fields = fields
             except Exception as e:
                 print(f"Erro ao analisar interface {file}: {e}")
                 import traceback
+
                 traceback.print_exc()
 
     def analyze_endpoints(self):
@@ -192,6 +196,7 @@ class ProjectAnalyzer:
         except Exception as e:
             print(f"Erro ao analisar funções de banco de dados: {e}")
             import traceback
+
             traceback.print_exc()
 
     def analyze_frontend_services(self):
@@ -220,6 +225,7 @@ class ProjectAnalyzer:
             except Exception as e:
                 print(f"Erro ao analisar serviço {file}: {e}")
                 import traceback
+
                 traceback.print_exc()
 
     def analyze_next_routes(self):
@@ -259,199 +265,212 @@ class ProjectAnalyzer:
             except Exception as e:
                 print(f"Erro ao analisar rota {path}: {e}")
                 import traceback
+
                 traceback.print_exc()
 
     def analyze_table_structure(self):
         """Analisa a estrutura das tabelas no arquivo SQL"""
         print("\nAnalisando estrutura das tabelas...")
         try:
-            sql_file = self.project_root / 'sql' / 'criar_tabelas.sql'
-            
+            sql_file = self.project_root / "sql" / "criar_tabelas.sql"
+
             if not sql_file.exists():
                 print(f"Arquivo SQL não encontrado: {sql_file}")
                 return
-            
-            with open(sql_file, 'r', encoding='utf-8') as f:
+
+            with open(sql_file, "r", encoding="utf-8") as f:
                 content = f.read()
-            
+
             # Procura por criação de tabelas
             # Padrão atualizado para capturar comentários e constraints
-            table_pattern = r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\(([\s\S]*?)\);'
+            table_pattern = (
+                r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\(([\s\S]*?)\);"
+            )
             for match in re.finditer(table_pattern, content, re.IGNORECASE):
                 table_name = match.group(1).lower()  # Normaliza para lowercase
                 columns_def = match.group(2)
-                
+
                 # Normaliza o nome da tabela para o nome da entidade
-                entity_name = table_name.rstrip('s').title()
-                
+                entity_name = table_name.rstrip("s").title()
+
                 if entity_name not in self.entities:
                     continue
-                
+
                 # Extrai colunas e tipos
                 # Atualizado para capturar comentários e constraints
-                column_pattern = r'(\w+)\s+([\w\(\)]+)(?:\s+(?:DEFAULT\s+[^,]+|NOT\s+NULL|PRIMARY\s+KEY|UNIQUE|CHECK\s*\([^)]+\)))*(?:\s+--\s*(.+?))?(?:,|$)'
+                column_pattern = r"(\w+)\s+([\w\(\)]+)(?:\s+(?:DEFAULT\s+[^,]+|NOT\s+NULL|PRIMARY\s+KEY|UNIQUE|CHECK\s*\([^)]+\)))*(?:\s+--\s*(.+?))?(?:,|$)"
                 table_structure = {}
                 comments = {}
-                
-                for col_match in re.finditer(column_pattern, columns_def, re.IGNORECASE):
+
+                for col_match in re.finditer(
+                    column_pattern, columns_def, re.IGNORECASE
+                ):
                     col_name = col_match.group(1)
                     col_type = col_match.group(2)
                     comment = col_match.group(3)
-                    
+
                     table_structure[col_name] = {
-                        'type': col_type,
-                        'comment': comment.strip() if comment else None
+                        "type": col_type,
+                        "comment": comment.strip() if comment else None,
                     }
-                
+
                 # Procura por chaves estrangeiras
-                fk_pattern = r'FOREIGN\s+KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)'
+                fk_pattern = r"FOREIGN\s+KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)"
                 related_tables = []
                 for fk_match in re.finditer(fk_pattern, columns_def, re.IGNORECASE):
                     fk_column = fk_match.group(1)
                     referenced_table = fk_match.group(2)
-                    related_tables.append({
-                        'column': fk_column,
-                        'references': referenced_table
-                    })
-                
+                    related_tables.append(
+                        {"column": fk_column, "references": referenced_table}
+                    )
+
                 # Procura por índices
-                index_pattern = r'(?:UNIQUE\s+)?INDEX\s+(\w+)\s+ON\s+(\w+)\s*\(([^)]+)\)'
+                index_pattern = (
+                    r"(?:UNIQUE\s+)?INDEX\s+(\w+)\s+ON\s+(\w+)\s*\(([^)]+)\)"
+                )
                 indexes = []
                 for idx_match in re.finditer(index_pattern, content, re.IGNORECASE):
                     index_name = idx_match.group(1)
                     table = idx_match.group(2)
-                    columns = [c.strip() for c in idx_match.group(3).split(',')]
+                    columns = [c.strip() for c in idx_match.group(3).split(",")]
                     if table.lower() == table_name:
-                        indexes.append({
-                            'name': index_name,
-                            'columns': columns,
-                            'unique': 'UNIQUE' in idx_match.group(0).upper()
-                        })
-                
+                        indexes.append(
+                            {
+                                "name": index_name,
+                                "columns": columns,
+                                "unique": "UNIQUE" in idx_match.group(0).upper(),
+                            }
+                        )
+
                 # Atualiza a estrutura da entidade
                 self.entities[entity_name].table_structure = {
-                    'columns': table_structure,
-                    'comments': comments,
-                    'foreign_keys': related_tables,
-                    'indexes': indexes
+                    "columns": table_structure,
+                    "comments": comments,
+                    "foreign_keys": related_tables,
+                    "indexes": indexes,
                 }
-                
-                self.entities[entity_name].related_tables = [fk['references'] for fk in related_tables]
-        
+
+                self.entities[entity_name].related_tables = [
+                    fk["references"] for fk in related_tables
+                ]
+
         except Exception as e:
             print(f"Erro ao analisar estrutura das tabelas: {e}")
             import traceback
+
             traceback.print_exc()
 
     def analyze_crud_routes(self):
         """Analisa as rotas CRUD em diferentes locais do frontend"""
         print("\nAnalisando rotas CRUD...")
-        auth_dir = self.frontend_dir / 'src' / 'app' / '(auth)'
-        
+        auth_dir = self.frontend_dir / "src" / "app" / "(auth)"
+
         if not auth_dir.exists():
             print(f"Diretório (auth) não encontrado: {auth_dir}")
             return
-        
+
         # Analisa rotas diretas e em /cadastros
         for entity in self.entities.values():
             crud_routes = {
                 "root": [],  # Rotas na raiz
                 "cadastros": [],  # Rotas em /cadastros
-                "outros": []  # Outras localizações
+                "outros": [],  # Outras localizações
             }
-            
+
             # Procura em todas as pastas
             for route in entity.next_routes:
-                if '/cadastros/' in route:
+                if "/cadastros/" in route:
                     crud_routes["cadastros"].append(route)
-                elif route.count('/') == 2:  # Rota na raiz
+                elif route.count("/") == 2:  # Rota na raiz
                     crud_routes["root"].append(route)
                 else:
                     crud_routes["outros"].append(route)
-            
+
             entity.crud_routes = crud_routes
 
     def analyze_cadastros_structure(self):
         """Analisa a estrutura específica da página de cadastros"""
         print("\nAnalisando estrutura da página de cadastros...")
-        cadastros_dir = self.frontend_dir / 'src' / 'app' / '(auth)' / 'cadastros'
-        
+        cadastros_dir = self.frontend_dir / "src" / "app" / "(auth)" / "cadastros"
+
         if not cadastros_dir.exists():
             print(f"Diretório de cadastros não encontrado: {cadastros_dir}")
             return
-        
+
         # Estrutura para armazenar informações dos cadastros
         cadastros_info = {}
-        
+
         # Analisa cada subdiretório em cadastros
         for entity_dir in cadastros_dir.iterdir():
             if not entity_dir.is_dir():
                 continue
-                
-            entity_name = entity_dir.name.rstrip('s').title()
-            
+
+            entity_name = entity_dir.name.rstrip("s").title()
+
             cadastros_info[entity_name] = {
-                'pages': [],
-                'components': [],
-                'forms': [],
-                'tables': [],
-                'services': []
+                "pages": [],
+                "components": [],
+                "forms": [],
+                "tables": [],
+                "services": [],
             }
-            
+
             # Analisa arquivos na pasta da entidade
-            for file in entity_dir.rglob('*'):
+            for file in entity_dir.rglob("*"):
                 if not file.is_file():
                     continue
-                    
+
                 relative_path = file.relative_to(cadastros_dir)
-                
+
                 # Identifica tipos de arquivos
-                if file.name == 'page.tsx':
-                    cadastros_info[entity_name]['pages'].append(str(relative_path))
-                elif 'Form' in file.name:
-                    cadastros_info[entity_name]['forms'].append(str(relative_path))
-                elif 'Table' in file.name:
-                    cadastros_info[entity_name]['tables'].append(str(relative_path))
-                elif file.parent.name == 'components':
-                    cadastros_info[entity_name]['components'].append(str(relative_path))
-                elif file.parent.name == 'services':
-                    cadastros_info[entity_name]['services'].append(str(relative_path))
-            
+                if file.name == "page.tsx":
+                    cadastros_info[entity_name]["pages"].append(str(relative_path))
+                elif "Form" in file.name:
+                    cadastros_info[entity_name]["forms"].append(str(relative_path))
+                elif "Table" in file.name:
+                    cadastros_info[entity_name]["tables"].append(str(relative_path))
+                elif file.parent.name == "components":
+                    cadastros_info[entity_name]["components"].append(str(relative_path))
+                elif file.parent.name == "services":
+                    cadastros_info[entity_name]["services"].append(str(relative_path))
+
             # Analisa conteúdo dos arquivos
-            for file in entity_dir.rglob('*.tsx'):
+            for file in entity_dir.rglob("*.tsx"):
                 try:
-                    with open(file, 'r', encoding='utf-8') as f:
+                    with open(file, "r", encoding="utf-8") as f:
                         content = f.read()
-                        
+
                     # Procura por chamadas à API
                     api_pattern = r'(?:fetch|axios\.(?:get|post|put|delete))\s*\(\s*[\'"`](.*?)[\'"`]'
                     for match in re.finditer(api_pattern, content):
                         endpoint = match.group(1)
                         if entity_name in self.entities:
                             self.entities[entity_name].endpoints.append(endpoint)
-                    
+
                     # Procura por componentes do shadcn/ui
                     shadcn_pattern = r'from\s+["\'](.*?)/ui/.*?["\']'
                     shadcn_components = set()
                     for match in re.finditer(shadcn_pattern, content):
-                        component = match.group(1).split('/')[-1]
+                        component = match.group(1).split("/")[-1]
                         shadcn_components.add(component)
-                    
+
                     if shadcn_components:
-                        cadastros_info[entity_name]['ui_components'] = list(shadcn_components)
-                    
+                        cadastros_info[entity_name]["ui_components"] = list(
+                            shadcn_components
+                        )
+
                 except Exception as e:
                     print(f"Erro ao analisar arquivo {file}: {e}")
-        
+
         # Atualiza as entidades com as informações dos cadastros
         for entity_name, info in cadastros_info.items():
             if entity_name in self.entities:
                 self.entities[entity_name].cadastros_structure = info
-    
+
     def analyze_project(self):
         """Executa a análise completa do projeto"""
         print("Iniciando análise do projeto...")
-        
+
         self.analyze_backend_models()
         self.analyze_frontend_interfaces()
         self.analyze_endpoints()
@@ -466,99 +485,117 @@ class ProjectAnalyzer:
     def find_inconsistencies(self, entity: EntityAnalysis) -> List[str]:
         """Encontra inconsistências em uma entidade"""
         inconsistencies = []
-        
+
         # Verifica campos e tipos
         if entity.backend_fields and entity.frontend_interface_fields:
             backend_fields = set(entity.backend_fields.keys())
             frontend_fields = set(entity.frontend_interface_fields.keys())
-            
+
             missing_in_frontend = backend_fields - frontend_fields
             missing_in_backend = frontend_fields - backend_fields
-            
+
             if missing_in_frontend:
-                inconsistencies.append(f"Campos faltando no frontend: {', '.join(missing_in_frontend)}")
+                inconsistencies.append(
+                    f"Campos faltando no frontend: {', '.join(missing_in_frontend)}"
+                )
             if missing_in_backend:
-                inconsistencies.append(f"Campos faltando no backend: {', '.join(missing_in_backend)}")
-            
+                inconsistencies.append(
+                    f"Campos faltando no backend: {', '.join(missing_in_backend)}"
+                )
+
             # Verifica tipos incompatíveis
             for field in backend_fields & frontend_fields:
                 backend_type = entity.backend_fields[field]
                 frontend_type = entity.frontend_interface_fields[field]
                 if not self.are_types_compatible(backend_type, frontend_type):
-                    inconsistencies.append(f"Tipo incompatível para {field}: backend={backend_type}, frontend={frontend_type}")
-        
+                    inconsistencies.append(
+                        f"Tipo incompatível para {field}: backend={backend_type}, frontend={frontend_type}"
+                    )
+
         # Verifica campos da tabela vs campos do modelo
-        if entity.table_structure and 'columns' in entity.table_structure:
-            table_fields = set(entity.table_structure['columns'].keys())
+        if entity.table_structure and "columns" in entity.table_structure:
+            table_fields = set(entity.table_structure["columns"].keys())
             model_fields = set(entity.backend_fields.keys())
-            
+
             missing_in_table = model_fields - table_fields
             missing_in_model = table_fields - model_fields
-            
+
             if missing_in_table:
-                inconsistencies.append(f"Campos do modelo ausentes na tabela: {', '.join(missing_in_table)}")
+                inconsistencies.append(
+                    f"Campos do modelo ausentes na tabela: {', '.join(missing_in_table)}"
+                )
             if missing_in_model:
-                inconsistencies.append(f"Campos da tabela ausentes no modelo: {', '.join(missing_in_model)}")
-            
+                inconsistencies.append(
+                    f"Campos da tabela ausentes no modelo: {', '.join(missing_in_model)}"
+                )
+
             # Verifica tipos SQL vs tipos do modelo
             for field in table_fields & model_fields:
-                sql_type = entity.table_structure['columns'][field]['type'].upper()
+                sql_type = entity.table_structure["columns"][field]["type"].upper()
                 model_type = entity.backend_fields[field]
                 if not self.are_sql_types_compatible(sql_type, model_type):
-                    inconsistencies.append(f"Tipo SQL incompatível para {field}: sql={sql_type}, model={model_type}")
-        
+                    inconsistencies.append(
+                        f"Tipo SQL incompatível para {field}: sql={sql_type}, model={model_type}"
+                    )
+
         # Verifica rotas CRUD duplicadas
         if entity.crud_routes:
             if entity.crud_routes["root"] and entity.crud_routes["cadastros"]:
                 inconsistencies.append(
-                    f"Rotas CRUD duplicadas:\n" +
-                    f"  - Root: {', '.join(entity.crud_routes['root'])}\n" +
-                    f"  - Cadastros: {', '.join(entity.crud_routes['cadastros'])}"
+                    f"Rotas CRUD duplicadas:\n"
+                    + f"  - Root: {', '.join(entity.crud_routes['root'])}\n"
+                    + f"  - Cadastros: {', '.join(entity.crud_routes['cadastros'])}"
                 )
-        
+
         # Verifica estrutura de cadastros
-        if hasattr(entity, 'cadastros_structure') and entity.cadastros_structure:
+        if hasattr(entity, "cadastros_structure") and entity.cadastros_structure:
             cadastros = entity.cadastros_structure
-            
+
             # Verifica se tem formulário
-            if 'forms' in cadastros and not cadastros['forms']:
-                inconsistencies.append(f"Formulário de cadastro não encontrado em /cadastros/{entity.name.lower()}s")
-            
+            if "forms" in cadastros and not cadastros["forms"]:
+                inconsistencies.append(
+                    f"Formulário de cadastro não encontrado em /cadastros/{entity.name.lower()}s"
+                )
+
             # Verifica se tem tabela de listagem
-            if 'tables' in cadastros and not cadastros['tables']:
-                inconsistencies.append(f"Tabela de listagem não encontrada em /cadastros/{entity.name.lower()}s")
-            
+            if "tables" in cadastros and not cadastros["tables"]:
+                inconsistencies.append(
+                    f"Tabela de listagem não encontrada em /cadastros/{entity.name.lower()}s"
+                )
+
             # Verifica se tem página principal
-            if 'pages' in cadastros and not cadastros['pages']:
-                inconsistencies.append(f"Página principal não encontrada em /cadastros/{entity.name.lower()}s")
-            
+            if "pages" in cadastros and not cadastros["pages"]:
+                inconsistencies.append(
+                    f"Página principal não encontrada em /cadastros/{entity.name.lower()}s"
+                )
+
             # Verifica duplicação de funcionalidade
             entity_route = f"/(auth)/{entity.name.lower()}s"
             cadastro_route = f"/(auth)/cadastros/{entity.name.lower()}s"
-            
-            if entity_route in entity.next_routes and cadastro_route in entity.next_routes:
+
+            if (
+                entity_route in entity.next_routes
+                and cadastro_route in entity.next_routes
+            ):
                 inconsistencies.append(
-                    f"Funcionalidade duplicada:\n" +
-                    f"  - Rota principal: {entity_route}\n" +
-                    f"  - Rota de cadastro: {cadastro_route}"
+                    f"Funcionalidade duplicada:\n"
+                    + f"  - Rota principal: {entity_route}\n"
+                    + f"  - Rota de cadastro: {cadastro_route}"
                 )
-        
+
         return inconsistencies
 
     def generate_report(self):
         """Gera relatórios detalhados da análise"""
         print("\nGerando relatórios...")
-        
+
         def set_to_list(obj):
             if isinstance(obj, set):
                 return list(obj)
             return obj
-        
+
         # Gera relatório JSON
-        report = {
-            "timestamp": "2025-02-02T12:54:16-03:00",
-            "entities": {}
-        }
+        report = {"timestamp": "2025-02-02T12:54:16-03:00", "entities": {}}
 
         for name, entity in self.entities.items():
             report["entities"][name] = {
@@ -576,18 +613,18 @@ class ProjectAnalyzer:
                 "related_tables": entity.related_tables,
                 "crud_routes": entity.crud_routes,
                 "cadastros_structure": entity.cadastros_structure,
-                "inconsistencies": self.find_inconsistencies(entity)
+                "inconsistencies": self.find_inconsistencies(entity),
             }
 
         # Cria o diretório se não existir
-        json_dir = self.project_root / 'scripts' / 'analise_inconsistencias'
+        json_dir = self.project_root / "scripts" / "analise_inconsistencias"
         json_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Salva o relatório JSON
-        report_path = json_dir / 'analysis_report.json'
-        with open(report_path, 'w', encoding='utf-8') as f:
+        report_path = json_dir / "analysis_report.json"
+        with open(report_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False, default=set_to_list)
-        
+
         print(f"\nRelatório JSON gerado em: {report_path}")
 
         # Gera relatório Markdown
@@ -600,9 +637,11 @@ class ProjectAnalyzer:
                 continue
 
             markdown_content.append(f"### 1.{len(markdown_content)}. {name}\n")
-            
+
             # Campos faltantes
-            missing_fields = [inc for inc in inconsistencies if "Campos faltando" in inc]
+            missing_fields = [
+                inc for inc in inconsistencies if "Campos faltando" in inc
+            ]
             if missing_fields:
                 markdown_content.append("#### Campos Faltantes\n")
                 for field in missing_fields:
@@ -626,7 +665,9 @@ class ProjectAnalyzer:
                     backend_type, frontend_type = types.split(", ")
                     backend_type = backend_type.replace("backend=", "")
                     frontend_type = frontend_type.replace("frontend=", "")
-                    markdown_content.append(f"{field}: {backend_type:<15} -> {frontend_type}\n")
+                    markdown_content.append(
+                        f"{field}: {backend_type:<15} -> {frontend_type}\n"
+                    )
                 markdown_content.append("```\n\n")
 
             # Campos ausentes na tabela
@@ -635,9 +676,13 @@ class ProjectAnalyzer:
                 markdown_content.append("#### Problemas com a Tabela\n")
                 for issue in table_issues:
                     if "ausentes na tabela" in issue:
-                        markdown_content.append("**Campos do modelo ausentes na tabela:**\n")
+                        markdown_content.append(
+                            "**Campos do modelo ausentes na tabela:**\n"
+                        )
                     else:
-                        markdown_content.append("**Campos da tabela ausentes no modelo:**\n")
+                        markdown_content.append(
+                            "**Campos da tabela ausentes no modelo:**\n"
+                        )
                     fields = issue.split(": ")[1]
                     for f in fields.split(", "):
                         markdown_content.append(f"- `{f}`\n")
@@ -656,58 +701,62 @@ class ProjectAnalyzer:
                 markdown_content.append("\n")
 
         # Recomendações gerais
-        markdown_content.extend([
-            "\n## 2. Recomendações\n",
-            "\n### 2.1. Alta Prioridade\n",
-            "1. Corrigir tipos incompatíveis entre camadas\n",
-            "2. Unificar rotas duplicadas\n",
-            "3. Adicionar campos faltantes no backend\n",
-            "4. Alinhar estrutura das tabelas com os modelos\n",
-            "\n### 2.2. Média Prioridade\n",
-            "1. Padronizar nomenclatura de campos\n",
-            "2. Implementar validações consistentes\n",
-            "3. Documentar campos calculados\n",
-            "4. Revisar relacionamentos entre tabelas\n",
-            "\n### 2.3. Baixa Prioridade\n",
-            "1. Refatorar estrutura de arquivos\n",
-            "2. Melhorar tipagem TypeScript\n",
-            "3. Adicionar testes automatizados\n",
-            "4. Otimizar consultas ao banco\n",
-            "\n## 3. Estrutura Recomendada\n",
-            "\n```\n",
-            "(auth)/\n",
-            "  ├── cadastros/\n",
-            "  │   ├── [entidade]/\n",
-            "  │   │   ├── page.tsx\n",
-            "  │   │   ├── [id]/\n",
-            "  │   │   │   └── page.tsx\n",
-            "  │   │   ├── components/\n",
-            "  │   │   │   ├── Form.tsx\n",
-            "  │   │   │   └── Table.tsx\n",
-            "  │   │   └── services/\n",
-            "  │   │       └── api.ts\n",
-            "  │   └── ...\n",
-            "  └── dashboard/\n",
-            "      └── page.tsx\n",
-            "```\n",
-            "\n## 4. Próximos Passos\n",
-            "\n1. Revisar este relatório com a equipe\n",
-            "2. Priorizar correções críticas\n",
-            "3. Criar branches específicas para cada tipo de correção\n",
-            "4. Implementar testes antes das correções\n",
-            "5. Realizar as correções de forma incremental\n",
-            "6. Validar cada correção em ambiente de teste\n",
-            "\n## 5. Observações\n",
-            "\nEste relatório foi gerado automaticamente em " + report["timestamp"] + ".\n",
-            "Algumas inconsistências podem requerer análise manual mais detalhada.\n",
-            "Recomenda-se manter este relatório atualizado conforme as correções são implementadas.\n"
-        ])
+        markdown_content.extend(
+            [
+                "\n## 2. Recomendações\n",
+                "\n### 2.1. Alta Prioridade\n",
+                "1. Corrigir tipos incompatíveis entre camadas\n",
+                "2. Unificar rotas duplicadas\n",
+                "3. Adicionar campos faltantes no backend\n",
+                "4. Alinhar estrutura das tabelas com os modelos\n",
+                "\n### 2.2. Média Prioridade\n",
+                "1. Padronizar nomenclatura de campos\n",
+                "2. Implementar validações consistentes\n",
+                "3. Documentar campos calculados\n",
+                "4. Revisar relacionamentos entre tabelas\n",
+                "\n### 2.3. Baixa Prioridade\n",
+                "1. Refatorar estrutura de arquivos\n",
+                "2. Melhorar tipagem TypeScript\n",
+                "3. Adicionar testes automatizados\n",
+                "4. Otimizar consultas ao banco\n",
+                "\n## 3. Estrutura Recomendada\n",
+                "\n```\n",
+                "(auth)/\n",
+                "  ├── cadastros/\n",
+                "  │   ├── [entidade]/\n",
+                "  │   │   ├── page.tsx\n",
+                "  │   │   ├── [id]/\n",
+                "  │   │   │   └── page.tsx\n",
+                "  │   │   ├── components/\n",
+                "  │   │   │   ├── Form.tsx\n",
+                "  │   │   │   └── Table.tsx\n",
+                "  │   │   └── services/\n",
+                "  │   │       └── api.ts\n",
+                "  │   └── ...\n",
+                "  └── dashboard/\n",
+                "      └── page.tsx\n",
+                "```\n",
+                "\n## 4. Próximos Passos\n",
+                "\n1. Revisar este relatório com a equipe\n",
+                "2. Priorizar correções críticas\n",
+                "3. Criar branches específicas para cada tipo de correção\n",
+                "4. Implementar testes antes das correções\n",
+                "5. Realizar as correções de forma incremental\n",
+                "6. Validar cada correção em ambiente de teste\n",
+                "\n## 5. Observações\n",
+                "\nEste relatório foi gerado automaticamente em "
+                + report["timestamp"]
+                + ".\n",
+                "Algumas inconsistências podem requerer análise manual mais detalhada.\n",
+                "Recomenda-se manter este relatório atualizado conforme as correções são implementadas.\n",
+            ]
+        )
 
         # Salva o relatório Markdown
-        markdown_path = self.project_root / 'instrucoes' / 'analise_inconsistencias.md'
-        with open(markdown_path, 'w', encoding='utf-8') as f:
-            f.write(''.join(markdown_content))
-        
+        markdown_path = self.project_root / "scripts" / "analise_inconsistencias.md"
+        with open(markdown_path, "w", encoding="utf-8") as f:
+            f.write("".join(markdown_content))
+
         print(f"Relatório Markdown gerado em: {markdown_path}")
 
     def are_types_compatible(self, backend_type: str, frontend_type: str) -> bool:
@@ -715,43 +764,47 @@ class ProjectAnalyzer:
         # Pode ser expandida para lidar com mais casos
         if backend_type == frontend_type:
             return True
-        
+
         # Verifica se o tipo do backend é um array e o frontend é um tipo simples
-        if backend_type.endswith('[]') and frontend_type == backend_type[:-2]:
+        if backend_type.endswith("[]") and frontend_type == backend_type[:-2]:
             return True
-        
+
         return False
 
     def are_sql_types_compatible(self, sql_type: str, model_type: str) -> bool:
         """Verifica compatibilidade entre tipos SQL e tipos do modelo"""
         # Mapeamento de tipos SQL para tipos Python
         sql_to_python = {
-            'INTEGER': ['int', 'Optional[int]'],
-            'BIGINT': ['int', 'Optional[int]'],
-            'SMALLINT': ['int', 'Optional[int]'],
-            'VARCHAR': ['str', 'Optional[str]'],
-            'TEXT': ['str', 'Optional[str]'],
-            'BOOLEAN': ['bool', 'Optional[bool]'],
-            'TIMESTAMP': ['datetime', 'Optional[datetime]'],
-            'DATE': ['date', 'Optional[date]'],
-            'NUMERIC': ['float', 'Decimal', 'Optional[float]', 'Optional[Decimal]'],
-            'DECIMAL': ['float', 'Decimal', 'Optional[float]', 'Optional[Decimal]'],
-            'FLOAT': ['float', 'Optional[float]'],
-            'DOUBLE': ['float', 'Optional[float]'],
-            'JSON': ['dict', 'Optional[dict]', 'Any'],
-            'JSONB': ['dict', 'Optional[dict]', 'Any']
+            "INTEGER": ["int", "Optional[int]"],
+            "BIGINT": ["int", "Optional[int]"],
+            "SMALLINT": ["int", "Optional[int]"],
+            "VARCHAR": ["str", "Optional[str]"],
+            "TEXT": ["str", "Optional[str]"],
+            "BOOLEAN": ["bool", "Optional[bool]"],
+            "TIMESTAMP": ["datetime", "Optional[datetime]"],
+            "DATE": ["date", "Optional[date]"],
+            "NUMERIC": ["float", "Decimal", "Optional[float]", "Optional[Decimal]"],
+            "DECIMAL": ["float", "Decimal", "Optional[float]", "Optional[Decimal]"],
+            "FLOAT": ["float", "Optional[float]"],
+            "DOUBLE": ["float", "Optional[float]"],
+            "JSON": ["dict", "Optional[dict]", "Any"],
+            "JSONB": ["dict", "Optional[dict]", "Any"],
         }
-        
+
         # Normaliza o tipo SQL (remove parâmetros como tamanho)
-        base_sql_type = sql_type.split('(')[0].upper()
-        
+        base_sql_type = sql_type.split("(")[0].upper()
+
         # Verifica se o tipo do modelo é compatível com o tipo SQL
         if base_sql_type in sql_to_python:
             return model_type in sql_to_python[base_sql_type]
-        
+
         return False
 
+
 if __name__ == "__main__":
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Ajusta o caminho para considerar que o script está em scripts/analise_inconsistencias
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     analyzer = ProjectAnalyzer(project_root)
     analyzer.analyze_project()
