@@ -2,11 +2,14 @@ import { supabase } from "@/lib/supabase";
 import { Procedimento } from "@/types/procedimento";
 
 export async function listarProcedimentos(): Promise<Procedimento[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || '';
+
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/procedimentos`,
     {
       headers: {
-        "user-id": supabase.auth.getUser()?.data?.user?.id || "",
+        "user-id": userId,
       },
     }
   );
@@ -21,6 +24,9 @@ export async function listarProcedimentos(): Promise<Procedimento[]> {
 export async function criarProcedimento(
   data: Omit<Procedimento, "id" | "created_at" | "updated_at">
 ) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || '';
+
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/procedimentos`,
     {
@@ -28,7 +34,7 @@ export async function criarProcedimento(
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        "user-id": supabase.auth.getUser()?.data?.user?.id || "",
+        "user-id": userId,
       },
       credentials: "include",
       body: JSON.stringify(data),
@@ -46,6 +52,9 @@ export async function atualizarProcedimento(
   id: string,
   data: Partial<Procedimento>
 ) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || '';
+
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/procedimentos/${id}`,
     {
@@ -53,7 +62,7 @@ export async function atualizarProcedimento(
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        "user-id": supabase.auth.getUser()?.data?.user?.id || "",
+        "user-id": userId,
       },
       credentials: "include",
       body: JSON.stringify(data),

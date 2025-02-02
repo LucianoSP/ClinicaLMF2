@@ -86,7 +86,12 @@ export const guiaSchema = z.object({
     observacoes: z.string().optional(),
 });
 
-export async function listarGuias(page = 1, limit = 10, search?: string) {
+export async function listarGuias(
+    page = 1,
+    limit = 10,
+    search?: string,
+    status?: string
+) {
     const offset = (page - 1) * limit;
     const params = new URLSearchParams({
         limit: limit.toString(),
@@ -97,9 +102,16 @@ export async function listarGuias(page = 1, limit = 10, search?: string) {
         params.append('search', search);
     }
 
+    if (status) {
+        params.append('status', status);
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || '';
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias?${params}`, {
         headers: {
-            'user-id': supabase.auth.getUser()?.data?.user?.id || '',
+            'user-id': userId,
         }
     });
 
@@ -151,14 +163,28 @@ export async function atualizarGuia(id: string, data: GuiaFormData) {
 }
 
 export async function excluirGuia(id: string) {
-    const response = await api.delete(`/guias/${id}`);
-    return response.data;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || '';
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'user-id': userId,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error('Erro ao excluir guia');
+    }
 }
 
 export async function listarProcedimentos() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || '';
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/procedimentos/`, {
         headers: {
-            'user-id': supabase.auth.getUser()?.data?.user?.id || '',
+            'user-id': userId,
         }
     });
 
