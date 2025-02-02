@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { PacienteForm } from './components/PacienteForm'
-import { DataTable } from '@/components/ui/data-table'
+import SortableTable from '@/components/SortableTable'
 import { columns } from './components/columns'
 import { Paciente } from '@/types/paciente'
 import { listarPacientes } from '@/services/pacienteService'
@@ -16,25 +16,64 @@ import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import Link from 'next/link'
+import { toast } from "sonner"
+
+interface PaginatedData {
+  items: Paciente[];
+  total: number;
+  pages: number;
+  currentPage: number;
+  isLoading: boolean;
+}
 
 export default function PacientesPage() {
   const router = useRouter()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [data, setData] = useState<PaginatedData>({
+    items: [],
+    total: 0,
+    pages: 0,
+    currentPage: 1,
+    isLoading: true
+  })
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  const { data, isLoading, error, isError } = useQuery({
-    queryKey: ['pacientes', currentPage, searchTerm, itemsPerPage],
-    queryFn: () => listarPacientes(currentPage, searchTerm, itemsPerPage),
-    retry: 2,
-    staleTime: 1000 * 60 * 5, // 5 minutos
-  })
+  const fetchPacientes = useCallback(async (page: number = 1) => {
+    try {
+      setData(prev => ({ ...prev, isLoading: true }))
+      const response = await listarPacientes(page, searchTerm, itemsPerPage)
+      setData({
+        items: response.items,
+        total: response.total,
+        pages: Math.ceil(response.total / itemsPerPage),
+        currentPage: page,
+        isLoading: false
+      })
+    } catch (error) {
+      console.error("Erro ao buscar pacientes:", error)
+      toast.error("Erro ao carregar pacientes")
+      setData(prev => ({ ...prev, isLoading: false }))
+    }
+  }, [searchTerm, itemsPerPage])
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchPacientes(data.currentPage)
+    }, 300)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchTerm, data.currentPage, fetchPacientes])
 
   const handleEdit = (paciente: Paciente) => {
     setSelectedPaciente(paciente)
     setIsFormOpen(true)
+  }
+
+  const handleDelete = async (paciente: Paciente) => {
+    // Implementar depois
+    console.log('Delete:', paciente)
   }
 
   const handleClose = () => {
@@ -44,31 +83,28 @@ export default function PacientesPage() {
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value)
-    setCurrentPage(1)
   }
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page)
+    setData(prev => ({ ...prev, currentPage: page }))
   }
 
   const handleItemsPerPageChange = (value: number) => {
     setItemsPerPage(value)
-    setCurrentPage(1)
+    setData(prev => ({ ...prev, currentPage: 1 }))
   }
 
-  if (isError) {
+  if (data.isLoading) {
     return (
       <div className="container mx-auto py-6">
-        <Alert variant="destructive">
+        <Alert variant="info">
           <AlertDescription>
-            Erro ao carregar pacientes. Por favor, tente novamente mais tarde.
+            Carregando pacientes...
           </AlertDescription>
         </Alert>
       </div>
     )
   }
-
-  const totalPages = data ? Math.ceil(data.total / itemsPerPage) : 0
 
   return (
     <div className="space-y-6">
@@ -83,46 +119,39 @@ export default function PacientesPage() {
         </Link>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
           <Input
+            type="text"
             placeholder="Buscar pacientes..."
             value={searchTerm}
             onChange={handleSearch}
-            className="pl-8"
+            className="w-[300px]"
           />
+          <Search className="h-4 w-4 text-muted-foreground" />
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
+        <Button onClick={() => setIsFormOpen(true)} variant="default">
           <Plus className="h-4 w-4 mr-2" />
           Novo Paciente
         </Button>
       </div>
 
       <Card>
-        {isLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={data?.items || []}
-            meta={{
-              onEdit: handleEdit,
-              onDelete: () => { }, // Implementar depois
-            }}
-          />
-        )}
+        <SortableTable
+          data={data.items}
+          columns={columns}
+          loading={data.isLoading}
+        />
       </Card>
 
-      {data && data.total > 0 && (
+      {data.pages > 0 && (
         <PaginationControls
-          currentPage={currentPage}
-          totalPages={totalPages}
+          currentPage={data.currentPage}
+          totalPages={data.pages}
           itemsPerPage={itemsPerPage}
           onPageChange={handlePageChange}
           onItemsPerPageChange={handleItemsPerPageChange}
+          showItemsPerPageSelector={true}
         />
       )}
 

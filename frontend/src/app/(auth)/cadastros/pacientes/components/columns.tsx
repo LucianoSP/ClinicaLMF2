@@ -1,92 +1,51 @@
 'use client'
 
-import { ColumnDef } from '@tanstack/react-table'
-import { Button } from '@/components/ui/button'
+import { Column } from '@/components/SortableTable'
 import { Paciente } from '@/types/paciente'
 import { formatarData } from '@/lib/utils'
+import { TableActions } from '@/components/ui/table-actions'
 
-export const columns: ColumnDef<Paciente>[] = [
+export const columns: Column<Paciente>[] = [
   {
-    accessorKey: 'nome',
-    header: 'Nome',
+    key: 'nome',
+    label: 'Nome',
+    style: { paddingLeft: '1rem' },
+    render: (_, paciente) => paciente.nome
   },
   {
-    accessorKey: 'nome_responsavel',
-    header: 'Responsável',
+    key: 'nome_responsavel',
+    label: 'Responsável',
+    style: { paddingLeft: '1rem' },
+    render: (_, paciente) => paciente.nome_responsavel || '-'
   },
   {
-    accessorKey: 'data_nascimento',
-    header: 'Data Nascimento',
-    cell: ({ row }) => {
-      const date = row.getValue('data_nascimento')
-      if (!date) return '-'
-      return formatarData(date as string)
-    },
+    key: 'data_nascimento',
+    label: 'Data Nascimento',
+    style: { paddingLeft: '1rem' },
+    render: (_, paciente) => paciente.data_nascimento ? formatarData(paciente.data_nascimento) : '-'
   },
   {
-    accessorKey: 'telefone',
-    header: 'Telefone',
-    cell: ({ row }) => {
-      const telefone = row.getValue('telefone')
-      return telefone || '-'
-    },
+    key: 'telefone',
+    label: 'Telefone',
+    style: { paddingLeft: '1rem' },
+    render: (_, paciente) => paciente.telefone || '-'
   },
   {
-    accessorKey: 'email',
-    header: 'Email',
-    cell: ({ row }) => {
-      const email = row.getValue('email')
-      return email || '-'
-    },
+    key: 'email',
+    label: 'Email',
+    style: { paddingLeft: '1rem' },
+    render: (_, paciente) => paciente.email || '-'
   },
   {
-    accessorKey: 'cpf',
-    header: 'CPF',
-    cell: ({ row }) => {
-      const cpf = row.getValue('cpf')
-      return cpf || '-'
-    },
-  },
-  {
-    accessorKey: 'altura',
-    header: 'Altura',
-    cell: ({ row }) => {
-      const altura = row.getValue('altura')
-      return altura || '-'
-    },
-  },
-  {
-    accessorKey: 'peso',
-    header: 'Peso',
-    cell: ({ row }) => {
-      const peso = row.getValue('peso')
-      return peso || '-'
-    },
-  },
-  {
-    accessorKey: 'tipo_sanguineo',
-    header: 'Tipo Sanguíneo',
-    cell: ({ row }) => {
-      const tipo = row.getValue('tipo_sanguineo')
-      return tipo || '-'
-    },
-  },
-  {
-    id: 'actions',
-    cell: ({ row, table }) => {
-      const paciente = row.original
-      
-      return (
-        <div className="flex gap-2">
-          <Button 
-            variant="ghost"
-            size="sm"
-            onClick={() => table.options.meta?.onEdit?.(paciente)}
-          >
-            Editar
-          </Button>
-        </div>
-      )
-    },
-  },
+    key: 'actions',
+    label: 'Ações',
+    style: { paddingRight: '1rem' },
+    className: 'text-right',
+    render: (_, paciente) => (
+      <TableActions
+        onEdit={() => table.options.meta?.onEdit?.(paciente)}
+        onDelete={() => table.options.meta?.onDelete?.(paciente)}
+      />
+    )
+  }
 ]
