@@ -10,6 +10,7 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { TableActions } from './ui/table-actions';
 import { useDebounce } from '@/hooks/useDebounce';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 interface StorageFile {
   nome: string;
@@ -30,16 +31,20 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchFiles = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/storage-files`);
+      const response = await fetch(`${API_URL}/storage-files?page=${currentPage}&per_page=${itemsPerPage}&search=${debouncedSearchTerm}`);
       if (!response.ok) {
         throw new Error('Falha ao carregar arquivos');
       }
       const data = await response.json();
-      setFiles(data);
+      setFiles(data.items);
+      setTotalPages(Math.ceil(data.total / itemsPerPage));
     } catch (error) {
       console.error('Error:', error);
       setError('Erro ao carregar arquivos');
@@ -176,6 +181,17 @@ const StorageFiles = ({ onDownloadAll, onClearStorage, loading }: StorageFilesPr
           columns={columns}
         />
       </div>
+
+      {totalPages > 0 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+          showItemsPerPageSelector={true}
+        />
+      )}
     </div>
   );
 };

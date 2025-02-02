@@ -7,11 +7,11 @@ import { FiDownload, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import SortableTable, { Column } from '@/components/SortableTable';
 import { useDebounce } from '@/hooks/useDebounce';
-import Pagination from '@/components/Pagination';
 import { API_URL } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 interface ExcelData {
   id: number;
@@ -334,11 +334,14 @@ export default function ExcelPage() {
             />
           </div>
 
-          {totalPages > 1 && (
-            <Pagination
+          {totalPages > 0 && (
+            <PaginationControls
               currentPage={page}
               totalPages={totalPages}
-              onPageChange={handlePageChange}
+              itemsPerPage={perPage}
+              onPageChange={setPage}
+              onItemsPerPageChange={setPerPage}
+              showItemsPerPageSelector={true}
             />
           )}
         </>

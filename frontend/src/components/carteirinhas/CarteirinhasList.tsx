@@ -14,15 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TableActions } from '@/components/ui/table-actions';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { CarteirinhaModal } from './CarteirinhaModal';
 import {
   Carteirinha,
@@ -38,8 +30,6 @@ import { Input } from "@/components/ui/input";
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import SortableTable, { Column } from '@/components/SortableTable';
 import { Plus } from 'lucide-react';
-
-const ITEMS_PER_PAGE = 10;
 
 interface PaginatedData {
   items: Carteirinha[];
@@ -61,15 +51,16 @@ export function CarteirinhasList() {
     currentPage: 1,
     isLoading: true
   });
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchCarteirinhas = useCallback(async (page: number = 1) => {
     try {
       setData(prev => ({ ...prev, isLoading: true }));
-      const response = await listarCarteirinhas(page, ITEMS_PER_PAGE, searchTerm);
+      const response = await listarCarteirinhas(page, itemsPerPage, searchTerm);
       setData({
         items: response.items,
         total: response.total,
-        pages: Math.ceil(response.total / ITEMS_PER_PAGE),
+        pages: Math.ceil(response.total / itemsPerPage),
         currentPage: page,
         isLoading: false
       });
@@ -78,7 +69,7 @@ export function CarteirinhasList() {
       toast.error("Erro ao carregar carteirinhas");
       setData(prev => ({ ...prev, isLoading: false }));
     }
-  }, [searchTerm]);
+  }, [searchTerm, itemsPerPage]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -196,35 +187,15 @@ export function CarteirinhasList() {
         loading={data.isLoading}
       />
 
-      {data.pages > 1 && (
-        <div className="flex justify-center">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => handlePageChange(Math.max(1, data.currentPage - 1))}
-                  className={data.currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                />
-              </PaginationItem>
-              {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    onClick={() => handlePageChange(page)}
-                    isActive={data.currentPage === page}
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => handlePageChange(Math.min(data.pages, data.currentPage + 1))}
-                  className={data.currentPage === data.pages ? 'pointer-events-none opacity-50' : ''}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+      {data.pages > 0 && (
+        <PaginationControls
+          currentPage={data.currentPage}
+          totalPages={data.pages}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={setItemsPerPage}
+          showItemsPerPageSelector={true}
+        />
       )}
 
       <CarteirinhaModal

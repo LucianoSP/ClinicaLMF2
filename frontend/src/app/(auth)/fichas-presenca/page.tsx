@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { listarFichasPresenca } from '@/services/fichaPresencaService';
 import { TableActions } from '@/components/ui/table-actions';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 // Interfaces e Tipos
 interface Procedimento {
@@ -699,33 +700,15 @@ export default function FichasPresencaPage() {
             />
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
-                Mostrando {(page - 1) * perPage + 1} até{" "}
-                {Math.min(page * perPage, totalRecords)} de {totalRecords} registros
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Página {page} de {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  Próxima
-                </Button>
-              </div>
-            </div>
+          {totalPages > 0 && (
+            <PaginationControls
+              currentPage={page}
+              totalPages={totalPages}
+              itemsPerPage={perPage}
+              onPageChange={setPage}
+              onItemsPerPageChange={setPerPage}
+              showItemsPerPageSelector={true}
+            />
           )}
         </>
       )}
