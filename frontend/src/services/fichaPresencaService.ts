@@ -38,94 +38,84 @@ export interface FichaPresenca {
   sessoes?: Sessao[];
 }
 
-export async function listarFichasPresenca(
-  page = 1,
-  limit = 10,
-  search?: string,
-  status?: string
-) {
-  const offset = (page - 1) * limit;
-  const params = new URLSearchParams({
-    limit: limit.toString(),
-    offset: offset.toString(),
-  });
+export interface FichaPresencaListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  data_inicio?: string;
+  data_fim?: string;
+}
 
-  if (search) {
-    params.append('search', search);
-  }
-
-  if (status) {
-    params.append('status', status);
-  }
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || '';
-
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca?${params}`, {
-    headers: {
-      'user-id': userId,
+export async function listarFichasPresenca(params: FichaPresencaListParams = {}): Promise<{
+  fichas: FichaPresenca[];
+  total: number;
+}> {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    if (params.page) {
+      const offset = (params.page - 1) * (params.limit || 10);
+      queryParams.append('offset', offset.toString());
     }
-  });
+    
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
+    if (params.search) {
+      queryParams.append('search', params.search);
+    }
+    
+    if (params.status) {
+      queryParams.append('status', params.status);
+    }
+    
+    if (params.data_inicio) {
+      queryParams.append('data_inicio', params.data_inicio);
+    }
+    
+    if (params.data_fim) {
+      queryParams.append('data_fim', params.data_fim);
+    }
 
-  if (!response.ok) {
-    throw new Error('Erro ao listar fichas de presença');
+    const { data } = await api.get<{
+      fichas: FichaPresenca[];
+      total: number;
+    }>(`/fichas-presenca?${queryParams}`);
+
+    return data;
+  } catch (error) {
+    console.error('Erro ao listar fichas de presença:', error);
+    return { fichas: [], total: 0 };
   }
-
-  return response.json();
 }
 
-export async function criarFichaPresenca(data: Partial<FichaPresenca>) {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || '';
-
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'user-id': userId,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error('Erro ao criar ficha de presença');
+export async function criarFichaPresenca(ficha: Partial<FichaPresenca>): Promise<FichaPresenca> {
+  try {
+    const { data } = await api.post<FichaPresenca>('/fichas-presenca', ficha);
+    return data;
+  } catch (error) {
+    console.error('Erro ao criar ficha de presença:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
-export async function atualizarFichaPresenca(id: string, data: Partial<FichaPresenca>) {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || '';
-
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'user-id': userId,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error('Erro ao atualizar ficha de presença');
+export async function atualizarFichaPresenca(id: string, ficha: Partial<FichaPresenca>): Promise<FichaPresenca> {
+  try {
+    const { data } = await api.put<FichaPresenca>(`/fichas-presenca/${id}`, ficha);
+    return data;
+  } catch (error) {
+    console.error('Erro ao atualizar ficha de presença:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
-export async function excluirFichaPresenca(id: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || '';
-
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fichas-presenca/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'user-id': userId,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Erro ao excluir ficha de presença');
+export async function deletarFichaPresenca(id: string): Promise<void> {
+  try {
+    await api.delete(`/fichas-presenca/${id}`);
+  } catch (error) {
+    console.error('Erro ao deletar ficha de presença:', error);
+    throw error;
   }
 }

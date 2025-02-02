@@ -86,111 +86,51 @@ export const guiaSchema = z.object({
     observacoes: z.string().optional(),
 });
 
-export async function listarGuias(
-    page = 1,
-    limit = 10,
-    search?: string,
-    status?: string
-) {
-    const offset = (page - 1) * limit;
-    const params = new URLSearchParams({
-        limit: limit.toString(),
-        offset: offset.toString(),
-    });
-
-    if (search) {
-        params.append('search', search);
-    }
-
-    if (status) {
-        params.append('status', status);
-    }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '';
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias?${params}`, {
-        headers: {
-            'user-id': userId,
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error('Erro ao listar guias');
-    }
-
-    return response.json();
-}
-
-export async function criarGuia(data: GuiaFormData) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '';
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'user-id': userId,
-        },
-        body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-        throw new Error('Erro ao criar guia');
-    }
-
-    return response.json();
-}
-
-export async function atualizarGuia(id: string, data: GuiaFormData) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '';
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'user-id': userId,
-        },
-        body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-        throw new Error('Erro ao atualizar guia');
-    }
-
-    return response.json();
-}
-
-export async function excluirGuia(id: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '';
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/guias/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'user-id': userId,
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error('Erro ao excluir guia');
+export async function listarGuias(params: URLSearchParams): Promise<Guia[]> {
+    try {
+        const { data } = await api.get<Guia[]>(`/guias?${params}`);
+        return data;
+    } catch (error) {
+        console.error('Erro ao listar guias:', error);
+        throw error;
     }
 }
 
-export async function listarProcedimentos() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || '';
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/procedimentos/`, {
-        headers: {
-            'user-id': userId,
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error('Erro ao listar procedimentos');
+export async function criarGuia(guia: Partial<GuiaFormData>): Promise<Guia> {
+    try {
+        const { data } = await api.post<Guia>('/guias', guia);
+        return data;
+    } catch (error) {
+        console.error('Erro ao criar guia:', error);
+        throw error;
     }
+}
 
-    return response.json();
+export async function atualizarGuia(id: string, guia: Partial<GuiaFormData>): Promise<Guia> {
+    try {
+        const { data } = await api.put<Guia>(`/guias/${id}`, guia);
+        return data;
+    } catch (error) {
+        console.error('Erro ao atualizar guia:', error);
+        throw error;
+    }
+}
+
+export async function deletarGuia(id: string): Promise<void> {
+    try {
+        await api.delete(`/guias/${id}`);
+    } catch (error) {
+        console.error('Erro ao deletar guia:', error);
+        throw error;
+    }
+}
+
+export async function listarProcedimentos(): Promise<any[]> {
+    try {
+        const { data } = await api.get<any[]>('/procedimentos');
+        return data;
+    } catch (error) {
+        console.error('Erro ao listar procedimentos:', error);
+        throw error;
+    }
 }

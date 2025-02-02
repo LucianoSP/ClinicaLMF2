@@ -79,6 +79,9 @@ export interface Paciente {
   email?: string;
   endereco?: Endereco;
   observacoes?: string;
+  altura?: string;
+  peso?: string;
+  tipo_sanguineo?: string;
   created_at?: string;
   updated_at?: string;
 }

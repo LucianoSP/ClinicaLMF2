@@ -1,77 +1,37 @@
-import { supabase } from "@/lib/supabase";
+import { api } from '@/lib/api';
 import { Procedimento } from "@/types/procedimento";
 
 export async function listarProcedimentos(): Promise<Procedimento[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || '';
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/procedimentos`,
-    {
-      headers: {
-        "user-id": userId,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Erro ao listar procedimentos");
+  try {
+    const { data } = await api.get<Procedimento[]>('/procedimentos');
+    return data;
+  } catch (error) {
+    console.error('Erro ao listar procedimentos:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function criarProcedimento(
   data: Omit<Procedimento, "id" | "created_at" | "updated_at">
-) {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || '';
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/procedimentos`,
-    {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-      credentials: "include",
-      body: JSON.stringify(data),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Erro ao criar procedimento");
+): Promise<Procedimento> {
+  try {
+    const { data: procedimento } = await api.post<Procedimento>('/procedimentos', data);
+    return procedimento;
+  } catch (error) {
+    console.error('Erro ao criar procedimento:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function atualizarProcedimento(
   id: string,
   data: Partial<Procedimento>
-) {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || '';
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/procedimentos/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-      credentials: "include",
-      body: JSON.stringify(data),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Erro ao atualizar procedimento");
+): Promise<Procedimento> {
+  try {
+    const { data: procedimento } = await api.put<Procedimento>(`/procedimentos/${id}`, data);
+    return procedimento;
+  } catch (error) {
+    console.error('Erro ao atualizar procedimento:', error);
+    throw error;
   }
-
-  return response.json();
 }

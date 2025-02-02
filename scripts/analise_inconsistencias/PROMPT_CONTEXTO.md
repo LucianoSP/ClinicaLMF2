@@ -26,6 +26,31 @@ Este é um sistema de agendamento especializado para uma clínica que atende cri
   - PostgreSQL via Supabase
   - Autenticação: Supabase Auth
 
+### 1.3. Estrutura do Código Frontend
+
+#### 1.3.1. Serviços de API (`src/services/`)
+Serviços centralizados para comunicação com o backend:
+- `pacienteService.ts`
+- `guiaService.ts`
+- `carteirinhaService.ts`
+- `procedimentoService.ts`
+- `fichaPresencaService.ts`
+
+#### 1.3.2. Componentes
+1. **Componentes Compartilhados** (`src/components/`)
+   - Componentes reutilizáveis em toda aplicação
+   - Exemplos: `Button`, `Input`, `Modal`, `DataTable`
+   - Mantêm consistência visual através do design system
+
+2. **Componentes Específicos** (`src/app/(auth)/[feature]/components/`)
+   - Componentes fortemente acoplados à lógica da página
+   - Exemplos: `PacienteForm`, `columns.tsx`
+   - Otimizados para o caso de uso específico
+
+#### 1.3.3. Configurações
+- `src/lib/api.ts`: Configuração do axios e interceptors
+- `src/config/env.ts`: Variáveis de ambiente e configurações
+
 ## 2. Entidades do Sistema
 
 ### 2.1. Paciente
@@ -101,93 +126,12 @@ O script `analyze_project.py` foi desenvolvido para realizar uma análise comple
 
 #### 3.2.2. Análise do Frontend
 - Interfaces TypeScript
-- Componentes utilizados
-- Estrutura de páginas
 - Serviços de API
+- Componentes e formulários
+- Rotas e páginas
 
-#### 3.2.3. Análise de Banco de Dados
-- Definições das tabelas
-- Tipos das colunas
-- Chaves e relacionamentos
-- Índices e constraints
-
-#### 3.2.4. Análise de Rotas
-- Endpoints da API
-- Rotas do Next.js
-- Duplicações
-- Padrões de URL
-
-### 3.3. Relatórios Gerados
-
-#### 3.3.1. JSON (scripts/analise_inconsistencias/analysis_report.json)
-Contém dados técnicos detalhados:
-- Mapeamento de campos
-- Lista de inconsistências
-- Estrutura de arquivos
-- Componentes e serviços
-
-#### 3.3.2. Markdown (scripts/analise_inconsistencias/analise_inconsistencias.md)
-Apresenta de forma organizada:
-- Problemas encontrados
-- Sugestões de correção
-- Estrutura recomendada
-- Plano de ação
-
-## 4. Estrutura do Projeto
-
-### 4.1. Frontend
-```
-frontend/
-  ├── src/
-  │   ├── app/
-  │   │   └── (auth)/
-  │   │       ├── cadastros/
-  │   │       │   ├── pacientes/
-  │   │       │   ├── guias/
-  │   │       │   └── ...
-  │   │       └── dashboard/
-  │   ├── components/
-  │   └── services/
-```
-
-### 4.2. Backend
-```
-backend/
-  ├── app.py
-  ├── database_supabase.py
-  └── sql/
-      └── criar_tabelas.sql
-```
-
-## 5. Padrões e Convenções
-
-### 5.1. Estrutura de Cadastros
-- Formulários padronizados
-- Tabelas de listagem
-- Páginas de detalhe
-- Componentes reutilizáveis
-
-### 5.2. Nomenclatura
-- Campos em português
-- Rotas em lowercase
-- Componentes em PascalCase
-- Funções em camelCase
-
-### 5.3. Validações
-- Frontend: Zod/React Hook Form
-- Backend: Pydantic
-- Banco: Constraints SQL
-
-## 6. Como Usar Este Contexto
-
-Este documento serve como base para entender:
-1. A estrutura geral do projeto
-2. O propósito do script de análise
-3. As entidades e seus relacionamentos
-4. Os padrões e convenções adotados
-
-Use estas informações para:
-- Entender o contexto de uma dúvida
-- Propor soluções adequadas
-- Manter consistência com o projeto
-- Seguir os padrões estabelecidos
+#### 3.2.3. Verificação de Consistência
+- Correspondência entre modelos e interfaces
+- Padronização de nomes e tipos
+- Validações em ambas as camadas
+- Integridade dos relacionamentos

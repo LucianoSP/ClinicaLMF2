@@ -3,7 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Paciente } from '@/types/paciente'
-import { formatDate } from '@/lib/utils'
+import { formatarData } from '@/lib/utils'
 
 export const columns: ColumnDef<Paciente>[] = [
   {
@@ -20,20 +20,56 @@ export const columns: ColumnDef<Paciente>[] = [
     cell: ({ row }) => {
       const date = row.getValue('data_nascimento')
       if (!date) return '-'
-      return formatDate(date as string)
+      return formatarData(date as string)
     },
   },
   {
     accessorKey: 'telefone',
     header: 'Telefone',
+    cell: ({ row }) => {
+      const telefone = row.getValue('telefone')
+      return telefone || '-'
+    },
   },
   {
     accessorKey: 'email',
     header: 'Email',
+    cell: ({ row }) => {
+      const email = row.getValue('email')
+      return email || '-'
+    },
   },
   {
     accessorKey: 'cpf',
     header: 'CPF',
+    cell: ({ row }) => {
+      const cpf = row.getValue('cpf')
+      return cpf || '-'
+    },
+  },
+  {
+    accessorKey: 'altura',
+    header: 'Altura',
+    cell: ({ row }) => {
+      const altura = row.getValue('altura')
+      return altura || '-'
+    },
+  },
+  {
+    accessorKey: 'peso',
+    header: 'Peso',
+    cell: ({ row }) => {
+      const peso = row.getValue('peso')
+      return peso || '-'
+    },
+  },
+  {
+    accessorKey: 'tipo_sanguineo',
+    header: 'Tipo Sanguíneo',
+    cell: ({ row }) => {
+      const tipo = row.getValue('tipo_sanguineo')
+      return tipo || '-'
+    },
   },
   {
     id: 'actions',
