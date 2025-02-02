@@ -546,16 +546,17 @@ class ProjectAnalyzer:
         return inconsistencies
 
     def generate_report(self):
-        """Gera um relatório detalhado da análise"""
-        print("\nGerando relatório...")
+        """Gera relatórios detalhados da análise"""
+        print("\nGerando relatórios...")
         
         def set_to_list(obj):
             if isinstance(obj, set):
                 return list(obj)
             return obj
         
+        # Gera relatório JSON
         report = {
-            "timestamp": "2025-02-02T12:22:25-03:00",
+            "timestamp": "2025-02-02T12:28:15-03:00",
             "entities": {}
         }
 
@@ -578,12 +579,132 @@ class ProjectAnalyzer:
                 "inconsistencies": self.find_inconsistencies(entity)
             }
 
-        # Salva o relatório
+        # Salva o relatório JSON
         report_path = self.project_root / 'analysis_report.json'
         with open(report_path, 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, ensure_ascii=False, default=set_to_list)
         
-        print(f"\nRelatório gerado em: {report_path}")
+        print(f"\nRelatório JSON gerado em: {report_path}")
+
+        # Gera relatório Markdown
+        markdown_content = ["# Análise de Inconsistências do Projeto\n"]
+        markdown_content.append("## 1. Inconsistências por Entidade\n")
+
+        for name, entity_data in report["entities"].items():
+            inconsistencies = entity_data["inconsistencies"]
+            if not inconsistencies:
+                continue
+
+            markdown_content.append(f"### 1.{len(markdown_content)}. {name}\n")
+            
+            # Campos faltantes
+            missing_fields = [inc for inc in inconsistencies if "Campos faltando" in inc]
+            if missing_fields:
+                markdown_content.append("#### Campos Faltantes\n")
+                for field in missing_fields:
+                    if "backend" in field:
+                        markdown_content.append("**No Backend:**\n")
+                    else:
+                        markdown_content.append("**No Frontend:**\n")
+                    fields = field.split(": ")[1]
+                    for f in fields.split(", "):
+                        markdown_content.append(f"- `{f}`\n")
+                markdown_content.append("\n")
+
+            # Tipos incompatíveis
+            type_issues = [inc for inc in inconsistencies if "Tipo incompatível" in inc]
+            if type_issues:
+                markdown_content.append("#### Tipos Incompatíveis\n")
+                markdown_content.append("```\nBackend                  Frontend\n")
+                for issue in type_issues:
+                    field, types = issue.split(": ", 1)
+                    field = field.replace("Tipo incompatível para ", "")
+                    backend_type, frontend_type = types.split(", ")
+                    backend_type = backend_type.replace("backend=", "")
+                    frontend_type = frontend_type.replace("frontend=", "")
+                    markdown_content.append(f"{field}: {backend_type:<15} -> {frontend_type}\n")
+                markdown_content.append("```\n\n")
+
+            # Campos ausentes na tabela
+            table_issues = [inc for inc in inconsistencies if "tabela" in inc]
+            if table_issues:
+                markdown_content.append("#### Problemas com a Tabela\n")
+                for issue in table_issues:
+                    if "ausentes na tabela" in issue:
+                        markdown_content.append("**Campos do modelo ausentes na tabela:**\n")
+                    else:
+                        markdown_content.append("**Campos da tabela ausentes no modelo:**\n")
+                    fields = issue.split(": ")[1]
+                    for f in fields.split(", "):
+                        markdown_content.append(f"- `{f}`\n")
+                markdown_content.append("\n")
+
+            # Rotas duplicadas
+            route_issues = [inc for inc in inconsistencies if "duplicada" in inc]
+            if route_issues:
+                markdown_content.append("#### Rotas Duplicadas\n")
+                for issue in route_issues:
+                    routes = issue.split("\n")
+                    markdown_content.append(f"**Rotas encontradas:**\n")
+                    for route in routes[1:]:
+                        if route.strip():
+                            markdown_content.append(f"- {route.strip()}\n")
+                markdown_content.append("\n")
+
+        # Recomendações gerais
+        markdown_content.extend([
+            "\n## 2. Recomendações\n",
+            "\n### 2.1. Alta Prioridade\n",
+            "1. Corrigir tipos incompatíveis entre camadas\n",
+            "2. Unificar rotas duplicadas\n",
+            "3. Adicionar campos faltantes no backend\n",
+            "4. Alinhar estrutura das tabelas com os modelos\n",
+            "\n### 2.2. Média Prioridade\n",
+            "1. Padronizar nomenclatura de campos\n",
+            "2. Implementar validações consistentes\n",
+            "3. Documentar campos calculados\n",
+            "4. Revisar relacionamentos entre tabelas\n",
+            "\n### 2.3. Baixa Prioridade\n",
+            "1. Refatorar estrutura de arquivos\n",
+            "2. Melhorar tipagem TypeScript\n",
+            "3. Adicionar testes automatizados\n",
+            "4. Otimizar consultas ao banco\n",
+            "\n## 3. Estrutura Recomendada\n",
+            "\n```\n",
+            "(auth)/\n",
+            "  ├── cadastros/\n",
+            "  │   ├── [entidade]/\n",
+            "  │   │   ├── page.tsx\n",
+            "  │   │   ├── [id]/\n",
+            "  │   │   │   └── page.tsx\n",
+            "  │   │   ├── components/\n",
+            "  │   │   │   ├── Form.tsx\n",
+            "  │   │   │   └── Table.tsx\n",
+            "  │   │   └── services/\n",
+            "  │   │       └── api.ts\n",
+            "  │   └── ...\n",
+            "  └── dashboard/\n",
+            "      └── page.tsx\n",
+            "```\n",
+            "\n## 4. Próximos Passos\n",
+            "\n1. Revisar este relatório com a equipe\n",
+            "2. Priorizar correções críticas\n",
+            "3. Criar branches específicas para cada tipo de correção\n",
+            "4. Implementar testes antes das correções\n",
+            "5. Realizar as correções de forma incremental\n",
+            "6. Validar cada correção em ambiente de teste\n",
+            "\n## 5. Observações\n",
+            "\nEste relatório foi gerado automaticamente em " + report["timestamp"] + ".\n",
+            "Algumas inconsistências podem requerer análise manual mais detalhada.\n",
+            "Recomenda-se manter este relatório atualizado conforme as correções são implementadas.\n"
+        ])
+
+        # Salva o relatório Markdown
+        markdown_path = self.project_root / 'instrucoes' / 'analise_inconsistencias.md'
+        with open(markdown_path, 'w', encoding='utf-8') as f:
+            f.write(''.join(markdown_content))
+        
+        print(f"Relatório Markdown gerado em: {markdown_path}")
 
     def are_types_compatible(self, backend_type: str, frontend_type: str) -> bool:
         # Implementação simplificada para verificar compatibilidade de tipos
