@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
 import { GuiasList } from '@/components/guias/GuiasList'
 import { BackButton } from '@/components/ui/back-button'
 
@@ -17,9 +16,7 @@ export default function GuiasPage() {
         <BackButton />
       </div>
 
-      <Card className="p-6">
-        <GuiasList />
-      </Card>
+      <GuiasList />
     </div>
   )
 }

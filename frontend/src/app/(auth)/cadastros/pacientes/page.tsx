@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
 import { PacientesList } from '@/components/pacientes/PacientesList'
 import { BackButton } from '@/components/ui/back-button'
 
@@ -17,9 +16,7 @@ export default function PacientesPage() {
         <BackButton />
       </div>
 
-      <Card className="p-6">
-        <PacientesList />
-      </Card>
+      <PacientesList />
     </div>
   )
 }

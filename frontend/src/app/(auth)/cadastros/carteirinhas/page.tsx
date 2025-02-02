@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
 import { CarteirinhasList } from '@/components/carteirinhas/CarteirinhasList'
 import { BackButton } from '@/components/ui/back-button'
 
@@ -17,9 +16,7 @@ export default function CarteirinhasPage() {
         <BackButton />
       </div>
 
-      <Card className="p-6">
-        <CarteirinhasList />
-      </Card>
+      <CarteirinhasList />
     </div>
   )
 }

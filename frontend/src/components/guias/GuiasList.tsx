@@ -7,14 +7,7 @@ import { Pencil, Trash2, Loader2, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import SortableTable, { Column } from '@/components/SortableTable';
 import { TableActions } from '@/components/ui/table-actions';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { GuiaModal } from './GuiaModal';
@@ -140,6 +133,40 @@ export function GuiasList() {
     setData(prev => ({ ...prev, currentPage: page }));
   };
 
+  const columns: Column<Guia>[] = [
+    {
+      key: 'numero_guia',
+      label: 'Número',
+    },
+    {
+      key: 'paciente',
+      label: 'Paciente',
+      render: (value) => value?.nome
+    },
+    {
+      key: 'carteirinha',
+      label: 'Carteirinha',
+      render: (value) => value?.numero_carteirinha
+    },
+    {
+      key: 'tipo',
+      label: 'Tipo',
+    },
+    {
+      key: 'quantidade_autorizada',
+      label: 'Qtd. Autorizada',
+    },
+    {
+      key: 'quantidade_executada',
+      label: 'Qtd. Executada',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (value) => <StatusBadge status={value} />
+    }
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -165,41 +192,17 @@ export function GuiasList() {
         </div>
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Carteirinha</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Qtd. Autorizada</TableHead>
-                <TableHead>Qtd. Executada</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.items.map((guia) => (
-                <TableRow key={guia.id}>
-                  <TableCell>{guia.numero_guia}</TableCell>
-                  <TableCell>{guia.paciente?.nome}</TableCell>
-                  <TableCell>{guia.carteirinha?.numero_carteirinha}</TableCell>
-                  <TableCell>{guia.tipo}</TableCell>
-                  <TableCell>{guia.quantidade_autorizada}</TableCell>
-                  <TableCell>{guia.quantidade_executada}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={guia.status} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <TableActions
-                      onEdit={() => handleEdit(guia)}
-                      onDelete={() => handleDelete(guia.id)}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <SortableTable
+            data={data.items}
+            columns={columns}
+            loading={loading}
+            actions={(guia) => (
+              <TableActions
+                onEdit={() => handleEdit(guia)}
+                onDelete={() => handleDelete(guia.id)}
+              />
+            )}
+          />
 
           {data.pages > 0 && (
             <PaginationControls
