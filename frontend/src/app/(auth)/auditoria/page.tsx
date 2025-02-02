@@ -7,7 +7,7 @@ import { TabelaDivergencias } from '@/components/auditoria/TabelaDivergencias';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
-import { API_URL } from '@/config/api';
+import { API_URL } from '@/config/env';
 import FiltrosAuditoria from '@/components/auditoria/FiltrosAuditoria';
 
 interface AuditoriaResultado {

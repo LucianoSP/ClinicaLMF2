@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { FiDownload, FiTrash2 } from 'react-icons/fi';
 import { useToast } from '@/hooks/use-toast';
-import { API_URL } from '@/config/api';
+import { API_URL } from '@/config/env';
 import StorageFiles from '@/components/StorageFiles';
 import { Button } from '@/components/ui/button';
 

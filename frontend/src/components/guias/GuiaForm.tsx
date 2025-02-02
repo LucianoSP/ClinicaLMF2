@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect } from "react"
 import { Guia } from "@/services/guiaService"
 import { toast } from "sonner"
-import { API_URL } from "@/config/api"
+import { API_URL } from "@/config/env"
 
 interface GuiaFormProps {
   isOpen: boolean

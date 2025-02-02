@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useRouter } from 'next/navigation';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { API_URL } from '@/config/api';
+import { API_URL } from '@/config/env';
 
 interface ExcelUploadProps { }
 

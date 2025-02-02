@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { API_URL } from '../config/api';
+import { API_URL } from '@/config/env';
 import { STORAGE_KEY } from '../config/storage';
 import FileList from './FileList';
 

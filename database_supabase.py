@@ -1205,7 +1205,22 @@ def list_storage_files():
     """Lista todos os arquivos do bucket fichas_renomeadas."""
     try:
         response = supabase.storage.from_("fichas_renomeadas").list()
-        return response
+        
+        # Formata os dados para o formato esperado pelo frontend
+        formatted_files = []
+        for file in response:
+            # Pega a URL pública do arquivo
+            file_url = supabase.storage.from_("fichas_renomeadas").get_public_url(file['name'])
+            
+            formatted_file = {
+                'nome': file['name'],
+                'size': file.get('metadata', {}).get('size', 0),
+                'created_at': file.get('metadata', {}).get('created_at', datetime.now().isoformat()),
+                'url': file_url
+            }
+            formatted_files.append(formatted_file)
+            
+        return formatted_files
     except Exception as e:
         print(f"Erro em list_storage_files: {e}")
         return []

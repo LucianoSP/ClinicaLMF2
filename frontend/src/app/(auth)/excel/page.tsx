@@ -7,7 +7,7 @@ import { FiDownload, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import SortableTable, { Column } from '@/components/SortableTable';
 import { useDebounce } from '@/hooks/useDebounce';
-import { API_URL } from '@/config/api';
+import { API_URL } from '@/config/env';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

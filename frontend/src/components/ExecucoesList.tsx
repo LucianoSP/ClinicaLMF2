@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import SortableTable from './SortableTable';
 import type { Column } from './SortableTable';
 import { useDebounce } from '../hooks/useDebounce';
-import { API_URL } from '../config/api';
+import { API_URL } from '@/config/env';
 import { Button } from '@/components/ui/button';
 import { Execucao } from '@/types/execucoes';
 

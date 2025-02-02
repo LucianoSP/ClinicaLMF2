@@ -4,7 +4,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { FiTrash2, FiDownload } from 'react-icons/fi';
 import { Button } from './ui/button';
-import { API_URL } from '../config/api';
+import { API_URL } from '@/config/env';
 import { StorageFile, StorageFileListRef } from '../types/storage';
 import SortableTable, { Column } from './SortableTable';
 

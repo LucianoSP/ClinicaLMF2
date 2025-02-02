@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { FiTrash2, FiDownload } from 'react-icons/fi';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import SortableTable, { Column } from './SortableTable';
-import { API_URL } from '../config/api';
+import { API_URL } from '@/config/env';
 import { formatFileSize } from '../utils/format';
 import { Input } from './ui/input';
 import { Button } from './ui/button';

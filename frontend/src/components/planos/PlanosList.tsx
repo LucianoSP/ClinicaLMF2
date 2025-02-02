@@ -137,4 +137,3 @@ export function PlanosList() {
     </div>
   );
 }
-![1738504311515](image / PlanosList / 1738504311515.png)![1738504334192](image / PlanosList / 1738504334192.png)![1738504338431](image / PlanosList / 1738504338431.png)
