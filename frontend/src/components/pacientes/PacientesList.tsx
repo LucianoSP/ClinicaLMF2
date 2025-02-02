@@ -38,6 +38,7 @@ export function PacientesList() {
   const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -134,7 +135,7 @@ export function PacientesList() {
         ? format(parseISO(paciente.data_nascimento), 'dd/MM/yyyy', { locale: ptBR })
         : 'N/A'
     },
-    { key: 'telefone', label: 'Email' },
+    { key: 'telefone', label: 'Telefone' },
     { key: 'email', label: 'Email' },
     {
       key: 'id' as keyof Paciente,
@@ -173,6 +174,37 @@ export function PacientesList() {
           columns={columns}
           loading={isLoading}
         />
+      </div>
+
+      <div className="mt-4 flex justify-center gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(prev => prev - 1)}
+        >
+          Anterior
+        </Button>
+        
+        {Array.from({ length: totalPages }, (_, i) => (
+          <Button
+            key={i + 1}
+            variant={currentPage === i + 1 ? "default" : "outline"}
+            size="sm"
+            onClick={() => setCurrentPage(i + 1)}
+          >
+            {i + 1}
+          </Button>
+        ))}
+        
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(prev => prev + 1)}
+        >
+          Próximo
+        </Button>
       </div>
 
       <Dialog open={openDetalhes} onOpenChange={setOpenDetalhes}>
