@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { QueryProvider } from '@/providers/query-provider'
 
 export default function AuthLayout({
   children,
@@ -35,9 +36,11 @@ export default function AuthLayout({
     <div className="flex min-h-screen">
       <Sidebar />
       <main className="flex-1 ml-64 p-8 bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          {children}
-        </div>
+        <QueryProvider>
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </QueryProvider>
       </main>
     </div>
   )

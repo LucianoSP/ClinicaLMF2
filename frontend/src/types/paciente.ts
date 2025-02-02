@@ -59,24 +59,26 @@ export interface PacienteEstatisticas {
   };
 }
 
+export interface Endereco {
+  rua?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
+}
+
 export interface Paciente {
-  id: string;
+  id?: string;
   nome: string;
   nome_responsavel: string;
-  tipo_responsavel?: string;
   data_nascimento?: string;
   cpf?: string;
   telefone?: string;
   email?: string;
-  status?: string;
-  observacoes_clinicas?: string;
+  endereco?: Endereco;
+  observacoes?: string;
   created_at?: string;
   updated_at?: string;
-  carteirinhas?: Carteirinha[];
-  guias?: Guide[];
-  fichas?: FichaPresenca[];
-  idade?: number;
-  photo?: string;
-  plano_nome?: string;
-  estatisticas?: PacienteEstatisticas;
 }
