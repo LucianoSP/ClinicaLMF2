@@ -556,7 +556,7 @@ class ProjectAnalyzer:
         
         # Gera relatório JSON
         report = {
-            "timestamp": "2025-02-02T12:28:15-03:00",
+            "timestamp": "2025-02-02T12:54:16-03:00",
             "entities": {}
         }
 
@@ -579,8 +579,12 @@ class ProjectAnalyzer:
                 "inconsistencies": self.find_inconsistencies(entity)
             }
 
+        # Cria o diretório se não existir
+        json_dir = self.project_root / 'scripts' / 'analise_inconsistencias'
+        json_dir.mkdir(parents=True, exist_ok=True)
+        
         # Salva o relatório JSON
-        report_path = self.project_root / 'analysis_report.json'
+        report_path = json_dir / 'analysis_report.json'
         with open(report_path, 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, ensure_ascii=False, default=set_to_list)
         
