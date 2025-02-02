@@ -16,13 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TableActions } from '@/components/ui/table-actions';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-} from "@/components/ui/pagination";
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { GuiaModal } from './GuiaModal';
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -34,8 +28,6 @@ import {
   excluirGuia
 } from '@/services/guiaService';
 import { toast } from "sonner";
-
-const ITEMS_PER_PAGE = 10;
 
 interface PaginatedData {
   items: Guia[];
@@ -51,6 +43,7 @@ export function GuiasList() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [data, setData] = useState<PaginatedData>({
     items: [],
     total: 0,
@@ -59,7 +52,7 @@ export function GuiasList() {
     currentPage: 1
   });
 
-  const fetchGuias = useCallback(async (page: number = 1, limit: number = ITEMS_PER_PAGE) => {
+  const fetchGuias = useCallback(async (page: number = 1, limit: number = itemsPerPage) => {
     try {
       setLoading(true);
       const response = await listarGuias(page, limit, searchTerm);
@@ -76,15 +69,15 @@ export function GuiasList() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm]);
+  }, [searchTerm, itemsPerPage]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchGuias(data.currentPage);
-    }, 300);
+      fetchGuias(currentPage);
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, data.currentPage, fetchGuias]);
+  }, [fetchGuias, currentPage, itemsPerPage]);
 
   const handleCreate = async (data: GuiaFormData) => {
     try {
@@ -208,43 +201,15 @@ export function GuiasList() {
             </TableBody>
           </Table>
 
-          {data.pages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => currentPage > 1 && setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''}`}
-                  >
-                    Anterior
-                  </Button>
-                </PaginationItem>
-
-                {Array.from({ length: data.pages }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => handlePageChange(page)}
-                      isActive={currentPage === page}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-
-                <PaginationItem>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => currentPage < data.pages && setCurrentPage(prev => Math.min(prev + 1, data.pages))}
-                    className={`${currentPage >= data.pages ? 'pointer-events-none opacity-50' : ''}`}
-                  >
-                    Próximo
-                  </Button>
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+          {data.pages > 0 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={data.pages}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={setItemsPerPage}
+              showItemsPerPageSelector={true}
+            />
           )}
         </>
       )}
