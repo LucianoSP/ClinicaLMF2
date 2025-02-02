@@ -21,6 +21,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { listarFichasPresenca } from '@/services/fichaPresencaService';
 import { TableActions } from '@/components/ui/table-actions';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { API_URL } from '@/config/env';
 
 // Interfaces e Tipos
 interface Procedimento {
@@ -337,7 +338,7 @@ export default function FichasPresencaPage() {
         formData.append('files', file);
       });
 
-      const response = await fetch('https://fde1cb19-4f63-43d4-a9b7-a3d808e8d2b7-00-3cdk7z76k6er0.kirk.replit.dev/upload', {
+      const response = await fetch(`${API_URL}/upload`, {
         method: 'POST',
         body: formData,
       });

@@ -72,17 +72,17 @@ export function PlanosList() {
   };
 
   const columns: Column<Plano>[] = [
-    { 
-      key: 'nome', 
+    {
+      key: 'nome',
       label: 'Nome',
       style: { paddingLeft: '1rem' }
     },
-    { 
-      key: 'codigo', 
+    {
+      key: 'codigo',
       label: 'Código',
       style: { paddingLeft: '1rem' }
     },
-    { 
+    {
       key: 'ativo' as keyof Plano,
       label: 'Status',
       style: { paddingLeft: '1rem' },
@@ -137,3 +137,4 @@ export function PlanosList() {
     </div>
   );
 }
+![1738504311515](image / PlanosList / 1738504311515.png)![1738504334192](image / PlanosList / 1738504334192.png)![1738504338431](image / PlanosList / 1738504338431.png)

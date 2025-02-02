@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_URL } from '@/config/env';
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://fde1cb19-4f63-43d4-a9b7-a3d808e8d2b7-00-3cdk7z76k6er0.kirk.replit.dev';
+const baseURL = API_URL;
 
 export const api = axios.create({
   baseURL,
