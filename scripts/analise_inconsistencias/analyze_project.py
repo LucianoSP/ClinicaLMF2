@@ -38,6 +38,12 @@ class ProjectAnalyzer:
         print("\nAnalisando modelos do backend...")
         app_py = self.backend_dir / "app.py"
 
+        # Lista de entidades principais para priorizar na análise
+        entidades_principais = {
+            "Paciente", "Guia", "Carteirinha", "Plano", 
+            "FichaPresenca", "Sessao", "Execucao", "Divergencia"
+        }
+
         with open(app_py, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -45,8 +51,8 @@ class ProjectAnalyzer:
             tree = ast.parse(content)
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
-                    # Ignora classes internas ou utilitárias
-                    if not node.name.startswith("_"):
+                    # Prioriza as entidades principais
+                    if node.name in entidades_principais or not node.name.startswith("_"):
                         fields = {}
                         field_types = set()
                         for child in node.body:
@@ -103,50 +109,55 @@ class ProjectAnalyzer:
     def analyze_frontend_interfaces(self):
         """Analisa as interfaces TypeScript do frontend"""
         print("\nAnalisando interfaces do frontend...")
-        types_dir = self.frontend_dir / "src" / "types"
+        
+        # Lista de entidades principais para priorizar na análise
+        entidades_principais = {
+            "Paciente", "Guia", "Carteirinha", "Plano", 
+            "FichaPresenca", "Sessao", "Execucao", "Divergencia"
+        }
 
-        if not types_dir.exists():
-            print(f"Diretório de tipos não encontrado: {types_dir}")
+        interfaces_dir = self.frontend_dir / "src" / "types"
+        if not interfaces_dir.exists():
+            print(f"Diretório de interfaces não encontrado: {interfaces_dir}")
             return
 
-        for file in types_dir.glob("*.ts"):
+        for file in interfaces_dir.glob("*.ts"):
             try:
                 with open(file, "r", encoding="utf-8") as f:
                     content = f.read()
 
-                # Encontra interfaces
-                interface_pattern = r"interface\s+(\w+)\s*{([^}]*)}"
-                for match in re.finditer(interface_pattern, content):
-                    name = match.group(1)
-                    fields_block = match.group(2)
+                # Extrai nome da interface
+                interface_match = re.search(r"interface\s+(\w+)", content)
+                if interface_match:
+                    name = interface_match.group(1)
+                    # Prioriza as entidades principais
+                    if name in entidades_principais or not name.startswith("_"):
+                        fields = {}
+                        for line in content.split("\n"):
+                            field_match = re.match(r"\s*(\w+)\??:\s*(\w+);", line)
+                            if field_match:
+                                fields[field_match.group(1)] = field_match.group(2)
 
-                    # Extrai campos da interface
-                    fields = {}
-                    for line in fields_block.split("\n"):
-                        field_match = re.match(r"\s*(\w+)\??:\s*(\w+);", line)
-                        if field_match:
-                            fields[field_match.group(1)] = field_match.group(2)
-
-                    if name not in self.entities:
-                        self.entities[name] = EntityAnalysis(
-                            name=name,
-                            backend_fields={},
-                            frontend_interface_fields=fields,
-                            frontend_type_fields=set(),
-                            database_fields=set(),
-                            endpoints=[],
-                            service_methods=[],
-                            next_routes=[],
-                            components=[],
-                            validations={},
-                            duplicate_routes=[],
-                            table_structure={},
-                            related_tables=[],
-                            crud_routes={},
-                            cadastros_structure={},
-                        )
-                    else:
-                        self.entities[name].frontend_interface_fields = fields
+                        if name not in self.entities:
+                            self.entities[name] = EntityAnalysis(
+                                name=name,
+                                backend_fields={},
+                                frontend_interface_fields=fields,
+                                frontend_type_fields=set(),
+                                database_fields=set(),
+                                endpoints=[],
+                                service_methods=[],
+                                next_routes=[],
+                                components=[],
+                                validations={},
+                                duplicate_routes=[],
+                                table_structure={},
+                                related_tables=[],
+                                crud_routes={},
+                                cadastros_structure={},
+                            )
+                        else:
+                            self.entities[name].frontend_interface_fields = fields
             except Exception as e:
                 print(f"Erro ao analisar interface {file}: {e}")
                 import traceback
@@ -171,6 +182,13 @@ class ProjectAnalyzer:
             parts = path.strip("/").split("/")
             if parts:
                 entity_name = parts[0].title().rstrip("s")  # Remove 's' do plural
+                # Casos especiais
+                if entity_name == "Cadastro":
+                    # Verifica o próximo nível para entidades em pastas de cadastro
+                    next_index = parts.index(entity_name) + 1
+                    if next_index < len(parts):
+                        entity_name = parts[next_index].title().rstrip("s")
+
                 if entity_name in self.entities:
                     self.entities[entity_name].endpoints.append(
                         f"{method.upper()} {path}"
@@ -389,9 +407,21 @@ class ProjectAnalyzer:
             entity.crud_routes = crud_routes
 
     def analyze_cadastros_structure(self):
-        """Analisa a estrutura específica da página de cadastros"""
+        """Analisa a estrutura da página de cadastros"""
         print("\nAnalisando estrutura da página de cadastros...")
         cadastros_dir = self.frontend_dir / "src" / "app" / "(auth)" / "cadastros"
+
+        # Lista de entidades principais para priorizar na análise
+        entidades_principais = {
+            "pacientes": "Paciente",
+            "guias": "Guia", 
+            "carteirinhas": "Carteirinha",
+            "planos": "Plano",
+            "fichas-presenca": "FichaPresenca",
+            "sessoes": "Sessao",
+            "execucoes": "Execucao",
+            "divergencias": "Divergencia"
+        }
 
         if not cadastros_dir.exists():
             print(f"Diretório de cadastros não encontrado: {cadastros_dir}")
@@ -405,7 +435,11 @@ class ProjectAnalyzer:
             if not entity_dir.is_dir():
                 continue
 
-            entity_name = entity_dir.name.rstrip("s").title()
+            dir_name = entity_dir.name
+            if dir_name in entidades_principais:
+                entity_name = entidades_principais[dir_name]
+            else:
+                entity_name = dir_name.rstrip('s').title()
 
             cadastros_info[entity_name] = {
                 "pages": [],
