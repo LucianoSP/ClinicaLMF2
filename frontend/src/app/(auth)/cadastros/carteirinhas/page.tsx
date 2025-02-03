@@ -1,11 +1,17 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { CarteirinhasList } from '@/components/carteirinhas/CarteirinhasList'
 import { BackButton } from '@/components/ui/back-button'
+import { PaginationControls } from '@/components/ui/pagination-controls'
 
 export default function CarteirinhasPage() {
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [totalItems, setTotalItems] = useState(0)
+
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Carteirinhas</h1>
@@ -16,7 +22,19 @@ export default function CarteirinhasPage() {
         <BackButton />
       </div>
 
-      <CarteirinhasList />
+      <CarteirinhasList
+        currentPage={currentPage}
+        itemsPerPage={itemsPerPage}
+      />
+      <div className="mt-4">
+        <PaginationControls
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+      </div>
     </div>
   )
 }

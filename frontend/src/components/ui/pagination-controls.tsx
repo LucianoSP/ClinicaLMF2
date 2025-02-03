@@ -11,21 +11,22 @@ import {
 
 interface PaginationControlsProps {
   currentPage: number
-  totalPages: number
   itemsPerPage: number
+  totalItems: number
   onPageChange: (page: number) => void
-  onItemsPerPageChange: (value: number) => void
+  onItemsPerPageChange: (itemsPerPage: number) => void
   showItemsPerPageSelector?: boolean
 }
 
 export function PaginationControls({
-  currentPage,
-  totalPages,
-  itemsPerPage,
+  currentPage = 1,
+  itemsPerPage = 10,
+  totalItems = 0,
   onPageChange,
   onItemsPerPageChange,
   showItemsPerPageSelector = true, // Definido como true por padrão
 }: PaginationControlsProps) {
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
 
   return (
