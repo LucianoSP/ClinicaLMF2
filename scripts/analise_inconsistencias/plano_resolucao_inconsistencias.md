@@ -2,158 +2,165 @@
 
 ## 1. Organização do Código
 
-### 1.1. Serviços de API
-- **Ação**: Centralizar todos os serviços de API na pasta `src/services/`
-- **Objetivo**: Evitar duplicação e manter consistência nas chamadas à API
+### 1.1. Estrutura de Pastas
+```
+src/
+  ├── app/(auth)/[modulo]/
+  │   ├── components/
+  │   │   ├── ModuloForm.tsx    # Formulário específico do módulo
+  │   │   └── columns.tsx       # Definições de colunas da tabela
+  │   └── page.tsx              # Página principal com listagem e CRUD
+  ├── services/
+  │   └── moduloService.ts      # Serviços de API centralizados
+  └── types/
+      └── modulo.ts            # Interfaces e tipos
+```
+
+### 1.2. Serviços de API
+- **Localização**: `src/services/`
+- **Nomenclatura**: `nomeService.ts`
 - **Exemplo**:
   ```typescript
   // src/services/pacienteService.ts
-  import { api } from '@/lib/api';
-  import { Paciente } from '@/types/paciente';
+  import { api } from '@/lib/api'
+  import { Paciente } from '@/types/paciente'
 
-  interface PacienteResponse {
-    items: Paciente[];
-    total: number;
-    pages: number;
+  interface ListResponse<T> {
+    items: T[]
+    total: number
+    pages: number
   }
 
   export async function listarPacientes(
     page: number = 1,
     search?: string,
     limit: number = 10
-  ): Promise<PacienteResponse> {
+  ): Promise<ListResponse<Paciente>> {
     const { data } = await api.get('/pacientes', { 
       params: { 
         limit, 
         offset: (page - 1) * limit,
         search 
       } 
-    });
-    return data;
+    })
+    return data
+  }
+
+  export async function excluirPaciente(id: string): Promise<void> {
+    await api.delete(`/pacientes/${id}`)
   }
   ```
 
-### 1.2. Componentes React
-1. **Componentes Compartilhados** (`src/components/`)
-   - Componentes genéricos e reutilizáveis
-   - Manter consistência visual
-   - Exemplos: `Button`, `Input`, `DataTable`
+### 1.3. Componentes React
 
-2. **Componentes Específicos** (`src/app/(auth)/[feature]/components/`)
-   - Componentes acoplados à lógica da página
-   - Podem usar componentes compartilhados
-   - Exemplos: `PacienteForm`, `columns.tsx`
+1. **Página Principal** (`page.tsx`)
+   - Implementa a listagem com CRUD completo
+   - Usa React Query para estado da API
+   - Gerencia estados locais (diálogos, loading, etc)
+   - Exemplo:
+   ```typescript
+   export default function PacientesPage() {
+     const [isFormOpen, setIsFormOpen] = useState(false)
+     const [searchTerm, setSearchTerm] = useState('')
+     const [currentPage, setCurrentPage] = useState(1)
 
-## 2. Padronização dos Modelos
+     const { data, isLoading } = useQuery({
+       queryKey: ['pacientes', currentPage, searchTerm],
+       queryFn: () => listarPacientes(currentPage, searchTerm)
+     })
 
-### 2.1. Backend (Python/FastAPI)
-```python
-from datetime import datetime
-from pydantic import BaseModel
-from typing import Optional
+     // ... resto da implementação
+   }
+   ```
 
-class PacienteBase(BaseModel):
-    nome: str
-    nome_responsavel: str
-    data_nascimento: Optional[datetime]
-    cpf: Optional[str]
-    telefone: Optional[str]
-    email: Optional[str]
-    altura: Optional[str]
-    peso: Optional[str]
-    tipo_sanguineo: Optional[str]
+2. **Formulário** (`components/ModuloForm.tsx`)
+   - Validação com Zod
+   - Tratamento de erros
+   - Feedback visual
+   - Exemplo:
+   ```typescript
+   const formSchema = z.object({
+     nome: z.string().min(1, "Nome é obrigatório").max(100),
+     email: z.string().email().optional(),
+     // ... outros campos
+   })
+   ```
 
-class PacienteCreate(PacienteBase):
-    pass
+3. **Colunas** (`components/columns.tsx`)
+   - Define a estrutura da tabela
+   - Ações por linha
+   - Formatação de dados
+   - Exemplo:
+   ```typescript
+   export const columns: ColumnDef<Paciente>[] = [
+     {
+       accessorKey: "nome",
+       header: "Nome"
+     },
+     // ... outras colunas
+   ]
+   ```
 
-class PacienteUpdate(PacienteBase):
-    pass
+## 2. Padrões e Convenções
 
-class Paciente(PacienteBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+### 2.1. Validação de Dados
+- Usar Zod para validação de formulários
+- Definir limites de caracteres
+- Validar formatos (email, CPF, etc)
+- Tratar campos opcionais
 
-    class Config:
-        orm_mode = True
-```
-
-### 2.2. Frontend (TypeScript)
-```typescript
-// src/types/paciente.ts
-export interface Paciente {
-  id: string;
-  nome: string;
-  nome_responsavel: string;
-  data_nascimento?: string; // ISO 8601
-  cpf?: string;
-  telefone?: string;
-  email?: string;
-  altura?: string;
-  peso?: string;
-  tipo_sanguineo?: string;
-  created_at: string;
-  updated_at: string;
-}
-```
-
-## 3. Plano de Ação
-
-### 3.1. Fase 1: Estrutura Base
-1. Mover todos os serviços de API para `src/services/`
-2. Atualizar imports em todos os componentes
-3. Remover serviços duplicados
-4. Configurar axios e interceptors em `src/lib/api.ts`
-
-### 3.2. Fase 2: Tipagem e Validação
-1. Definir interfaces TypeScript para todas as entidades
-2. Implementar funções de conversão de dados quando necessário
-3. Adicionar validações usando Zod ou similar
-4. Documentar os tipos e validações
-
-### 3.3. Fase 3: Componentes
-1. Identificar componentes que podem ser compartilhados
-2. Mover componentes específicos para suas páginas
-3. Implementar composição de componentes
-4. Documentar uso e props
-
-### 3.4. Fase 4: Testes e Documentação
-1. Criar testes para serviços de API
-2. Testar componentes compartilhados
-3. Atualizar documentação com nova estrutura
-4. Criar guia de boas práticas
-
-## 4. Convenções e Boas Práticas
-
-### 4.1. Serviços
-- Um arquivo por recurso (pacientes, guias, etc.)
-- Funções assíncronas com tratamento de erro
+### 2.2. Tratamento de Erros
+- Feedback visual para o usuário
+- Mensagens de erro claras
 - Logs para debug
-- Tipagem forte
+- Tratamento de erros da API
 
-### 4.2. Componentes
-- Componentes compartilhados genéricos
-- Componentes específicos focados
-- Props bem definidas
-- Composição sobre herança
+### 2.3. Estado e Cache
+- Usar React Query para dados da API
+- Estados locais com useState
+- Invalidação de cache após mutações
+- Feedback de loading
 
-### 4.3. Nomenclatura
-- Serviços: `nomeService.ts`
-- Componentes compartilhados: PascalCase
-- Funções: camelCase
-- Interfaces: PascalCase
+### 2.4. UI/UX
+- Diálogos de confirmação
+- Indicadores de loading
+- Mensagens de sucesso/erro
+- Paginação e busca
+- Responsividade
 
-## 5. Monitoramento e Manutenção
+## 3. Checklist de Implementação
 
-### 5.1. Checklist de Qualidade
-- [ ] Serviços centralizados
-- [ ] Tipos consistentes
-- [ ] Componentes organizados
-- [ ] Documentação atualizada
-- [ ] Testes implementados
+Para cada novo módulo, seguir:
 
-### 5.2. Revisão Periódica
-- Executar script de análise
-- Verificar logs de erro
-- Atualizar dependências
-- Refatorar conforme necessário
+1. **Estrutura**
+   - [ ] Criar pasta no app router
+   - [ ] Definir tipos/interfaces
+   - [ ] Criar serviço de API
+   - [ ] Implementar componentes
+
+2. **Funcionalidades**
+   - [ ] CRUD completo
+   - [ ] Busca e filtros
+   - [ ] Paginação
+   - [ ] Validações
+   - [ ] Tratamento de erros
+
+3. **Qualidade**
+   - [ ] Tipos bem definidos
+   - [ ] Validações adequadas
+   - [ ] Feedback ao usuário
+   - [ ] Código organizado
+   - [ ] Sem duplicação
+
+4. **Performance**
+   - [ ] Cache configurado
+   - [ ] Loading states
+   - [ ] Paginação eficiente
+   - [ ] Debounce em buscas
+
+## 4. Monitoramento
+
+- Revisar implementações periodicamente
+- Verificar consistência entre módulos
+- Atualizar documentação quando necessário
+- Refatorar código duplicado

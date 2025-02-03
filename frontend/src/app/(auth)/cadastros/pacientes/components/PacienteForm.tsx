@@ -20,15 +20,15 @@ import { useRouter } from "next/navigation"
 import { criarPaciente, atualizarPaciente } from "@/services/pacienteService"
 
 const formSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  nome_responsavel: z.string().min(1, "Nome do responsável é obrigatório"),
+  nome: z.string().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+  nome_responsavel: z.string().min(1, "Nome do responsável é obrigatório").max(100, "Nome do responsável muito longo"),
   data_nascimento: z.string().optional(),
-  cpf: z.string().optional(),
-  telefone: z.string().optional(),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  altura: z.string().optional(),
-  peso: z.string().optional(),
-  tipo_sanguineo: z.string().optional(),
+  cpf: z.string().max(11, "CPF deve ter no máximo 11 dígitos").optional(),
+  telefone: z.string().max(11, "Telefone deve ter no máximo 11 dígitos").optional(),
+  email: z.string().email("Email inválido").max(100, "Email muito longo").optional().or(z.literal("")),
+  altura: z.string().max(5, "Altura deve ter no máximo 5 caracteres").optional(),
+  peso: z.string().max(5, "Peso deve ter no máximo 5 caracteres").optional(),
+  tipo_sanguineo: z.string().max(3, "Tipo sanguíneo deve ter no máximo 3 caracteres").optional(),
 })
 
 interface PacienteFormProps {
@@ -55,36 +55,39 @@ export function PacienteForm({ paciente, onSuccess }: PacienteFormProps) {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
-      if (paciente) {
-        await atualizarPaciente(paciente.id, values)
-        toast({
-          title: "Sucesso",
-          description: "Paciente atualizado com sucesso!",
-        })
-      } else {
-        await criarPaciente(values)
-        toast({
-          title: "Sucesso",
-          description: "Paciente criado com sucesso!",
-        })
+      // Remove caracteres não numéricos do CPF e telefone
+      if (data.cpf) {
+        data.cpf = data.cpf.replace(/\D/g, '')
+      }
+      if (data.telefone) {
+        data.telefone = data.telefone.replace(/\D/g, '')
       }
 
-      // Invalida o cache para forçar uma nova busca
-      queryClient.invalidateQueries({ queryKey: ['pacientes'] })
+      if (paciente?.id) {
+        await atualizarPaciente(paciente.id, data)
+        toast({
+          title: "Paciente atualizado com sucesso!",
+          variant: "success",
+        })
+      } else {
+        await criarPaciente(data)
+        toast({
+          title: "Paciente criado com sucesso!",
+          variant: "success",
+        })
+      }
       
-      // Chama o callback de sucesso se existir
-      onSuccess?.()
-
-      // Reseta o formulário
-      form.reset()
-    } catch (error) {
+      queryClient.invalidateQueries(['pacientes'])
+      if (onSuccess) onSuccess()
+      router.push('/cadastros/pacientes')
+    } catch (error: any) {
       console.error('Erro ao salvar paciente:', error)
       toast({
+        title: "Erro ao salvar paciente",
+        description: error.response?.data?.detail || "Ocorreu um erro ao salvar o paciente",
         variant: "destructive",
-        title: "Erro",
-        description: "Erro ao salvar paciente. Tente novamente.",
       })
     }
   }

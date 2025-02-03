@@ -7,7 +7,7 @@ import { PacienteForm } from './components/PacienteForm'
 import SortableTable from '@/components/SortableTable'
 import { columns } from './components/columns'
 import { Paciente } from '@/types/paciente'
-import { listarPacientes } from '@/services/pacienteService'
+import { listarPacientes, excluirPaciente, buscarGuiasPaciente } from '@/services/pacienteService'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -17,15 +17,29 @@ import { useRouter } from 'next/navigation'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import Link from 'next/link'
 import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function PacientesPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [pacienteToDelete, setPacienteToDelete] = useState<Paciente | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const tableRef = useCallback((table: any) => {
     if (typeof window !== 'undefined') {
@@ -47,8 +61,66 @@ export default function PacientesPage() {
   }
 
   const handleDelete = async (paciente: Paciente) => {
-    // Implementar depois
-    console.log('Delete:', paciente)
+    // Primeiro mostramos o diálogo de confirmação
+    setPacienteToDelete(paciente)
+    setIsDeleteDialogOpen(true)
+    setDeleteError(null)
+  }
+
+  const handleCloseDeleteDialog = () => {
+    if (isDeleting) return // Não permite fechar enquanto está processando
+    setIsDeleteDialogOpen(false)
+    setPacienteToDelete(null)
+    setDeleteError(null)
+  }
+
+  const confirmDelete = async () => {
+    if (!pacienteToDelete || isDeleting) return
+
+    try {
+      setIsDeleting(true)
+      setDeleteError(null)
+
+      // Verificamos todos os vínculos do paciente
+      const { items: guias, carteirinhas, plano } = await buscarGuiasPaciente(pacienteToDelete.id)
+      
+      const mensagensErro = [];
+      
+      if (guias && guias.length > 0) {
+        mensagensErro.push('guias');
+      }
+      
+      if (carteirinhas && carteirinhas.length > 0) {
+        mensagensErro.push('carteirinhas');
+      }
+      
+      if (plano) {
+        mensagensErro.push('plano');
+      }
+      
+      if (mensagensErro.length > 0) {
+        setDeleteError(`Não é possível excluir este paciente pois ele possui ${mensagensErro.join(', ')} vinculado(s).`);
+        setIsDeleting(false)
+        return;
+      }
+
+      // Se não tiver vínculos, tentamos excluir
+      await excluirPaciente(pacienteToDelete.id)
+      toast.success('Paciente excluído com sucesso')
+      queryClient.invalidateQueries(['pacientes'])
+      handleCloseDeleteDialog()
+    } catch (error: any) {
+      console.error('Erro ao excluir paciente:', error)
+      const errorMessage = error.response?.data?.detail || 'Erro ao excluir paciente'
+      
+      if (errorMessage.includes('violates foreign key constraint')) {
+        setDeleteError('Não é possível excluir este paciente pois ele possui registros vinculados.')
+      } else {
+        setDeleteError('Erro ao excluir paciente. Por favor, tente novamente.')
+      }
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleClose = () => {
@@ -148,6 +220,52 @@ export default function PacientesPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog 
+        open={isDeleteDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) handleCloseDeleteDialog()
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Tem certeza que deseja excluir o paciente {pacienteToDelete?.nome}?</p>
+              <p className="font-medium text-destructive">Esta ação não pode ser desfeita.</p>
+              {deleteError && (
+                <p className="text-destructive bg-destructive/10 p-3 rounded-md mt-2 border border-destructive/20">
+                  {deleteError}
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={handleCloseDeleteDialog}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault() // Previne o fechamento automático
+                confirmDelete()
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                'Confirmar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
