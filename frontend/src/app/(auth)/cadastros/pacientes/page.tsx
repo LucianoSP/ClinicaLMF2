@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { PacienteForm } from './components/PacienteForm'
 import SortableTable from '@/components/SortableTable'
@@ -18,58 +18,28 @@ import { PaginationControls } from '@/components/ui/pagination-controls'
 import Link from 'next/link'
 import { toast } from "sonner"
 
-interface PaginatedData {
-  items: Paciente[];
-  total: number;
-  pages: number;
-  currentPage: number;
-  isLoading: boolean;
-}
-
 export default function PacientesPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [data, setData] = useState<PaginatedData>({
-    items: [],
-    total: 0,
-    pages: 0,
-    currentPage: 1,
-    isLoading: true
-  })
+  const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+
   const tableRef = useCallback((table: any) => {
     if (typeof window !== 'undefined') {
       window.tableRef = table;
     }
   }, []);
 
-  const fetchPacientes = useCallback(async (page: number = 1) => {
-    try {
-      setData(prev => ({ ...prev, isLoading: true }))
-      const response = await listarPacientes(page, searchTerm, itemsPerPage)
-      setData({
-        items: response.items,
-        total: response.total,
-        pages: Math.ceil(response.total / itemsPerPage),
-        currentPage: page,
-        isLoading: false
-      })
-    } catch (error) {
-      console.error("Erro ao buscar pacientes:", error)
-      toast.error("Erro ao carregar pacientes")
-      setData(prev => ({ ...prev, isLoading: false }))
-    }
-  }, [searchTerm, itemsPerPage])
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchPacientes(data.currentPage)
-    }, 300)
-
-    return () => clearTimeout(delayDebounceFn)
-  }, [searchTerm, data.currentPage, fetchPacientes])
+  const { data, isLoading } = useQuery({
+    queryKey: ['pacientes', currentPage, searchTerm, itemsPerPage],
+    queryFn: () => listarPacientes(currentPage, searchTerm, itemsPerPage),
+    keepPreviousData: true,
+    staleTime: 0, // Sempre considerar os dados desatualizados
+    cacheTime: 0  // Não manter cache
+  })
 
   const handleEdit = (paciente: Paciente) => {
     setSelectedPaciente(paciente)
@@ -84,19 +54,30 @@ export default function PacientesPage() {
   const handleClose = () => {
     setSelectedPaciente(null)
     setIsFormOpen(false)
+    // Invalida o cache para forçar uma nova busca
+    queryClient.invalidateQueries(['pacientes'])
   }
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value)
+    setCurrentPage(1) // Volta para a primeira página ao pesquisar
   }
 
   const handlePageChange = (page: number) => {
-    setData(prev => ({ ...prev, currentPage: page }))
+    setCurrentPage(page)
   }
 
   const handleItemsPerPageChange = (value: number) => {
     setItemsPerPage(value)
-    setData(prev => ({ ...prev, currentPage: 1 }))
+    setCurrentPage(1)
+  }
+
+  const paginatedData = {
+    items: data?.items || [],
+    total: data?.total || 0,
+    pages: data ? Math.ceil(data.total / itemsPerPage) : 0,
+    currentPage,
+    isLoading
   }
 
   return (
@@ -133,9 +114,9 @@ export default function PacientesPage() {
         <div className="rounded-md border">
           <SortableTable
             ref={tableRef}
-            data={data.items}
+            data={paginatedData.items}
             columns={columns}
-            loading={data.isLoading}
+            loading={paginatedData.isLoading}
             meta={{
               onEdit: handleEdit,
               onDelete: handleDelete
@@ -144,11 +125,12 @@ export default function PacientesPage() {
         </div>
       </Card>
 
-      {data.pages > 0 && (
+      {paginatedData.pages > 0 && (
         <PaginationControls
-          currentPage={data.currentPage}
-          totalPages={data.pages}
+          currentPage={paginatedData.currentPage}
+          totalPages={paginatedData.pages}
           itemsPerPage={itemsPerPage}
+          totalItems={paginatedData.total}
           onPageChange={handlePageChange}
           onItemsPerPageChange={handleItemsPerPageChange}
           showItemsPerPageSelector={true}
