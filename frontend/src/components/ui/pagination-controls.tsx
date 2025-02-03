@@ -24,9 +24,9 @@ export function PaginationControls({
   totalItems = 0,
   onPageChange,
   onItemsPerPageChange,
-  showItemsPerPageSelector = true, // Definido como true por padrão
+  showItemsPerPageSelector = true,
 }: PaginationControlsProps) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
 
   return (
@@ -35,10 +35,11 @@ export function PaginationControls({
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Itens por página:</span>
           <Select
+            defaultValue={itemsPerPage.toString()}
             value={itemsPerPage.toString()}
             onValueChange={(value) => {
-              onPageChange(1) // Reset to first page
               onItemsPerPageChange(Number(value))
+              onPageChange(1)
             }}
           >
             <SelectTrigger className="h-8 w-[120px]">
