@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { BiSortAlt2, BiSortUp, BiSortDown } from 'react-icons/bi';
 import { BsCheckLg } from 'react-icons/bs';
 import { IoClose } from 'react-icons/io5';
@@ -18,18 +18,7 @@ export interface Column<T> {
   style?: React.CSSProperties;
 }
 
-export default function SortableTable<T>({
-  data,
-  columns,
-  onEdit,
-  onDelete,
-  editingId,
-  onSave,
-  onCancelEdit,
-  onCellEdit,
-  actions,
-  loading = false
-}: {
+interface TableProps<T> {
   data: T[];
   columns: Column<T>[];
   onEdit?: (item: T) => void;
@@ -40,7 +29,28 @@ export default function SortableTable<T>({
   onCellEdit?: (item: T, key: keyof T, value: any) => void;
   actions?: (item: T) => React.ReactNode;
   loading?: boolean;
-}) {
+  meta?: any;
+}
+
+const SortableTable = forwardRef(<T,>(props: TableProps<T>, ref: any) => {
+  const {
+    data,
+    columns,
+    onEdit,
+    onDelete,
+    editingId,
+    onSave,
+    onCancelEdit,
+    onCellEdit,
+    actions,
+    loading = false,
+    meta
+  } = props;
+
+  useImperativeHandle(ref, () => ({
+    meta
+  }));
+  
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
@@ -95,7 +105,7 @@ export default function SortableTable<T>({
   });
 
   return (
-    <div className="overflow-x-auto border rounded-md bg-white">
+    <div ref={ref} className="overflow-x-auto border rounded-md bg-white">
       <table className="w-full border-collapse">
         <thead className="bg-gray-50 border-b">
           <tr>
@@ -226,4 +236,6 @@ export default function SortableTable<T>({
       </table>
     </div>
   );
-}
+});
+
+export default SortableTable;

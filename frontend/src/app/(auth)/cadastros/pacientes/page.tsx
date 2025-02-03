@@ -39,6 +39,11 @@ export default function PacientesPage() {
     isLoading: true
   })
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const tableRef = useCallback((table: any) => {
+    if (typeof window !== 'undefined') {
+      window.tableRef = table;
+    }
+  }, []);
 
   const fetchPacientes = useCallback(async (page: number = 1) => {
     try {
@@ -94,18 +99,6 @@ export default function PacientesPage() {
     setData(prev => ({ ...prev, currentPage: 1 }))
   }
 
-  if (data.isLoading) {
-    return (
-      <div className="container mx-auto py-6">
-        <Alert variant="info">
-          <AlertDescription>
-            Carregando pacientes...
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -137,11 +130,18 @@ export default function PacientesPage() {
       </div>
 
       <Card>
-        <SortableTable
-          data={data.items}
-          columns={columns}
-          loading={data.isLoading}
-        />
+        <div className="rounded-md border">
+          <SortableTable
+            ref={tableRef}
+            data={data.items}
+            columns={columns}
+            loading={data.isLoading}
+            meta={{
+              onEdit: handleEdit,
+              onDelete: handleDelete
+            }}
+          />
+        </div>
       </Card>
 
       {data.pages > 0 && (

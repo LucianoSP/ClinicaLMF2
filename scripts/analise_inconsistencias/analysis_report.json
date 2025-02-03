@@ -15,22 +15,22 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
-        "Optional[str]",
+        "str",
         "Optional[datetime]",
-        "str"
+        "Optional[str]"
       ],
       "database_fields": [
-        "listar_guias_paciente",
         "obter_estatisticas_paciente",
-        "criar_paciente",
         "deletar_paciente",
-        "atualizar_paciente",
+        "criar_paciente",
+        "listar_pacientes",
+        "listar_guias_paciente",
         "buscar_paciente",
-        "listar_pacientes"
+        "atualizar_paciente"
       ],
       "endpoints": [
         "GET /pacientes",
-        "POST /pacientes/",
+        "POST /pacientes",
         "GET /pacientes/{paciente_id}",
         "PUT /pacientes/{paciente_id}",
         "DELETE /pacientes/{paciente_id}",
@@ -125,9 +125,15 @@
         "pages": [
           "pacientes\\page.tsx"
         ],
-        "components": [],
-        "forms": [],
-        "tables": [],
+        "components": [
+          "pacientes\\components\\columns.tsx"
+        ],
+        "forms": [
+          "pacientes\\components\\PacienteForm.tsx"
+        ],
+        "tables": [
+          "pacientes\\components\\PacienteTable.tsx"
+        ],
         "services": [],
         "ui_components": [
           "components"
@@ -135,13 +141,11 @@
       },
       "inconsistencies": [
         "Campos do modelo ausentes na tabela: cpf",
-        "Campos da tabela ausentes no modelo: REFERENCES, character, observacoes, endereco",
+        "Campos da tabela ausentes no modelo: character, REFERENCES, endereco, observacoes",
         "Tipo SQL incompatível para created_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
-        "Tipo SQL incompatível para data_nascimento: sql=DATE, model=Optional[str]",
         "Tipo SQL incompatível para updated_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
-        "Tipo SQL incompatível para id: sql=UUID, model=Optional[str]",
-        "Formulário de cadastro não encontrado em /cadastros/pacientes",
-        "Tabela de listagem não encontrada em /cadastros/pacientes"
+        "Tipo SQL incompatível para data_nascimento: sql=DATE, model=Optional[str]",
+        "Tipo SQL incompatível para id: sql=UUID, model=Optional[str]"
       ]
     },
     "Carteirinha": {
@@ -183,17 +187,17 @@
         "codigo": "string"
       },
       "frontend_type_fields": [
-        "Optional[Dict]",
-        "Optional[str]",
+        "str",
         "Optional[datetime]",
-        "str"
+        "Optional[str]",
+        "Optional[Dict]"
       ],
       "database_fields": [
-        "get_plano_by_carteirinha",
-        "listar_carteirinhas",
-        "atualizar_carteirinha",
+        "criar_carteirinha",
         "deletar_carteirinha",
-        "criar_carteirinha"
+        "atualizar_carteirinha",
+        "get_plano_by_carteirinha",
+        "listar_carteirinhas"
       ],
       "endpoints": [
         "GET /carteirinhas",
@@ -287,23 +291,23 @@
         ]
       },
       "inconsistencies": [
-        "Campos faltando no frontend: created_by, plano_saude, status, paciente",
-        "Campos faltando no backend: titular, ativo, nome, data_nascimento, pacienteId, dataValidade, codigo, cpf, telefone, nomeTitular, nome_responsavel, planoSaudeId, numeroCarteirinha",
-        "Tipo incompatível para created_at: backend=Optional[datetime], frontend=string",
+        "Campos faltando no frontend: status, created_by, plano_saude, paciente",
+        "Campos faltando no backend: titular, pacienteId, nome, ativo, nomeTitular, data_nascimento, nome_responsavel, cpf, numeroCarteirinha, planoSaudeId, dataValidade, codigo, telefone",
         "Tipo incompatível para paciente_id: backend=str, frontend=string",
-        "Tipo incompatível para numero_carteirinha: backend=str, frontend=string",
+        "Tipo incompatível para created_at: backend=Optional[datetime], frontend=string",
         "Tipo incompatível para updated_at: backend=Optional[datetime], frontend=string",
+        "Tipo incompatível para numero_carteirinha: backend=str, frontend=string",
         "Tipo incompatível para id: backend=Optional[str], frontend=string",
         "Tipo incompatível para plano_saude_id: backend=str, frontend=string",
-        "Tipo incompatível para motivo_inativacao: backend=str, frontend=string",
         "Tipo incompatível para data_validade: backend=Optional[str], frontend=string",
-        "Campos do modelo ausentes na tabela: created_by, paciente_id, plano_saude_id, plano_saude, paciente",
+        "Tipo incompatível para motivo_inativacao: backend=str, frontend=string",
+        "Campos do modelo ausentes na tabela: paciente_id, created_by, paciente, plano_saude, plano_saude_id",
         "Campos da tabela ausentes no modelo: DELETE, REFERENCES, historico_status",
         "Tipo SQL incompatível para created_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
         "Tipo SQL incompatível para updated_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
+        "Tipo SQL incompatível para status: sql=STATUS_CARTEIRINHA, model=str",
         "Tipo SQL incompatível para id: sql=UUID, model=Optional[str]",
         "Tipo SQL incompatível para data_validade: sql=DATE, model=Optional[str]",
-        "Tipo SQL incompatível para status: sql=STATUS_CARTEIRINHA, model=str",
         "Formulário de cadastro não encontrado em /cadastros/carteirinhas",
         "Tabela de listagem não encontrada em /cadastros/carteirinhas"
       ]
@@ -326,17 +330,17 @@
         "updated_at": "string"
       },
       "frontend_type_fields": [
-        "Optional[str]",
-        "bool",
         "str",
-        "Optional[datetime]"
+        "bool",
+        "Optional[datetime]",
+        "Optional[str]"
       ],
       "database_fields": [
+        "atualizar_plano",
         "get_plano_by_carteirinha",
         "listar_planos",
-        "atualizar_plano",
-        "deletar_plano",
         "extrair_codigo_plano",
+        "deletar_plano",
         "criar_plano"
       ],
       "endpoints": [
@@ -379,11 +383,11 @@
       },
       "inconsistencies": [
         "Tipo incompatível para created_at: backend=Optional[datetime], frontend=string",
-        "Tipo incompatível para ativo: backend=bool, frontend=boolean",
         "Tipo incompatível para nome: backend=str, frontend=string",
-        "Tipo incompatível para codigo: backend=str, frontend=string",
+        "Tipo incompatível para ativo: backend=bool, frontend=boolean",
         "Tipo incompatível para updated_at: backend=Optional[datetime], frontend=string",
         "Tipo incompatível para id: backend=Optional[str], frontend=string",
+        "Tipo incompatível para codigo: backend=str, frontend=string",
         "Formulário de cadastro não encontrado em /cadastros/planos",
         "Tabela de listagem não encontrada em /cadastros/planos"
       ]
@@ -398,8 +402,8 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
-        "bool",
-        "str"
+        "str",
+        "bool"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -425,8 +429,8 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
-        "list[Registro]",
-        "str"
+        "str",
+        "list[Registro]"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -456,8 +460,8 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
-        "bool",
-        "str"
+        "str",
+        "bool"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -501,9 +505,9 @@
         "updated_at": "string"
       },
       "frontend_type_fields": [
+        "str",
         "bool",
-        "unknown",
-        "str"
+        "unknown"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -521,14 +525,14 @@
       },
       "cadastros_structure": {},
       "inconsistencies": [
-        "Campos faltando no backend: created_at, updated_at, id, ficha_presenca_id, executado",
+        "Campos faltando no backend: created_at, updated_at, ficha_presenca_id, id, executado",
         "Tipo incompatível para tipo_terapia: backend=unknown, frontend=string",
-        "Tipo incompatível para observacoes_sessao: backend=unknown, frontend=string",
-        "Tipo incompatível para possui_assinatura: backend=bool, frontend=boolean",
-        "Tipo incompatível para profissional_executante: backend=unknown, frontend=string",
         "Tipo incompatível para data_sessao: backend=str, frontend=string",
+        "Tipo incompatível para profissional_executante: backend=unknown, frontend=string",
+        "Tipo incompatível para status: backend=str, frontend=string",
         "Tipo incompatível para valor_sessao: backend=unknown, frontend=number",
-        "Tipo incompatível para status: backend=str, frontend=string"
+        "Tipo incompatível para observacoes_sessao: backend=unknown, frontend=string",
+        "Tipo incompatível para possui_assinatura: backend=bool, frontend=boolean"
       ]
     },
     "FichaPresenca": {
@@ -543,10 +547,10 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
-        "bool",
+        "str",
         "Optional[str]",
-        "unknown",
-        "str"
+        "bool",
+        "unknown"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -577,9 +581,9 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
+        "str",
         "bool",
-        "Optional[str]",
-        "str"
+        "Optional[str]"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -617,8 +621,8 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
-        "unknown",
-        "str"
+        "str",
+        "unknown"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -647,10 +651,10 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
+        "int",
         "bool",
-        "list[DivergenciaResponse]",
         "dict",
-        "int"
+        "list[DivergenciaResponse]"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -706,9 +710,9 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
+        "str",
         "bool",
-        "unknown",
-        "str"
+        "unknown"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -751,10 +755,10 @@
         "updated_by": "string"
       },
       "frontend_type_fields": [
-        "Optional[str]",
-        "bool",
         "str",
-        "Optional[datetime]"
+        "bool",
+        "Optional[datetime]",
+        "Optional[str]"
       ],
       "database_fields": [],
       "endpoints": [],
@@ -815,19 +819,19 @@
       "cadastros_structure": {},
       "inconsistencies": [
         "Tipo incompatível para created_at: backend=Optional[datetime], frontend=string",
-        "Tipo incompatível para ativo: backend=bool, frontend=boolean",
-        "Tipo incompatível para nome: backend=str, frontend=string",
         "Tipo incompatível para created_by: backend=Optional[str], frontend=string",
-        "Tipo incompatível para codigo: backend=str, frontend=string",
-        "Tipo incompatível para descricao: backend=Optional[str], frontend=string",
-        "Tipo incompatível para id: backend=Optional[str], frontend=string",
-        "Tipo incompatível para updated_at: backend=Optional[datetime], frontend=string",
+        "Tipo incompatível para nome: backend=str, frontend=string",
         "Tipo incompatível para updated_by: backend=Optional[str], frontend=string",
+        "Tipo incompatível para ativo: backend=bool, frontend=boolean",
+        "Tipo incompatível para descricao: backend=Optional[str], frontend=string",
+        "Tipo incompatível para updated_at: backend=Optional[datetime], frontend=string",
+        "Tipo incompatível para id: backend=Optional[str], frontend=string",
+        "Tipo incompatível para codigo: backend=str, frontend=string",
         "Campos do modelo ausentes na tabela: updated_by, created_by",
         "Campos da tabela ausentes no modelo: REFERENCES",
         "Tipo SQL incompatível para created_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
-        "Tipo SQL incompatível para id: sql=UUID, model=Optional[str]",
-        "Tipo SQL incompatível para updated_at: sql=TIMESTAMPTZ, model=Optional[datetime]"
+        "Tipo SQL incompatível para updated_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
+        "Tipo SQL incompatível para id: sql=UUID, model=Optional[str]"
       ]
     },
     "Guia": {
@@ -856,20 +860,20 @@
       },
       "frontend_interface_fields": {},
       "frontend_type_fields": [
-        "int",
         "str",
-        "Optional[dict]",
         "Optional[str]",
+        "Optional[dict]",
+        "int",
         "Optional[datetime]"
       ],
       "database_fields": [
-        "salvar_guia",
         "buscar_guia",
-        "criar_guia",
-        "listar_guias_paciente",
-        "listar_guias",
+        "excluir_guia",
+        "salvar_guia",
         "atualizar_guia",
-        "excluir_guia"
+        "listar_guias_paciente",
+        "criar_guia",
+        "listar_guias"
       ],
       "endpoints": [
         "GET /guia/{numero_guia}",
@@ -879,7 +883,7 @@
         "listarGuias",
         "criarGuia",
         "atualizarGuia",
-        "excluirGuia",
+        "deletarGuia",
         "listarProcedimentos"
       ],
       "next_routes": [
@@ -1006,15 +1010,15 @@
         ]
       },
       "inconsistencies": [
-        "Campos do modelo ausentes na tabela: carteirinha_id, carteirinha, created_by, paciente_id, procedimento_id, procedimento, updated_by, paciente",
-        "Campos da tabela ausentes no modelo: origem, senha_autorizacao, data_validade_senha, numero_guia_operadora, REFERENCES, valor_autorizado, data_autorizacao, DELETE, dados_adicionais",
+        "Campos do modelo ausentes na tabela: created_by, paciente_id, procedimento_id, updated_by, carteirinha_id, paciente, carteirinha, procedimento",
+        "Campos da tabela ausentes no modelo: origem, senha_autorizacao, DELETE, dados_adicionais, REFERENCES, data_autorizacao, numero_guia_operadora, data_validade_senha, valor_autorizado",
         "Tipo SQL incompatível para created_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
         "Tipo SQL incompatível para updated_at: sql=TIMESTAMPTZ, model=Optional[datetime]",
-        "Tipo SQL incompatível para id: sql=UUID, model=Optional[str]",
+        "Tipo SQL incompatível para status: sql=STATUS_GUIA, model=str",
         "Tipo SQL incompatível para data_emissao: sql=DATE, model=Optional[str]",
         "Tipo SQL incompatível para tipo: sql=TIPO_GUIA, model=str",
+        "Tipo SQL incompatível para id: sql=UUID, model=Optional[str]",
         "Tipo SQL incompatível para data_validade: sql=DATE, model=Optional[str]",
-        "Tipo SQL incompatível para status: sql=STATUS_GUIA, model=str",
         "Formulário de cadastro não encontrado em /cadastros/guias",
         "Tabela de listagem não encontrada em /cadastros/guias"
       ]
@@ -1203,19 +1207,24 @@
         "em_andamento": "number",
         "concluida": "number",
         "cancelada": "number",
+        "rua": "string",
+        "complemento": "string",
+        "bairro": "string",
+        "cidade": "string",
+        "estado": "string",
+        "cep": "string",
         "nome_responsavel": "string",
-        "tipo_responsavel": "string",
         "data_nascimento": "string",
         "cpf": "string",
         "telefone": "string",
         "email": "string",
-        "observacoes_clinicas": "string",
+        "endereco": "Endereco",
+        "observacoes": "string",
+        "altura": "string",
+        "peso": "string",
+        "tipo_sanguineo": "string",
         "created_at": "string",
-        "updated_at": "string",
-        "idade": "number",
-        "photo": "string",
-        "plano_nome": "string",
-        "estatisticas": "PacienteEstatisticas"
+        "updated_at": "string"
       },
       "frontend_type_fields": [],
       "database_fields": [],

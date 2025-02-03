@@ -5,53 +5,53 @@
 **Campos do modelo ausentes na tabela:**
 - `cpf`
 **Campos da tabela ausentes no modelo:**
-- `REFERENCES`
 - `character`
-- `observacoes`
+- `REFERENCES`
 - `endereco`
+- `observacoes`
 
 ### 1.12. Carteirinha
 #### Campos Faltantes
 **No Frontend:**
+- `status`
 - `created_by`
 - `plano_saude`
-- `status`
 - `paciente`
 **No Backend:**
 - `titular`
-- `ativo`
-- `nome`
-- `data_nascimento`
 - `pacienteId`
+- `nome`
+- `ativo`
+- `nomeTitular`
+- `data_nascimento`
+- `nome_responsavel`
+- `cpf`
+- `numeroCarteirinha`
+- `planoSaudeId`
 - `dataValidade`
 - `codigo`
-- `cpf`
 - `telefone`
-- `nomeTitular`
-- `nome_responsavel`
-- `planoSaudeId`
-- `numeroCarteirinha`
 
 #### Tipos Incompatíveis
 ```
 Backend                  Frontend
-created_at: Optional[datetime] -> string
 paciente_id: str             -> string
-numero_carteirinha: str             -> string
+created_at: Optional[datetime] -> string
 updated_at: Optional[datetime] -> string
+numero_carteirinha: str             -> string
 id: Optional[str]   -> string
 plano_saude_id: str             -> string
-motivo_inativacao: str             -> string
 data_validade: Optional[str]   -> string
+motivo_inativacao: str             -> string
 ```
 
 #### Problemas com a Tabela
 **Campos do modelo ausentes na tabela:**
-- `created_by`
 - `paciente_id`
-- `plano_saude_id`
-- `plano_saude`
+- `created_by`
 - `paciente`
+- `plano_saude`
+- `plano_saude_id`
 **Campos da tabela ausentes no modelo:**
 - `DELETE`
 - `REFERENCES`
@@ -62,11 +62,11 @@ data_validade: Optional[str]   -> string
 ```
 Backend                  Frontend
 created_at: Optional[datetime] -> string
-ativo: bool            -> boolean
 nome: str             -> string
-codigo: str             -> string
+ativo: bool            -> boolean
 updated_at: Optional[datetime] -> string
 id: Optional[str]   -> string
+codigo: str             -> string
 ```
 
 ### 1.67. Sessao
@@ -74,20 +74,20 @@ id: Optional[str]   -> string
 **No Backend:**
 - `created_at`
 - `updated_at`
-- `id`
 - `ficha_presenca_id`
+- `id`
 - `executado`
 
 #### Tipos Incompatíveis
 ```
 Backend                  Frontend
 tipo_terapia: unknown         -> string
+data_sessao: str             -> string
+profissional_executante: unknown         -> string
+status: str             -> string
+valor_sessao: unknown         -> number
 observacoes_sessao: unknown         -> string
 possui_assinatura: bool            -> boolean
-profissional_executante: unknown         -> string
-data_sessao: str             -> string
-valor_sessao: unknown         -> number
-status: str             -> string
 ```
 
 ### 1.86. Procedimento
@@ -95,14 +95,14 @@ status: str             -> string
 ```
 Backend                  Frontend
 created_at: Optional[datetime] -> string
-ativo: bool            -> boolean
-nome: str             -> string
 created_by: Optional[str]   -> string
-codigo: str             -> string
-descricao: Optional[str]   -> string
-id: Optional[str]   -> string
-updated_at: Optional[datetime] -> string
+nome: str             -> string
 updated_by: Optional[str]   -> string
+ativo: bool            -> boolean
+descricao: Optional[str]   -> string
+updated_at: Optional[datetime] -> string
+id: Optional[str]   -> string
+codigo: str             -> string
 ```
 
 #### Problemas com a Tabela
@@ -115,24 +115,24 @@ updated_by: Optional[str]   -> string
 ### 1.106. Guia
 #### Problemas com a Tabela
 **Campos do modelo ausentes na tabela:**
-- `carteirinha_id`
-- `carteirinha`
 - `created_by`
 - `paciente_id`
 - `procedimento_id`
-- `procedimento`
 - `updated_by`
+- `carteirinha_id`
 - `paciente`
+- `carteirinha`
+- `procedimento`
 **Campos da tabela ausentes no modelo:**
 - `origem`
 - `senha_autorizacao`
-- `data_validade_senha`
-- `numero_guia_operadora`
-- `REFERENCES`
-- `valor_autorizado`
-- `data_autorizacao`
 - `DELETE`
 - `dados_adicionais`
+- `REFERENCES`
+- `data_autorizacao`
+- `numero_guia_operadora`
+- `data_validade_senha`
+- `valor_autorizado`
 
 
 ## 2. Recomendações

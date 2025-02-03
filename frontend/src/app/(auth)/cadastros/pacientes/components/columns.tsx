@@ -5,6 +5,12 @@ import { Paciente } from '@/types/paciente'
 import { formatarData } from '@/lib/utils'
 import { TableActions } from '@/components/ui/table-actions'
 
+declare global {
+  interface Window {
+    tableRef: any;
+  }
+}
+
 export const columns: Column<Paciente>[] = [
   {
     key: 'nome',
@@ -43,8 +49,8 @@ export const columns: Column<Paciente>[] = [
     className: 'text-right',
     render: (_, paciente) => (
       <TableActions
-        onEdit={() => table.options.meta?.onEdit?.(paciente)}
-        onDelete={() => table.options.meta?.onDelete?.(paciente)}
+        onEdit={() => window.tableRef?.meta?.onEdit?.(paciente)}
+        onDelete={() => window.tableRef?.meta?.onDelete?.(paciente)}
       />
     )
   }
