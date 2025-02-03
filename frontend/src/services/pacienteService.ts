@@ -38,7 +38,7 @@ export async function listarPacientes(
   console.log("Resposta da API listarPacientes:", response.data);
 
   // Garantir que os dados do paciente incluam carteirinhas
-  const items = response.data.data.map((paciente: any) => ({
+  const items = response.data.items.map((paciente: any) => ({
     ...paciente,
     carteirinhas: paciente.carteirinhas || [],
   }));
@@ -46,7 +46,7 @@ export async function listarPacientes(
   return {
     items,
     total: response.data.total || 0,
-    pages: response.data.pages || 1,
+    pages: response.data.total_pages || 1,
   };
 }
 

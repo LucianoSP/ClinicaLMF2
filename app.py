@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Query, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Query, Body, Path
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List, Optional, Dict, Generic, TypeVar
+from math import ceil
 import database_supabase
 from auditoria import realizar_auditoria, realizar_auditoria_fichas_execucoes
 from pydantic import BaseModel, ValidationError, validator
@@ -9,7 +11,14 @@ import pandas as pd
 import tempfile
 import shutil
 from datetime import datetime, date, timezone
-from typing import List, Optional, Dict
+import logging
+import uvicorn
+import sqlite3
+import traceback
+import uuid
+from google import genai
+from google.genai import types
+
 from database_supabase import (
     salvar_dados_excel,
     listar_dados_excel,
@@ -41,25 +50,10 @@ from auditoria_repository import (
     atualizar_status_divergencia,
     obter_ultima_auditoria,
     limpar_divergencias_db,
-    atualizar_ficha_ids_divergencias,  # Movido para cá
+    atualizar_ficha_ids_divergencias,
 )
-from config import supabase  # Importar o cliente Supabase já inicializado
-from storage_r2 import storage  # Nova importação do R2
-import json
-import asyncio
-import base64
-import anthropic
-from pathlib import Path
-import re
-from math import ceil
-import logging
-import uvicorn
-import sqlite3  # Adicionando importação do sqlite3
-import traceback
-import uuid  # Adicionar esta importação
-
-from google import genai
-from google.genai import types
+from config import supabase
+from storage_r2 import storage
 
 claude_api_key = os.environ["ANTHROPIC_API_KEY"]
 gemini_api_key = os.environ["GEMINI_API_KEY"]
@@ -107,13 +101,31 @@ if not os.path.exists(GUIAS_RENOMEADAS_DIR):
 class Paciente(BaseModel):
     id: Optional[str] = None
     nome: str
-    nome_responsavel: str
+    nome_responsavel: Optional[str] = None
     data_nascimento: Optional[str] = None
     cpf: Optional[str] = None
     telefone: Optional[str] = None
     email: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+# TypeVar para modelos genéricos
+T = TypeVar('T')
+
+# Modelos de resposta padronizados
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    page: int
+    total_pages: int
+    has_more: bool
+
+class StandardResponse(BaseModel, Generic[T]):
+    success: bool
+    data: Optional[T] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 
 class Carteirinha(BaseModel):
@@ -157,68 +169,165 @@ class Carteirinha(BaseModel):
 
 
 # Rotas para Pacientes
-@app.get("/pacientes")
+@app.get(
+    "/pacientes",
+    response_model=PaginatedResponse[Paciente],
+    summary="Listar Pacientes",
+    description="Retorna uma lista paginada de pacientes com suporte a busca por nome ou responsável"
+)
 def listar_pacientes_route(
     limit: int = Query(10, ge=1, le=100, description="Itens por página"),
     offset: int = Query(0, ge=0, description="Número de itens para pular"),
-    search: str = Query(
-        None, description="Buscar por nome do paciente ou responsável"),
+    search: str = Query(None, description="Buscar por nome do paciente ou responsável"),
 ):
     try:
-        return database_supabase.listar_pacientes(limit=limit,
-                                                  offset=offset,
-                                                  search=search)
+        result = database_supabase.listar_pacientes(
+            limit=limit,
+            offset=offset,
+            search=search
+        )
+        
+        if not result:
+            return PaginatedResponse(
+                items=[],
+                total=0,
+                page=1,
+                total_pages=0,
+                has_more=False
+            )
+            
+        # O resultado já vem com items e total
+        page = (offset // limit) + 1
+        total_pages = ceil(result["total"] / limit) if result["total"] > 0 else 0
+        
+        return PaginatedResponse(
+            items=result["data"],
+            total=result["total"],
+            page=page,
+            total_pages=total_pages,
+            has_more=page < total_pages
+        )
     except Exception as e:
-        logging.error(f"Erro ao listar pacientes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Erro ao listar pacientes: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno ao listar pacientes: {str(e)}"
+        )
 
 
-@app.post("/pacientes")
+@app.post(
+    "/pacientes",
+    response_model=StandardResponse[Paciente],
+    summary="Criar Paciente",
+    description="Cria um novo paciente no sistema"
+)
 async def criar_paciente_route(paciente: Paciente):
     try:
-        return criar_paciente(paciente.model_dump(exclude_unset=True))
+        result = criar_paciente(paciente.model_dump(exclude_unset=True))
+        return StandardResponse(
+            success=True,
+            data=result,
+            message="Paciente criado com sucesso"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Erro ao criar paciente: {e}")
+        return StandardResponse(
+            success=False,
+            error="Erro ao criar paciente"
+        )
 
 
-@app.get("/pacientes/{paciente_id}")
-def buscar_paciente_route(paciente_id: str):
+@app.get(
+    "/pacientes/{paciente_id}",
+    response_model=StandardResponse[Paciente],
+    summary="Buscar Paciente",
+    description="Retorna os dados de um paciente específico"
+)
+def buscar_paciente_route(
+    paciente_id: str = Path(..., description="ID do paciente")
+):
     try:
         paciente = buscar_paciente(paciente_id)
         if not paciente:
-            raise HTTPException(status_code=404,
-                                detail="Paciente não encontrado")
-        return paciente
+            return StandardResponse(
+                success=False,
+                error="Paciente não encontrado"
+            )
+        return StandardResponse(
+            success=True,
+            data=paciente
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Erro ao buscar paciente: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao buscar paciente"
+        )
 
 
-@app.put("/pacientes/{paciente_id}")
-def atualizar_paciente_route(paciente_id: str, paciente: Paciente):
+@app.put(
+    "/pacientes/{paciente_id}",
+    response_model=StandardResponse[Paciente],
+    summary="Atualizar Paciente",
+    description="Atualiza os dados de um paciente existente"
+)
+def atualizar_paciente_route(
+    paciente_id: str = Path(..., description="ID do paciente"),
+    paciente: Paciente = Body(..., description="Dados do paciente")
+):
     try:
         paciente_atual = buscar_paciente(paciente_id)
         if not paciente_atual:
-            raise HTTPException(status_code=404,
-                                detail="Paciente não encontrado")
-
-        return atualizar_paciente(paciente_id,
-                                  paciente.model_dump(exclude_unset=True))
+            return StandardResponse(
+                success=False,
+                error="Paciente não encontrado"
+            )
+            
+        result = atualizar_paciente(
+            paciente_id,
+            paciente.model_dump(exclude_unset=True)
+        )
+        return StandardResponse(
+            success=True,
+            data=result,
+            message="Paciente atualizado com sucesso"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Erro ao atualizar paciente: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao atualizar paciente"
+        )
 
 
-@app.delete("/pacientes/{paciente_id}")
-def deletar_paciente_route(paciente_id: str):
+@app.delete(
+    "/pacientes/{paciente_id}",
+    response_model=StandardResponse[dict],
+    summary="Deletar Paciente",
+    description="Remove um paciente do sistema"
+)
+def deletar_paciente_route(
+    paciente_id: str = Path(..., description="ID do paciente")
+):
     try:
         paciente = buscar_paciente(paciente_id)
         if not paciente:
-            raise HTTPException(status_code=404,
-                                detail="Paciente não encontrado")
-
+            return StandardResponse(
+                success=False,
+                error="Paciente não encontrado"
+            )
+            
         deletar_paciente(paciente_id)
-        return {"message": "Paciente excluído com sucesso"}
+        return StandardResponse(
+            success=True,
+            message="Paciente removido com sucesso"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Erro ao deletar paciente: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao deletar paciente"
+        )
 
 
 # Modelo para Plano de Saúde
